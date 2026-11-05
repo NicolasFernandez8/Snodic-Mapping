@@ -9,7 +9,7 @@ export default async function Ajustes() {
     q<Niche>("SELECT * FROM niches ORDER BY label"),
     getSetting<string>("active_niche", "hospitality"),
     getSetting<number>("daily_locality_quota", 3),
-    getSetting<string>("prospect_source", "google_places"),
+    getSetting<string>("prospect_source", "osm"),
     getSetting<boolean>("auto_generate_outputs", true),
   ]);
 
@@ -41,8 +41,8 @@ export default async function Ajustes() {
           <div className="field">
             <label htmlFor="prospect_source">Fuente de prospectos</label>
             <select id="prospect_source" name="prospect_source" defaultValue={source}>
-              <option value="google_places">Google Places API (recomendado: trae reseñas)</option>
-              <option value="osm">OpenStreetMap (gratis, menos cobertura)</option>
+              <option value="osm">OpenStreetMap (gratis, sin clave)</option>
+              <option value="google_places">Google Places API (requiere facturación: no usar)</option>
             </select>
           </div>
           <div className="field row">

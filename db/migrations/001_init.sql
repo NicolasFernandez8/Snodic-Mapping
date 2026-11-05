@@ -151,5 +151,5 @@ INSERT INTO niches (key, label, google_types, keywords, osm_tags, business_label
 INSERT INTO settings (key, value) VALUES
 ('active_niche', '"hospitality"'),
 ('daily_locality_quota', '3'),
-('prospect_source', '"google_places"'),
+('prospect_source', '"osm"'),
 ('auto_generate_outputs', 'true');

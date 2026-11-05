@@ -35,15 +35,22 @@ tailscale serve --bg --https=8445 http://127.0.0.1:3000
 ```
 → `https://nico.tailc83d1c.ts.net:8445/`. **No** activar Funnel. Opcional: `APP_BASIC_AUTH=usuario:clave` en `.env`.
 
-## 5. Claves (todas opcionales; la app funciona y avisa qué falta)
+## 5. Modo 100 % gratuito (por defecto)
 
-### Google Places API (Agentes 1 y 2)
-1. https://console.cloud.google.com → proyecto nuevo “snodic-mapping”.
-2. APIs y servicios → Biblioteca → **Places API (New)** → Habilitar. (Google exige una cuenta de facturación; tiene cupo mensual gratuito. Revisá precios y poné **cuotas/alertas de presupuesto** antes de usar.)
-3. Credenciales → Crear clave de API → restringila a “Places API (New)”.
-4. `.env` → `GOOGLE_MAPS_API_KEY=...`
+Snodic trabaja **sin gastos ni datos de facturación**. Todo lo que usa la app por defecto es gratis y sin tarjeta:
 
-Sin clave podés usar la fuente **OpenStreetMap** (Ajustes → Fuente de prospectos): gratis, pero sin reseñas.
+| Necesidad | Fuente gratuita |
+|---|---|
+| Localidades (Agente 1) | OpenStreetMap / Overpass API |
+| Prospectos del rubro (Agente 1) | OpenStreetMap (hoteles, hostales, apartamentos, pensiones…) |
+| Teléfono, web, email, Instagram (Agente 2) | Etiquetas de OpenStreetMap, cuando existen; si no, `-` |
+| Link a Google Maps / reseñas | URL pública de búsqueda de Google Maps (sin clave) |
+| Reseñas | Se pegan a mano en la ficha del prospecto (botón **Abrir en Google Maps** → copiar → **Pegar reseñas**) |
+| Mensaje e informe (Agentes 3 y 4) | Modo manual: **Copiar prompt** → pegar en Claude → **Pegar respuesta** |
+| Notion | API de Notion (gratis) |
+| Mapa | Tiles de OpenStreetMap |
+
+**No configurar** `GOOGLE_MAPS_API_KEY` ni `ANTHROPIC_API_KEY`: ambas requieren facturación. El código las soporta por si algún día se decide lo contrario, pero quedan apagadas.
 
 ### Notion (Agente 2, 3 y 4)
 1. https://www.notion.so/my-integrations → Nueva integración interna “Snodic Mapping” → copiar el token.
@@ -58,10 +65,11 @@ Sin clave podés usar la fuente **OpenStreetMap** (Ajustes → Fuente de prospec
 6. El cuerpo de cada página queda: **mensaje (Agente 3)**, dos renglones vacíos, **informe (Agente 4)**. Si corregís un texto desde la app, se reemplaza sin duplicar.
 
 ### IA para los agentes 3 y 4
-- `LLM_PROVIDER=manual` (por defecto): no se llama a ninguna IA. En la ficha del prospecto tocás **Copiar prompt**, lo pegás en Claude, y pegás la respuesta en **Pegar respuesta**.
-- `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`: generación automática por API (pago por uso en console.anthropic.com; configurá un límite de gasto). Modelo: `ANTHROPIC_MODEL` (por defecto `claude-sonnet-5-5`).
+`LLM_PROVIDER=manual` (por defecto y recomendado): no se llama a ninguna IA de pago. En la ficha tocás **Copiar prompt** (ya incluye las reseñas cargadas), lo pegás en tu app de Claude y pegás la respuesta en **Pegar respuesta**. La app la valida y la escribe en Notion.
 
 ## 6. Primer recorrido: Alicante
+
+Fuente de prospectos: **OpenStreetMap** (ya viene elegida en Ajustes).
 Ajustes → **Agregar región**:
 - Provincia de Alicante por municipios: nombre `Alicante`, nivel 6 → dividir en 8.
 - Solo la ciudad por barrios: nombre `Alicante`, nivel 8 → dividir en 10.

@@ -4,10 +4,12 @@ Automatiza el trabajo diario de captación de Snodic: recorrer una zona **locali
 
 | Agente | Qué hace | Fuente |
 |---|---|---|
-| 1 · Mapeo | Divide la región en localidades (OSM o sectores propios en KML) y cada día mapea las próximas N, del centro hacia afuera. Al terminar una región pasa a la siguiente. Rubro configurable. | OpenStreetMap + Google Places API |
-| 2 · Datos | Completa teléfono, web, Instagram, enlace de reseñas y reseñas. Lo que no encuentra queda como `-`. Crea/actualiza la ficha en Notion. | Google Places API · Notion API |
-| 3 · Mensaje | Mensaje de WhatsApp (prompt de Snodic) y validación automática de reglas. Se escribe en el cuerpo de la página de Notion. | Claude (API) o modo manual |
-| 4 · Informe | Exactamente 2 ideas con el framework de 7 pasos, 2 espacios debajo del mensaje. | Claude (API) o modo manual |
+| 1 · Mapeo | Divide la región en localidades (OSM o sectores propios en KML) y cada día mapea las próximas N, del centro hacia afuera. Al terminar una región pasa a la siguiente. Rubro configurable. | OpenStreetMap |
+| 2 · Datos | Completa teléfono, web, email, Instagram y link de Google Maps. Lo que no encuentra queda como `-`. Crea/actualiza la ficha en Notion. Reseñas: se pegan a mano en la ficha. | OpenStreetMap · Notion API |
+| 3 · Mensaje | Mensaje de WhatsApp (prompt de Snodic) y validación automática de reglas. Se escribe en el cuerpo de la página de Notion. | Modo manual con tu app de Claude |
+| 4 · Informe | Exactamente 2 ideas con el framework de 7 pasos, 2 espacios debajo del mensaje. | Modo manual con tu app de Claude |
+
+**Costo cero:** todo funciona sin claves de pago ni datos de facturación (ver `docs/SETUP.md` §5).
 
 Interfaz: panel con avance, mapa de sectores, listado y ficha de prospectos (copiar mensaje, regenerar, editar a mano), ejecución de agentes con historial y ajustes (rubro, ritmo diario, regiones).
 Exporta **KML para Google My Maps** y **CSV**.

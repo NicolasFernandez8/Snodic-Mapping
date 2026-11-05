@@ -21,11 +21,11 @@
 | Documentation | 3 | README, CLAUDE.md, docs/* |
 
 ## Verificado
-- `npm run typecheck`, `npm run build`, `npm test` (19/19 con TEST_DATABASE_URL).
+- `npm run typecheck`, `npm run build`, `npm test` (21/21 con TEST_DATABASE_URL).
 - Worker procesó un `daily_pipeline` real contra PostgreSQL local con datos demo.
 - Capturas de UI revisadas (escritorio y móvil).
 
 ## No verificado (bloqueado en el entorno cloud)
-- Llamadas reales a Overpass, Google Places, Notion: la red del entorno las bloquea → probadas con fetch simulado.
+- Llamadas reales a Overpass y Notion: la red del entorno las bloquea → probadas con fetch simulado.
 - `docker build`: Docker Hub respondió 429 (rate limit).
-- Push a GitHub: falta instalar la GitHub App de Claude en el repo.
+- Push a GitHub: resuelto.

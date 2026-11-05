@@ -30,5 +30,6 @@ npm run typecheck && npm run build
 - Google My Maps no tiene API de escritura → se exporta KML.
 - Nunca versionar secretos (`.env`, `*_password.txt`, `secrets/`, backups). Usar `.env.example`.
 - No tocar la infraestructura existente (contenedores `snodic-postgres`, `n8n`, etc.) ni hacer migraciones destructivas sin aprobación.
+- **Costo cero:** no usar servicios con facturación (Google Places, API de Anthropic). Fuente por defecto OSM; agentes 3 y 4 en modo manual.
 - Revisión humana antes de enviar mensajes a prospectos.
 - Commits chicos; actualizar `docs/PROGRESS.md` y `docs/HANDOFF.md` en cada hito.

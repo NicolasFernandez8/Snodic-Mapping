@@ -9,6 +9,7 @@ import { one, q } from "../db";
 import { EMPTY, NotionClient, type ProspectFields } from "../notion";
 import { PlacesClient, type PlaceDetails } from "../sources/places";
 import type { AgentLog, ProspectRow } from "./types";
+import { mapsSearchUrl } from "./agent1-mapper";
 
 export const PROSPECT_COLUMNS = `p.id, p.locality_id, p.niche_key, p.source, p.source_id, p.name, p.category, p.address, p.phone,
   p.website, p.email, p.instagram, p.google_maps_url, p.reviews_url, p.rating, p.reviews_count, p.lat, p.lng,
@@ -82,6 +83,13 @@ export async function collectData(limit = 50, log: AgentLog = () => {}, places?:
             : ((p.raw.google_place_id as string | undefined) ?? (await findGooglePlace(client, p, p.locality_name ?? "")));
         if (placeId) await saveDetails(p, await client.details(placeId));
       }
+      // Modo gratuito: link público de Google Maps para abrir la ficha y leer las reseñas a mano.
+      if (!p.google_maps_url) {
+        await q("UPDATE prospects SET google_maps_url = $2 WHERE id = $1 AND google_maps_url IS NULL", [
+          p.id,
+          mapsSearchUrl(p.name, p.address || p.locality_name),
+        ]);
+      }
       await q("UPDATE prospects SET status = 'enriched', updated_at = now() WHERE id = $1", [p.id]);
       enriched++;
     } catch (e) {
@@ -153,3 +161,31 @@ export async function syncProspectsToNotion(limit = 50, log: AgentLog = () => {}
 }
 
 export { EMPTY };
+
+/**
+ * Reseñas cargadas a mano (copiadas de Google Maps por una persona).
+ * Formato: una reseña por bloque separado por línea vacía. Opcional al inicio "5★" o "5/5" o "5 estrellas".
+ */
+export function parsePastedReviews(text: string): { rating: number | null; text: string }[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map((b) => {
+      const m = /^\s*([1-5])\s*(?:★|\/\s*5|estrellas?)\s*[:\-–]?\s*/i.exec(b);
+      return m ? { rating: Number(m[1]), text: b.slice(m[0].length).trim() } : { rating: null, text: b };
+    })
+    .filter((r) => r.text.length > 0);
+}
+
+export async function saveManualReviews(prospectId: number, text: string, replace = false) {
+  const reviews = parsePastedReviews(text);
+  if (replace) await q("DELETE FROM reviews WHERE prospect_id = $1", [prospectId]);
+  for (const r of reviews) {
+    await q(
+      "INSERT INTO reviews (prospect_id, author, rating, text) VALUES ($1, 'manual', $2, $3) ON CONFLICT DO NOTHING",
+      [prospectId, r.rating, r.text],
+    );
+  }
+  return reviews.length;
+}

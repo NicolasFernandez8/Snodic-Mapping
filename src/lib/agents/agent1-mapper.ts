@@ -6,6 +6,7 @@
  *    hacia afuera) y descubre los prospectos del rubro activo dentro de cada polígono.
  * 3) Al terminar una región pasa automáticamente a la siguiente en cola.
  */
+import { config } from "../config";
 import { getSetting, one, q } from "../db";
 import { bbox, centroid, haversineKm, pointInArea, type Area, type Position } from "../geo/geometry";
 import { overpass, queries, relationIdOf, relationToBoundary } from "../geo/osm";
@@ -138,6 +139,7 @@ export type DiscoveredPlace = {
   phone?: string;
   website?: string;
   email?: string;
+  instagram?: string;
   businessStatus?: string;
   raw: unknown;
 };
@@ -202,6 +204,8 @@ export class OsmSource implements ProspectSource {
           phone: t.phone ?? t["contact:phone"],
           website: t.website ?? t["contact:website"],
           email: t.email ?? t["contact:email"],
+          instagram: t["contact:instagram"] ?? t.instagram,
+          googleMapsUrl: mapsSearchUrl(t.name, addr || loc.name),
           raw: e,
         };
       })
@@ -210,8 +214,9 @@ export class OsmSource implements ProspectSource {
 }
 
 export async function sourceFromSettings(): Promise<ProspectSource> {
-  const kind = await getSetting<string>("prospect_source", "google_places");
-  if (kind === "google_places") return new GooglePlacesSource(PlacesClient.fromConfig());
+  // Por defecto OSM (gratis, sin clave). Google Places solo si se eligió Y hay clave configurada.
+  const kind = await getSetting<string>("prospect_source", "osm");
+  if (kind === "google_places" && config().GOOGLE_MAPS_API_KEY) return new GooglePlacesSource(PlacesClient.fromConfig());
   return new OsmSource();
 }
 
@@ -222,8 +227,8 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
     if (loc.boundary && !pointInArea([p.lng, p.lat], loc.boundary)) continue;
     const row = await one<{ inserted: boolean }>(
       `INSERT INTO prospects (locality_id, niche_key, source, source_id, name, category, address, phone, website, email,
-                              google_maps_url, rating, reviews_count, business_status, lat, lng, raw)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
+                              google_maps_url, rating, reviews_count, business_status, lat, lng, raw, instagram)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18)
        ON CONFLICT (source, source_id) DO UPDATE SET
          rating = EXCLUDED.rating, reviews_count = EXCLUDED.reviews_count, updated_at = now()
        RETURNING (xmax = 0) AS inserted`,
@@ -245,6 +250,7 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
         p.lat,
         p.lng,
         JSON.stringify(p.raw ?? {}),
+        p.instagram ?? null,
       ],
     );
     if (row?.inserted) created++;
@@ -304,4 +310,13 @@ export async function nextLocality(): Promise<LocalityRow | null> {
     await q("UPDATE regions SET status = 'done' WHERE id = $1", [region.id]);
   }
   return null;
+}
+
+/**
+ * Enlace público de búsqueda en Google Maps (URL oficial "Maps URLs": gratis, sin clave ni API).
+ * Es solo un link para que una persona abra la ficha y lea las reseñas; la app no descarga nada de ahí.
+ */
+export function mapsSearchUrl(name: string, where?: string | null): string {
+  const query = [name, where].filter(Boolean).join(" ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }

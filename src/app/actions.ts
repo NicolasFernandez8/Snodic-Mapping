@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { q, setSetting } from "@/lib/db";
 import { enqueue, type JobType } from "@/lib/jobs";
 import { llmFromConfig } from "@/lib/ai/llm";
+import { saveManualReviews } from "@/lib/agents/agent2-collector";
 import { advanceStatus, generateOutput, saveManualOutput, type OutputKind } from "@/lib/agents/agent34-writer";
 
 const JOB_TYPES: JobType[] = [
@@ -47,7 +48,7 @@ export async function importRegionAction(formData: FormData) {
 export async function saveSettings(formData: FormData) {
   await setSetting("active_niche", String(formData.get("active_niche")));
   await setSetting("daily_locality_quota", Math.max(1, Math.min(50, Number(formData.get("daily_locality_quota") || 3))));
-  await setSetting("prospect_source", String(formData.get("prospect_source")) === "osm" ? "osm" : "google_places");
+  await setSetting("prospect_source", String(formData.get("prospect_source")) === "google_places" ? "google_places" : "osm");
   await setSetting("auto_generate_outputs", formData.get("auto_generate_outputs") === "on");
   revalidatePath("/ajustes");
   revalidatePath("/");
@@ -134,4 +135,11 @@ export async function retryLocalityAction(formData: FormData) {
   await q("UPDATE localities SET status = 'pending', last_error = NULL WHERE id = $1", [Number(formData.get("id"))]);
   revalidatePath("/mapa");
   revalidatePath("/");
+}
+
+export async function saveReviewsAction(formData: FormData) {
+  const id = Number(formData.get("id"));
+  const text = String(formData.get("reviews") ?? "");
+  await saveManualReviews(id, text, formData.get("replace") === "on");
+  revalidatePath(`/prospectos/${id}`);
 }

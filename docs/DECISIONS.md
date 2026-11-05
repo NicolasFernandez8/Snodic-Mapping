@@ -17,4 +17,6 @@ Idealista no ofrece API pública para sus zonas y extraerlas de la web sería sc
 
 **D8 · Notion: tipos detectados, nombres configurables.** No se conoce el esquema exacto de la base de Snodic: se lee en tiempo de ejecución y se mapea con `NOTION_PROPERTY_MAP`. Vacíos = `-` en texto, `null` en url/teléfono/email/número.
 
+**D10 · Costo cero (2026-11-05, pedido del usuario).** Nada de servicios con facturación. Fuente por defecto: OpenStreetMap. Google Places y la API de Anthropic quedan apagadas (código conservado, sin clave). Reseñas: carga manual desde la ficha pública de Google Maps (link oficial "Maps URLs", sin API). Agentes 3 y 4 en modo manual.
+
 **D9 · Validación automática + revisión humana.** Los textos que no cumplen las reglas del prompt quedan `needs_review`. Nada se envía a prospectos automáticamente.

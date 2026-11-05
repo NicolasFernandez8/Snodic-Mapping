@@ -8,9 +8,9 @@
 - Nada desplegado todavía en la PC; nada tocado en la infraestructura existente.
 
 ## Próximos pasos (en orden)
-1. **Usuario:** instalar la GitHub App de Claude en el repo (para que las sesiones cloud puedan pushear).
-2. **Usuario:** seguir `docs/SETUP.md` §1–3 en la PC (clonar, `.env`, GRANT CREATE, migrar, levantar).
-3. **Usuario:** crear clave de Places API (con cuota/alerta de presupuesto) y la integración de Notion; compartir la base de prospectos con la integración.
+1. **Usuario:** seguir `docs/SETUP.md` §1–3 en la PC (clonar, `.env`, GRANT CREATE, migrar, levantar).
+2. **Usuario:** crear la integración de Notion (gratis) y compartir la base de prospectos con ella. **Sin** claves de Google ni Anthropic: modo costo cero.
+3. Por cada prospecto: abrir en Google Maps → pegar reseñas → copiar prompts en la app de Claude → pegar respuestas.
 4. Primera corrida con 1 localidad (Ajustes → cuota 1) y revisar en Notion que las columnas coinciden; ajustar `NOTION_PROPERTY_MAP` si hace falta.
 5. Importar la región Alicante (nivel 6 → 8 o 8 → 10) y dejar correr el cron diario.
 

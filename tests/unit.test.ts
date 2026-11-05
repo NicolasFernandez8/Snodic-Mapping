@@ -246,3 +246,21 @@ describe("helpers del agente 2", () => {
     expect(instagramFromWebsite("https://hotel.es")).toBeNull();
   });
 });
+
+describe("modo gratuito", () => {
+  it("parsea reseñas pegadas a mano", async () => {
+    const { parsePastedReviews } = await import("../src/lib/agents/agent2-collector");
+    const r = parsePastedReviews("5★ Muy limpio\n\n2/5 - Nadie atiende\n\nSin estrellas\nsegunda línea\n\n  ");
+    expect(r).toEqual([
+      { rating: 5, text: "Muy limpio" },
+      { rating: 2, text: "Nadie atiende" },
+      { rating: null, text: "Sin estrellas\nsegunda línea" },
+    ]);
+  });
+  it("arma un link público de búsqueda en Google Maps", async () => {
+    const { mapsSearchUrl } = await import("../src/lib/agents/agent1-mapper");
+    expect(mapsSearchUrl("Hotel Sol", "Alicante")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Hotel%20Sol%20Alicante",
+    );
+  });
+});

@@ -4,7 +4,13 @@ import { one, q } from "@/lib/db";
 import { config } from "@/lib/config";
 import { messagePrompt, reportPrompt } from "@/lib/ai/prompts";
 import { latestOutput, promptInput, type OutputKind, type OutputRow } from "@/lib/agents/agent34-writer";
-import { discardProspectAction, generateAction, saveOutputAction, updateProspectAction } from "../../actions";
+import {
+  discardProspectAction,
+  generateAction,
+  saveOutputAction,
+  saveReviewsAction,
+  updateProspectAction,
+} from "../../actions";
 import { CopyButton } from "../../copy-button";
 import { Badge, fmtDate, V } from "../../ui";
 
@@ -103,9 +109,19 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
         </div>
 
         <div className="card">
-          <h2>Reseñas ({reviews.length})</h2>
+          <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
+            <h2 style={{ margin: 0 }}>Reseñas ({reviews.length})</h2>
+            {p.google_maps_url && (
+              <a className="btn secondary sm" href={p.reviews_url || p.google_maps_url} target="_blank" rel="noreferrer">
+                Abrir en Google Maps ↗
+              </a>
+            )}
+          </div>
           {reviews.length === 0 ? (
-            <div className="empty">Sin reseñas obtenidas. Los agentes 3 y 4 necesitan reseñas para no inventar datos.</div>
+            <div className="empty">
+              Sin reseñas. Abrí la ficha en Google Maps, copiá las reseñas y pegalas abajo: los agentes 3 y 4 las necesitan
+              para no inventar datos.
+            </div>
           ) : (
             <div style={{ display: "grid", gap: 10, maxHeight: 420, overflow: "auto" }}>
               {reviews.map((r, i) => (
@@ -116,6 +132,24 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
               ))}
             </div>
           )}
+          <details style={{ marginTop: 12 }} open={reviews.length === 0}>
+            <summary>Pegar reseñas</summary>
+            <form action={saveReviewsAction} style={{ marginTop: 8 }}>
+              <input type="hidden" name="id" value={p.id} />
+              <textarea
+                name="reviews"
+                rows={7}
+                placeholder={"5★ Habitaciones limpias y personal muy amable.\n\n2★ Nadie contesta el teléfono para reservar."}
+              />
+              <p className="help">Una reseña por bloque (dejá una línea vacía entre reseñas). Opcional: empezar con “5★”.</p>
+              <div className="row">
+                <button className="btn sm">Guardar reseñas</button>
+                <label className="row" style={{ margin: 0, fontWeight: 500 }}>
+                  <input type="checkbox" name="replace" style={{ width: "auto" }} /> Reemplazar las actuales
+                </label>
+              </div>
+            </form>
+          </details>
         </div>
       </div>
 
