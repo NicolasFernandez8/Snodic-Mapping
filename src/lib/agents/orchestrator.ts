@@ -5,6 +5,7 @@
 import { getSetting, one } from "../db";
 import { notify } from "../notify";
 import { rescoreAll } from "../score-store";
+import { dedupeAll } from "../quality";
 import { llmFromConfig } from "../ai/llm";
 import { parseKmlSectors } from "../geo/kml-import";
 import type { Job } from "../jobs";
@@ -47,6 +48,8 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
       return dailyPipeline(log);
     case "rescore":
       return { rescored: await rescoreAll() };
+    case "dedupe":
+      return { duplicates: await dedupeAll() };
     default:
       throw new Error(`Tipo de trabajo desconocido: ${job.type}`);
   }

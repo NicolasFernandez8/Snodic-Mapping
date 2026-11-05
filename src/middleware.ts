@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   // /login y las mini-auditorías públicas (/a/<código>) no requieren sesión.
-  if (pathname === "/login" || pathname.startsWith("/a/")) return NextResponse.next();
+  if (pathname === "/login" || pathname.startsWith("/a/") || pathname === "/api/health") return NextResponse.next();
   if (req.cookies.get("snodic_session")?.value) return NextResponse.next();
   if (pathname.startsWith("/api/")) return new NextResponse("No autorizado", { status: 401 });
   const url = req.nextUrl.clone();
@@ -16,4 +16,6 @@ export function middleware(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-export const config = { matcher: ["/((?!_next/static|_next/image|logo.png|favicon.ico).*)"] };
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|logo.png|favicon.ico|manifest.webmanifest|sw.js|icon-192.png|icon-512.png).*)"],
+};

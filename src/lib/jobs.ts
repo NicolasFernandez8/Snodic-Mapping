@@ -8,7 +8,8 @@ export type JobType =
   | "generate_reports"
   | "sync_notion"
   | "daily_pipeline"
-  | "rescore";
+  | "rescore"
+  | "dedupe";
 
 export type Job = {
   id: number;

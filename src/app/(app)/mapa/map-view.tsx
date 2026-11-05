@@ -44,14 +44,27 @@ export default function MapView() {
   const [data, setData] = useState<Data | null>(null);
   useEffect(() => {
     // Recarga cada 10 s: las localidades cambian de color y aparecen los puntos a medida que el Agente 1 avanza.
-    const load = () =>
-      fetch("/api/geo")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => d && setData(d))
-        .catch(() => {});
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let etag: string | null = null;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/geo", { headers: etag ? { "If-None-Match": etag } : {}, cache: "no-store" });
+        if (res.status === 200) {
+          etag = res.headers.get("ETag");
+          setData(await res.json());
+        }
+        const s = (await (await fetch("/api/status", { cache: "no-store" })).json()) as { busy: boolean };
+        if (!stop) timer = setTimeout(load, s.busy ? 10000 : 60000);
+      } catch {
+        if (!stop) timer = setTimeout(load, 30000);
+      }
+    };
     load();
-    const t = setInterval(load, 10000);
-    return () => clearInterval(t);
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
   }, []);
 
   return (

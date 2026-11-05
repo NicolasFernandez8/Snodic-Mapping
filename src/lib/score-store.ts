@@ -1,31 +1,51 @@
 import { one, q } from "./db";
 import { scoreProspect } from "./scoring";
 
+type Row = {
+  id: number;
+  phone: string | null;
+  website: string | null;
+  email: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  rating: string | null;
+  reviews_count: number | null;
+  category: string | null;
+  reviews: { rating: number | null; text: string }[] | null;
+};
+
+const SELECT = `SELECT p.id, p.phone, p.website, p.email, p.instagram, p.facebook, p.rating, p.reviews_count, p.category,
+  (SELECT json_agg(json_build_object('rating', r.rating, 'text', r.text)) FROM reviews r WHERE r.prospect_id = p.id) AS reviews
+  FROM prospects p`;
+
+const compute = (r: Row) =>
+  scoreProspect({ ...r, rating: r.rating === null ? null : Number(r.rating), reviews: r.reviews ?? [] });
+
 /** Recalcula y guarda el puntaje de un prospecto. */
 export async function rescore(prospectId: number) {
-  const p = await one<{
-    phone: string | null;
-    website: string | null;
-    email: string | null;
-    instagram: string | null;
-    facebook: string | null;
-    rating: string | null;
-    reviews_count: number | null;
-    category: string | null;
-  }>("SELECT phone, website, email, instagram, facebook, rating, reviews_count, category FROM prospects WHERE id = $1", [
-    prospectId,
-  ]);
-  if (!p) return null;
-  const reviews = await q<{ rating: number | null; text: string }>("SELECT rating, text FROM reviews WHERE prospect_id = $1", [
-    prospectId,
-  ]);
-  const { score, items } = scoreProspect({ ...p, rating: p.rating === null ? null : Number(p.rating), reviews });
+  const r = await one<Row>(`${SELECT} WHERE p.id = $1`, [prospectId]);
+  if (!r) return null;
+  const { score, items } = compute(r);
   await q("UPDATE prospects SET score = $2, score_breakdown = $3::jsonb WHERE id = $1", [prospectId, score, JSON.stringify(items)]);
   return score;
 }
 
-export async function rescoreAll() {
-  const ids = await q<{ id: number }>("SELECT id FROM prospects");
-  for (const { id } of ids) await rescore(id);
-  return ids.length;
+/** Recalcula todos en bloques de 500: 1 consulta para leer y 1 para escribir por bloque. */
+export async function rescoreAll(batch = 500) {
+  let last = 0;
+  let total = 0;
+  for (;;) {
+    const rows = await q<Row>(`${SELECT} WHERE p.id > $1 ORDER BY p.id LIMIT $2`, [last, batch]);
+    if (!rows.length) break;
+    const scored = rows.map((r) => ({ id: r.id, ...compute(r) }));
+    await q(
+      `UPDATE prospects p SET score = v.score, score_breakdown = v.items
+       FROM (SELECT unnest($1::int[]) AS id, unnest($2::int[]) AS score, unnest($3::jsonb[]) AS items) v
+       WHERE p.id = v.id`,
+      [scored.map((s) => s.id), scored.map((s) => s.score), scored.map((s) => JSON.stringify(s.items))],
+    );
+    total += rows.length;
+    last = rows[rows.length - 1].id;
+  }
+  return total;
 }

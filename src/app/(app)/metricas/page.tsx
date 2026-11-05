@@ -1,5 +1,6 @@
 import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
+import { cached } from "@/lib/cache";
 import { STAGES, STAGE_LABEL, type Stage } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ async function Breakdown({ title, rows, label }: { title: string; rows: Row[]; l
 
 export default async function Metricas() {
   const t = await getT();
-  const [funnel, byRegion, byLocality, byCategory, byVariant, byScore, weekly] = await Promise.all([
+  const [funnel, byRegion, byLocality, byCategory, byVariant, byScore, weekly] = await cached("metricas", 60, () => Promise.all([
     q<{ stage: Stage; n: number }>("SELECT stage, count(*)::int AS n FROM prospects WHERE status <> 'discarded' GROUP BY stage"),
     q<Row>(`SELECT r.name AS key, ${AGG} FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id
             LEFT JOIN regions r ON r.id = l.region_id GROUP BY r.name ORDER BY contacted DESC LIMIT 10`),
@@ -71,7 +72,7 @@ export default async function Metricas() {
          count(*) FILTER (WHERE kind = 'stage' AND to_stage = 'replied')::int AS replied
        FROM activities WHERE created_at > now() - interval '8 weeks' GROUP BY date_trunc('week', created_at) ORDER BY date_trunc('week', created_at)`,
     ),
-  ]);
+  ]));
   const count = (s: Stage) => funnel.find((f) => f.stage === s)?.n ?? 0;
   const total = funnel.reduce((a, b) => a + b.n, 0);
   const contacted = count("contacted") + count("replied") + count("meeting") + count("client");

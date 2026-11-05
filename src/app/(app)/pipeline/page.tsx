@@ -26,16 +26,29 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
   const me = await requireUser();
   const sp = await searchParams;
   const mine = sp.mine === "1";
-  const cards = await q<Card>(
-    `SELECT p.id, p.name, p.stage, l.name AS locality, p.phone, p.score, u.username AS assigned, p.follow_ups_sent,
-       (SELECT content FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'message' AND o.content IS NOT NULL
-        ORDER BY created_at DESC, id DESC LIMIT 1) AS message
-     FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN users u ON u.id = p.assigned_to
-     WHERE p.status <> 'discarded' ${mine ? "AND (p.assigned_to = $1)" : ""}
-     ORDER BY p.score DESC NULLS LAST, p.id`,
-    mine ? [me.id] : [],
-  );
+  const filter = `p.status <> 'discarded' AND p.duplicate_of IS NULL ${mine ? "AND p.assigned_to = $1" : ""}`;
+  const [cards, totals] = await Promise.all([
+    q<Card>(
+      `WITH ranked AS (
+         SELECT p.id, p.name, p.stage, p.locality_id, p.phone, p.score, p.assigned_to, p.follow_ups_sent,
+                row_number() OVER (PARTITION BY p.stage ORDER BY p.score DESC NULLS LAST, p.id) AS rn
+         FROM prospects p WHERE ${filter})
+       SELECT r.id, r.name, r.stage, l.name AS locality, r.phone, r.score, u.username AS assigned, r.follow_ups_sent,
+              CASE WHEN r.stage = 'to_contact' THEN m.content END AS message
+       FROM ranked r
+       LEFT JOIN localities l ON l.id = r.locality_id
+       LEFT JOIN users u ON u.id = r.assigned_to
+       LEFT JOIN LATERAL (SELECT content FROM outputs o WHERE o.prospect_id = r.id AND o.kind = 'message'
+                          AND o.content IS NOT NULL AND r.stage = 'to_contact'
+                          ORDER BY o.created_at DESC, o.id DESC LIMIT 1) m ON true
+       WHERE r.rn <= 60
+       ORDER BY r.score DESC NULLS LAST, r.id`,
+      mine ? [me.id] : [],
+    ),
+    q<{ stage: string; n: number }>(`SELECT p.stage, count(*)::int AS n FROM prospects p WHERE ${filter} GROUP BY p.stage`, mine ? [me.id] : []),
+  ]);
   const by = (s: string) => cards.filter((c) => c.stage === s);
+  const totalOf = (s: string) => totals.find((x) => x.stage === s)?.n ?? 0;
 
   return (
     <>
@@ -56,9 +69,9 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
             <section key={s.key} className="kanban-col">
               <header>
                 <strong>{t(s.label)}</strong>
-                <span className="badge muted">{list.length}</span>
+                <span className="badge muted">{totalOf(s.key)}</span>
               </header>
-              {list.slice(0, 60).map((c) => (
+              {list.map((c) => (
                 <article key={c.id} className="kanban-card">
                   <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
                     <Link href={`/prospectos/${c.id}`}><strong>{c.name}</strong></Link>
@@ -81,7 +94,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                   </form>
                 </article>
               ))}
-              {list.length > 60 && <div className="help">{t("+{n} más en Prospectos", { n: list.length - 60 })}</div>}
+              {totalOf(s.key) > list.length && <div className="help">{t("+{n} más en Prospectos", { n: totalOf(s.key) - list.length })}</div>}
             </section>
           );
         })}

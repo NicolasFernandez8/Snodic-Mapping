@@ -8,6 +8,8 @@
  */
 import { config } from "../config";
 import { parseOpeningHours } from "../opening-hours";
+import { simplifyArea } from "../geo/simplify";
+import { findExisting, isBlocked } from "../quality";
 import { getSetting, one, q } from "../db";
 import { bbox, centroid, haversineKm, pointInArea, type Area, type Position } from "../geo/geometry";
 import { overpass, queries, relationIdOf, relationToBoundary } from "../geo/osm";
@@ -32,10 +34,10 @@ async function saveLocalities(regionId: number, origin: Position, items: SaveLoc
   for (const it of items) {
     const c = centroid(it.area);
     await q(
-      `INSERT INTO localities (region_id, parent_id, name, osm_id, admin_level, boundary, bbox, centroid_lat, centroid_lng, distance_km)
-       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10)
+      `INSERT INTO localities (region_id, parent_id, name, osm_id, admin_level, boundary, bbox, centroid_lat, centroid_lng, distance_km, boundary_simple)
+       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11::jsonb)
        ON CONFLICT (region_id, osm_id) DO UPDATE SET
-         name = EXCLUDED.name, boundary = EXCLUDED.boundary, bbox = EXCLUDED.bbox,
+         name = EXCLUDED.name, boundary = EXCLUDED.boundary, boundary_simple = EXCLUDED.boundary_simple, bbox = EXCLUDED.bbox,
          centroid_lat = EXCLUDED.centroid_lat, centroid_lng = EXCLUDED.centroid_lng, distance_km = EXCLUDED.distance_km`,
       [
         regionId,
@@ -48,6 +50,7 @@ async function saveLocalities(regionId: number, origin: Position, items: SaveLoc
         c[1],
         c[0],
         haversineKm(origin, c),
+        JSON.stringify(simplifyArea(it.area)),
       ],
     );
     saved++;
@@ -233,6 +236,10 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
   let created = 0;
   for (const p of places) {
     if (loc.boundary && !pointInArea([p.lng, p.lat], loc.boundary)) continue;
+    // Mismo negocio ya guardado (otra fuente, otro id de OSM o localidad vecina): no se duplica.
+    const existing = await one("SELECT 1 FROM prospects WHERE source = $1 AND source_id = $2", [p.source, p.sourceId]);
+    if (!existing && (await findExisting({ name: p.name, phone: p.phone, lat: p.lat, lng: p.lng }))) continue;
+    const blocked = await isBlocked({ name: p.name, phone: p.phone });
     const row = await one<{ inserted: boolean }>(
       `INSERT INTO prospects (locality_id, niche_key, source, source_id, name, category, address, phone, website, email,
                               google_maps_url, rating, reviews_count, business_status, lat, lng, raw, instagram,
@@ -265,7 +272,12 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
         p.businessHours ?? null,
       ],
     );
-    if (row?.inserted) created++;
+    if (row?.inserted && blocked)
+      await q(
+        "UPDATE prospects SET do_not_contact = true, stage = 'lost', status = 'discarded' WHERE source = $1 AND source_id = $2",
+        [p.source, p.sourceId],
+      );
+    if (row?.inserted && !blocked) created++;
   }
   return created;
 }

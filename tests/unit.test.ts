@@ -390,3 +390,29 @@ describe("idiomas", () => {
     expect([...missing]).toEqual([]);
   });
 });
+
+describe("calidad y rendimiento", () => {
+  it("detecta el mismo negocio por teléfono o nombre cercano", async () => {
+    const { isSameBusiness, nameKey, phoneKey } = await import("../src/lib/quality");
+    expect(nameKey("Hotel Sol & Mar, S.L.")).toBe("sol mar");
+    expect(phoneKey("+34 624 20 72 88")).toBe("34624207288");
+    expect(isSameBusiness({ name: "A", phone: "624207288" }, { name: "B", phone: "+34 624 20 72 88" })).toBe(true);
+    expect(isSameBusiness({ name: "Hotel Sol Mar", lat: 38.35, lng: -0.48 }, { name: "Sol Mar", lat: 38.3505, lng: -0.4805 })).toBe(true);
+    expect(isSameBusiness({ name: "Hotel Sol Mar", lat: 38.35, lng: -0.48 }, { name: "Sol Mar", lat: 38.4, lng: -0.48 })).toBe(false);
+    expect(isSameBusiness({ name: "Hostal Luna" }, { name: "Hotel Sol" })).toBe(false);
+  });
+  it("simplifica polígonos sin romperlos", async () => {
+    const { simplifyArea } = await import("../src/lib/geo/simplify");
+    const ring: [number, number][] = [];
+    for (let i = 0; i <= 400; i++) {
+      const a = (i / 400) * 2 * Math.PI;
+      ring.push([Math.cos(a) * 0.05, Math.sin(a) * 0.05 + (i % 2 ? 0.00001 : 0)]);
+    }
+    ring[ring.length - 1] = ring[0];
+    const s = simplifyArea({ type: "Polygon", coordinates: [ring] }, 0.0005);
+    const out = (s as { coordinates: [number, number][][] }).coordinates[0];
+    expect(out.length).toBeLessThan(80);
+    expect(out.length).toBeGreaterThanOrEqual(4);
+    expect(out[0]).toEqual(out[out.length - 1]);
+  });
+});

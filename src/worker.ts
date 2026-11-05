@@ -7,6 +7,19 @@ import { config } from "./lib/config";
 import { enqueue, failJob, finishJob, pickJob, requeueStale } from "./lib/jobs";
 import { runJob } from "./lib/agents/orchestrator";
 import { q } from "./lib/db";
+import { heartbeat } from "./lib/status";
+import { simplifyArea } from "./lib/geo/simplify";
+import type { Area } from "./lib/geo/geometry";
+
+/** Localidades importadas antes de la simplificación: se completan una vez. */
+async function backfillSimpleBoundaries() {
+  const rows = await q<{ id: number; boundary: Area }>(
+    "SELECT id, boundary FROM localities WHERE boundary IS NOT NULL AND boundary_simple IS NULL",
+  );
+  for (const r of rows)
+    await q("UPDATE localities SET boundary_simple = $2::jsonb WHERE id = $1", [r.id, JSON.stringify(simplifyArea(r.boundary))]);
+  if (rows.length) log(`Polígonos simplificados: ${rows.length}`);
+}
 
 const cfg = config();
 let stopping = false;
@@ -17,6 +30,9 @@ function log(msg: string) {
 
 async function loop() {
   await requeueStale();
+  await backfillSimpleBoundaries();
+  await heartbeat().catch(() => {});
+  setInterval(() => heartbeat().catch((e) => log(`Latido falló: ${e.message}`)), 30000);
   while (!stopping) {
     const job = await pickJob().catch((e) => {
       log(`Error tomando trabajo: ${e.message}`);

@@ -1,6 +1,7 @@
 import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { getSetting, one, q } from "@/lib/db";
+import { workerAgeSeconds } from "@/lib/status";
 import { runAgent } from "@/app/actions";
 import { AutoRefresh } from "@/app/auto-refresh";
 import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
@@ -34,6 +35,7 @@ export default async function Panel() {
     getSetting<number>("daily_locality_quota", 3),
   ]);
   const s = stats ?? {};
+  const workerAge = await workerAgeSeconds();
   const kpis = [
     { label: t("Localidades mapeadas"), value: `${s.loc_mapped ?? 0}/${s.loc_total ?? 0}`, hint: t("{n} por día", { n: quota }) },
     { label: t("Prospectos"), value: s.prospects ?? 0, hint: t("+{n} en 24 h", { n: s.prospects_today ?? 0 }) },
@@ -59,6 +61,13 @@ export default async function Panel() {
         </form>
       </div>
 
+      {(workerAge === null || workerAge > 180) && (
+        <div className="notice" style={{ borderColor: "var(--err)" }}>
+          {workerAge === null
+            ? t("El worker de agentes nunca se inició: los agentes no van a correr. Revisá el contenedor snodic-mapping-worker.")
+            : t("El worker de agentes no da señales hace {n} min: revisá el contenedor snodic-mapping-worker.", { n: Math.round(workerAge / 60) })}
+        </div>
+      )}
       <div className="grid kpis" style={{ marginBottom: 16 }}>
         {kpis.map((k) => (
           <div key={k.label} className="card kpi">
