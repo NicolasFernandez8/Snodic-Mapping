@@ -49,11 +49,32 @@ export function NodeNetwork({ density = 1, interactive = true, className = "node
       }));
     };
 
-    const LINK = 130;
+    const LINK = 130; // distancia normal de conexión entre nodos
+    const FIELD = 220; // radio de influencia del cursor
+    const LINK_NEAR = 230; // cerca del cursor los nodos se conectan desde más lejos
+    // Cercanía al cursor (0 = lejos, 1 = encima); se suaviza para que la red "se encienda" gradualmente.
+    const near = (n: { x: number; y: number }) => {
+      if (!interactive) return 0;
+      const d = Math.hypot(n.x - mouse.x, n.y - mouse.y);
+      return d >= FIELD ? 0 : 1 - d / FIELD;
+    };
+    const glow: number[] = [];
+
     const draw = (t: number) => {
       ctx.clearRect(0, 0, w, h);
-      for (const n of nodes) {
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const k = near(n);
+        glow[i] = (glow[i] ?? 0) + (k - (glow[i] ?? 0)) * 0.12;
         if (!reduce) {
+          // atracción suave hacia el cursor: los nodos se agrupan y se interconectan
+          // (sin amontonarse: a menos de 70 px se apartan un poco y forman un anillo alrededor del cursor)
+          if (k > 0) {
+            const d = Math.hypot(mouse.x - n.x, mouse.y - n.y) || 1;
+            const pull = d > 70 ? 0.006 * k : -0.02 * (1 - d / 70);
+            n.x += (mouse.x - n.x) * pull;
+            n.y += (mouse.y - n.y) * pull;
+          }
           n.x += n.vx;
           n.y += n.vy;
           if (n.x < -20) n.x = w + 20;
@@ -62,47 +83,49 @@ export function NodeNetwork({ density = 1, interactive = true, className = "node
           if (n.y > h + 20) n.y = -20;
         }
       }
-      // líneas entre nodos cercanos
-      ctx.lineWidth = 1;
+      // líneas entre nodos: cerca del cursor se conectan más, más lejos y más brillantes
       for (let i = 0; i < nodes.length; i++) {
         const a = nodes[i];
         for (let j = i + 1; j < nodes.length; j++) {
           const b = nodes[j];
+          const g = Math.min(glow[i], glow[j]);
+          const range = LINK + (LINK_NEAR - LINK) * g;
           const dx = a.x - b.x, dy = a.y - b.y;
           const d2 = dx * dx + dy * dy;
-          if (d2 < LINK * LINK) {
-            ctx.strokeStyle = rgba(0.22 * (1 - Math.sqrt(d2) / LINK));
+          if (d2 < range * range) {
+            const f = 1 - Math.sqrt(d2) / range;
+            ctx.lineWidth = 1 + g * 0.8;
+            ctx.strokeStyle = rgba(f * (0.22 + 0.5 * g));
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
             ctx.stroke();
           }
         }
-        // conexión con el cursor
-        if (interactive) {
-          const dx = a.x - mouse.x, dy = a.y - mouse.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 170) {
-            ctx.strokeStyle = rgba(0.45 * (1 - d / 170));
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(mouse.x, mouse.y);
-            ctx.stroke();
-          }
+        // hilo fino hacia el cursor
+        if (glow[i] > 0.05) {
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = rgba(0.35 * glow[i]);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(mouse.x, mouse.y);
+          ctx.stroke();
         }
       }
-      // nodos (los "hub" laten suavemente)
-      for (const n of nodes) {
+      // nodos: los "hub" laten y todos se agrandan/brillan al acercar el cursor
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const g = glow[i];
         const pulse = n.hub && !reduce ? 1 + 0.35 * Math.sin(t / 600 + n.x) : 1;
-        if (n.hub) {
-          ctx.fillStyle = rgba(0.12);
+        if (n.hub || g > 0.05) {
+          ctx.fillStyle = rgba(0.12 + 0.18 * g);
           ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r * 5 * pulse, 0, Math.PI * 2);
+          ctx.arc(n.x, n.y, n.r * (n.hub ? 5 : 3.5) * pulse * (1 + g * 0.6), 0, Math.PI * 2);
           ctx.fill();
         }
-        ctx.fillStyle = rgba(n.hub ? 0.85 : 0.5);
+        ctx.fillStyle = rgba(Math.min(1, (n.hub ? 0.85 : 0.5) + 0.5 * g));
         ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r * (n.hub ? 1.8 : 1), 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, n.r * (n.hub ? 1.8 : 1) * (1 + g * 0.8), 0, Math.PI * 2);
         ctx.fill();
       }
     };
