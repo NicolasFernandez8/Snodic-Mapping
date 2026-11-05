@@ -1,6 +1,7 @@
 import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
 import { cached } from "@/lib/cache";
+import { WhatWorks } from "./what-works";
 import { STAGES, STAGE_LABEL, type Stage } from "@/lib/crm";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,8 @@ export default async function Metricas() {
         <div className="card kpi"><div className="label">{t("Reuniones")}</div><div className="value">{count("meeting") + count("client")}</div></div>
         <div className="card kpi"><div className="label">{t("Clientes")}</div><div className="value">{count("client")}</div><div className="hint">{t("{p} de conversión", { p: pct(count("client"), contacted) })}</div></div>
       </div>
+
+      <WhatWorks />
 
       <div className="card" style={{ marginBottom: 16 }}>
         <h2>{t("Embudo")}</h2>

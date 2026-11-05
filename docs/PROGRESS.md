@@ -79,3 +79,11 @@ Migración `004_crm`. Tests: 31/31.
 | Worker heartbeat | 2 | Aviso en Panel y `/api/health` para n8n |
 
 Migración `005_perf_quality`. Tests: 39/39.
+
+## 2026-11-05 · Filtros y "qué funciona"
+| Task (EN) | Pts | Resultado |
+|---|---|---|
+| Combinable filters + saved searches | 8 | Zona, distancia, categoría, estrellas, cadena/independiente, contacto, problemas, rating, reseñas, puntaje, etapa, responsable. En Prospectos, Revisión rápida, Lote y Pipeline. |
+| Response insights + learned score | 5 | Métricas → "Qué funciona": tasa de respuesta por característica, búsqueda sugerida (≥50 contactados) y ±15 puntos según prospectos parecidos. |
+
+Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas guardadas). Tests: 42/42.

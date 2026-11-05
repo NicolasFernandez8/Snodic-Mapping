@@ -8,6 +8,7 @@ import { blockProspect, unblockProspect } from "@/lib/quality";
 import { assign, isStage, setStage } from "@/lib/crm";
 import { importProspectsCsv } from "@/lib/csv-import";
 import type { OutputKind } from "@/lib/agents/agent34-writer";
+import { deleteSearch, parseFilters, saveSearch } from "@/lib/filters";
 
 export async function saveBatchAction(f: FormData) {
   await requireUser();
@@ -74,6 +75,22 @@ export async function reviewDiscardAction(f: FormData) {
   const id = Number(f.get("id"));
   await q("UPDATE prospects SET status = 'discarded', updated_at = now() WHERE id = $1", [id]);
   await setStage(id, "lost", me.id, "Descartado en revisión rápida");
-  const skip = String(f.get("skip") ?? "").replace(/[^0-9,]/g, "");
-  redirect(`/revision${skip ? `?skip=${skip}` : ""}`);
+  const back = String(f.get("back") ?? "/revision");
+  redirect(back.startsWith("/revision") ? back : "/revision");
+}
+
+export async function saveSearchAction(f: FormData) {
+  const me = await requireUser();
+  const name = String(f.get("name") ?? "").trim();
+  if (!name) throw new Error("Falta el nombre");
+  await saveSearch(name, parseFilters(new URLSearchParams(String(f.get("query") ?? ""))), me.id);
+  const back = String(f.get("back") ?? "/prospectos");
+  redirect(back.startsWith("/") ? back : "/prospectos");
+}
+
+export async function deleteSearchAction(f: FormData) {
+  await requireUser();
+  await deleteSearch(Number(f.get("id")));
+  const back = String(f.get("back") ?? "/prospectos");
+  redirect(back.startsWith("/") ? back : "/prospectos");
 }

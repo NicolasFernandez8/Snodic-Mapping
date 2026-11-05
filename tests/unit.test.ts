@@ -440,3 +440,37 @@ describe("lote y CSV", () => {
     });
   });
 });
+
+describe("filtros de búsqueda", () => {
+  it("parsea, serializa y arma SQL parametrizado", async () => {
+    const { parseFilters, filtersToQuery, filterSql } = await import("../src/lib/filters");
+    const f = parseFilters(new URLSearchParams("q=sol&cat=hotel&cat=hostel&has=phone,website&pain=reservas&chain=independent&minStars=2&notContacted=1&owner=me&basura=1"));
+    expect(f).toEqual({ q: "sol", cat: ["hotel", "hostel"], has: ["phone", "website"], pain: ["reservas"], chain: "independent", minStars: 2, notContacted: true, owner: "me" });
+    expect(parseFilters(new URLSearchParams(filtersToQuery(f)))).toEqual(f);
+    const params: unknown[] = [];
+    const w = filterSql(f, params, 7);
+    expect(w.join(" AND ")).not.toContain("sol"); // los valores van como parámetros, nunca en el SQL
+    expect(params).toEqual(["%sol%", ["hotel", "hostel"], 2, ["reservas"], 7]);
+    expect(w).toContain("p.brand IS NULL");
+    expect(parseFilters(new URLSearchParams("chain=hackeo&has=x&minScore=abc"))).toEqual({});
+  });
+  it("sugiere filtros solo con grupos que responden claramente mejor", async () => {
+    const { suggestFilters } = await import("../src/lib/insights");
+    const seg = (dim: string, value: string, contacted: number, replied: number) => ({ dim, value, contacted, replied, rate: replied / contacted });
+    const s = suggestFilters({
+      total: 100, replied: 20, rate: 0.2, enough: true,
+      segments: [
+        seg("Categoría", "hotel", 40, 14), seg("Categoría", "hostel", 30, 3),
+        seg("Tipo", "independiente", 70, 19), seg("Tipo", "cadena", 30, 1),
+        seg("Problema", "teléfono", 20, 9), seg("Problema", "precio", 5, 4),
+      ],
+    });
+    expect(s.filters).toMatchObject({ cat: ["hotel"], chain: "independent", pain: ["teléfono"], notContacted: true });
+  });
+  it("ajusta el puntaje con datos reales (±15)", async () => {
+    const { learnedBonus } = await import("../src/lib/insights");
+    const lift = { overall: 0.2, byCategory: new Map([["hotel", 0.5]]), byType: new Map([["independiente", 0.3]]), byPain: new Map() };
+    expect(learnedBonus(lift, { category: "hotel", brand: null, pains: [] })?.points).toBe(15);
+    expect(learnedBonus(lift, { category: "otro", brand: "NH", pains: [] })).toBeNull();
+  });
+});

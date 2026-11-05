@@ -3,43 +3,31 @@ import Link from "next/link";
 import { q } from "@/lib/db";
 import { bulkAction, importCsvAction } from "@/app/feature-actions";
 import { requireUser } from "@/lib/auth/session";
+import { filterSql, filtersToQuery, parseFilters } from "@/lib/filters";
+import { FilterBar } from "../filter-bar";
 import { STAGES, STAGE_LABEL, type Stage } from "@/lib/crm";
 import { Badge, V } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
 
-type Search = { status?: string; locality?: string; s?: string; page?: string; stage?: string; mine?: string; sort?: string; imported?: string; skipped?: string };
+type Search = Record<string, string | string[] | undefined>;
 
 export default async function Prospectos({ searchParams }: { searchParams: Promise<Search> }) {
   const t = await getT();
   const sp = await searchParams;
   const me = await requireUser();
-  const page = Math.max(1, Number(sp.page ?? 1));
-  const where: string[] = [];
+  const one1 = (k: string) => (Array.isArray(sp[k]) ? sp[k]![0] : (sp[k] as string | undefined));
+  const page = Math.max(1, Number(one1("page") ?? 1));
+  const sort = one1("sort");
+  // compatibilidad con links viejos: ?s= y ?mine=1
+  const filters = parseFilters({ ...sp, q: sp.q ?? sp.s, owner: sp.owner ?? (one1("mine") === "1" ? "me" : undefined) });
   const params: unknown[] = [];
-  if (sp.status) {
-    params.push(sp.status);
-    where.push(`p.status = $${params.length}`);
-  } else where.push("p.status <> 'discarded'");
-  if (sp.locality) {
-    params.push(Number(sp.locality));
-    where.push(`p.locality_id = $${params.length}`);
-  }
-  if (sp.stage) {
-    params.push(sp.stage);
-    where.push(`p.stage = $${params.length}`);
-  }
-  if (sp.mine === "1") {
-    params.push(me.id);
-    where.push(`p.assigned_to = $${params.length}`);
-  }
-  if (sp.s) {
-    params.push(`%${sp.s}%`);
-    where.push(`(p.name ILIKE $${params.length} OR p.address ILIKE $${params.length})`);
-  }
-  const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const where = filterSql(filters, params, me.id);
+  if (!filters.status) where.push("p.status <> 'discarded'");
+  where.push("p.duplicate_of IS NULL");
+  const w = `WHERE ${where.join(" AND ")}`;
   const users = await q<{ id: number; username: string }>("SELECT id, username FROM users ORDER BY username");
-  const [rows, total, localities] = await Promise.all([
+  const [rows, total] = await Promise.all([
     q<{
       id: number;
       name: string;
@@ -58,18 +46,15 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
       `SELECT p.id, p.name, p.category, l.name AS locality, p.phone, p.website, p.rating, p.reviews_count, p.status,
               p.notion_page_id, p.stage, p.score, u.username AS assigned
        FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN users u ON u.id = p.assigned_to ${w}
-       ORDER BY ${sp.sort === "recent" ? "p.created_at DESC" : "p.score DESC NULLS LAST"}, p.id DESC
+       ORDER BY ${sort === "recent" ? "p.created_at DESC" : "p.score DESC NULLS LAST"}, p.id DESC
        LIMIT 50 OFFSET ${(page - 1) * 50}`,
       params,
     ),
-    q<{ n: number }>(`SELECT count(*)::int AS n FROM prospects p ${w}`, params),
-    q<{ id: number; name: string }>(
-      "SELECT id, name FROM localities WHERE prospects_found > 0 ORDER BY name",
-    ),
+    q<{ n: number }>(`SELECT count(*)::int AS n FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id ${w}`, params),
   ]);
   const n = total[0]?.n ?? 0;
-  const qs = (o: Partial<Search>) =>
-    "?" + new URLSearchParams(Object.entries({ ...sp, ...o }).filter(([, v]) => v) as [string, string][]).toString();
+  const qs = (o: Record<string, string>) =>
+    "?" + [filtersToQuery(filters), new URLSearchParams({ ...(sort ? { sort } : {}), ...o }).toString()].filter(Boolean).join("&");
 
   return (
     <>
@@ -92,54 +77,17 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
           </details>
         </div>
       </div>
-      {sp.imported !== undefined && (
+      {one1("imported") !== undefined && (
         <div className="notice" style={{ borderColor: "var(--ok)" }}>
-          {t("Importados: {n}. Salteados (duplicados o vacíos): {s}.", { n: sp.imported, s: sp.skipped ?? 0 })}
+          {t("Importados: {n}. Salteados (duplicados o vacíos): {s}.", { n: one1("imported") ?? 0, s: one1("skipped") ?? 0 })}
         </div>
       )}
 
-      <form className="card row" style={{ marginBottom: 16 }}>
-        <div style={{ flex: "2 1 220px" }}>
-          <input name="s" placeholder={t("Buscar por nombre o dirección")} defaultValue={sp.s} />
-        </div>
-        <div style={{ flex: "1 1 160px" }}>
-          <select name="status" defaultValue={sp.status ?? ""}>
-            <option value="">{t("Todos los estados")}</option>
-            <option value="new">{t("Nuevo")}</option>
-            <option value="enriched">{t("Datos listos")}</option>
-            <option value="message_ready">{t("Mensaje listo")}</option>
-            <option value="report_ready">{t("Informe listo")}</option>
-            <option value="synced">{t("En Notion")}</option>
-            <option value="discarded">{t("Descartado")}</option>
-          </select>
-        </div>
-        <div style={{ flex: "1 1 160px" }}>
-          <select name="locality" defaultValue={sp.locality ?? ""}>
-            <option value="">{t("Todas las localidades")}</option>
-            {localities.map((l) => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
-        </div>
-        <div style={{ flex: "1 1 150px" }}>
-          <select name="stage" defaultValue={sp.stage ?? ""}>
-            <option value="">{t("Todas las etapas")}</option>
-            {STAGES.map((s) => (
-              <option key={s.key} value={s.key}>{t(s.label)}</option>
-            ))}
-          </select>
-        </div>
-        <div style={{ flex: "1 1 140px" }}>
-          <select name="sort" defaultValue={sp.sort ?? ""}>
-            <option value="">{t("Mayor puntaje primero")}</option>
-            <option value="recent">{t("Más recientes")}</option>
-          </select>
-        </div>
-        <label className="row" style={{ margin: 0, fontWeight: 500 }}>
-          <input type="checkbox" name="mine" value="1" defaultChecked={sp.mine === "1"} style={{ width: "auto" }} />{" "}{t("Míos")}
-        </label>
-        <button className="btn">{t("Filtrar")}</button>
-      </form>
+      <FilterBar path="/prospectos" filters={filters} show={{ status: true }} hidden={sort ? { sort } : {}} />
+      <div className="row" style={{ justifyContent: "flex-end", marginTop: -8, marginBottom: 8 }}>
+        <Link className={`chip ${sort === "recent" ? "" : "on"}`} href={`/prospectos?${filtersToQuery(filters)}`}>{t("Mayor puntaje primero")}</Link>
+        <Link className={`chip ${sort === "recent" ? "on" : ""}`} href={`/prospectos?${[filtersToQuery(filters), "sort=recent"].filter(Boolean).join("&")}`}>{t("Más recientes")}</Link>
+      </div>
 
       <form id="bulk" action={bulkAction} className="row bulk-bar">
         <span className="help">{t("Con los seleccionados:")}</span>

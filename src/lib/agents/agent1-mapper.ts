@@ -148,6 +148,8 @@ export type DiscoveredPlace = {
   businessDays?: string;
   businessHours?: string;
   businessStatus?: string;
+  stars?: number;
+  brand?: string;
   raw: unknown;
 };
 
@@ -216,6 +218,8 @@ export class OsmSource implements ProspectSource {
           facebook: t["contact:facebook"] ?? t.facebook,
           businessDays: schedule?.days,
           businessHours: schedule?.hours,
+          stars: /^[1-5]/.test(t.stars ?? "") ? Number(t.stars![0]) : undefined,
+          brand: t.brand ?? (t["brand:wikidata"] ? "cadena" : undefined),
           googleMapsUrl: mapsSearchUrl(t.name, addr || loc.name),
           raw: e,
         };
@@ -243,8 +247,8 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
     const row = await one<{ inserted: boolean }>(
       `INSERT INTO prospects (locality_id, niche_key, source, source_id, name, category, address, phone, website, email,
                               google_maps_url, rating, reviews_count, business_status, lat, lng, raw, instagram,
-                              facebook, business_days, business_hours)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21)
+                              facebook, business_days, business_hours, stars, brand)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,$22,$23)
        ON CONFLICT (source, source_id) DO UPDATE SET
          rating = EXCLUDED.rating, reviews_count = EXCLUDED.reviews_count, updated_at = now()
        RETURNING (xmax = 0) AS inserted`,
@@ -270,6 +274,8 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
         p.facebook ?? null,
         p.businessDays ?? null,
         p.businessHours ?? null,
+        p.stars ?? null,
+        p.brand ?? null,
       ],
     );
     if (row?.inserted && blocked)

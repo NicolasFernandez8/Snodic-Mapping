@@ -7,18 +7,29 @@ import { blockAction, reviewDiscardAction } from "@/app/feature-actions";
 import { WhatsAppButton } from "@/app/whatsapp-button";
 import { V } from "@/app/ui";
 import { Shortcuts } from "./shortcuts";
+import { FilterBar } from "../filter-bar";
+import { requireUser } from "@/lib/auth/session";
+import { filterSql, filtersToQuery, parseFilters } from "@/lib/filters";
 
 export const dynamic = "force-dynamic";
 
 /** Modo revisión rápida: un prospecto por vez, listo para contactar, del mejor puntaje al peor. */
-export default async function Revision({ searchParams }: { searchParams: Promise<{ skip?: string }> }) {
+export default async function Revision({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const t = await getT();
-  const skip = ((await searchParams).skip ?? "")
+  const me = await requireUser();
+  const sp = await searchParams;
+  const filters = parseFilters(sp);
+  const fq = filtersToQuery(filters);
+  const withF = (extra: string) => `/revision?${[fq, extra].filter(Boolean).join("&")}`;
+  const skip = String(Array.isArray(sp.skip) ? sp.skip[0] : (sp.skip ?? ""))
     .split(",")
     .map(Number)
     .filter((n) => Number.isInteger(n) && n > 0);
+  const params: unknown[] = [skip];
+  const extra = filterSql(filters, params, me.id);
   const base = `p.stage = 'to_contact' AND p.status <> 'discarded' AND NOT p.do_not_contact AND p.duplicate_of IS NULL
-    AND EXISTS (SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'message' AND o.content IS NOT NULL)`;
+    AND EXISTS (SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'message' AND o.content IS NOT NULL)
+    ${extra.length ? "AND " + extra.join(" AND ") : ""}`;
   const [p, left] = await Promise.all([
     one<{
       id: number;
@@ -38,18 +49,23 @@ export default async function Revision({ searchParams }: { searchParams: Promise
        FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id
        WHERE ${base} AND NOT (p.id = ANY($1::int[]))
        ORDER BY p.score DESC NULLS LAST, p.id LIMIT 1`,
-      [skip],
+      params,
     ),
-    one<{ n: number }>(`SELECT count(*)::int AS n FROM prospects p WHERE ${base} AND NOT (p.id = ANY($1::int[]))`, [skip]),
+    one<{ n: number }>(
+      `SELECT count(*)::int AS n FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id
+       WHERE ${base} AND NOT (p.id = ANY($1::int[]))`,
+      params,
+    ),
   ]);
 
   if (!p)
     return (
       <>
         <div className="page-head"><h1>{t("Revisión rápida")}</h1></div>
+        <FilterBar path="/revision" filters={filters} show={{ stage: false }} />
         <div className="card empty">
           {t("No quedan prospectos listos para contactar.")}{" "}
-          {skip.length > 0 && <Link href="/revision">{t("Volver a ver los salteados")}</Link>}
+          {skip.length > 0 && <Link href={withF("")}>{t("Volver a ver los salteados")}</Link>}
         </div>
       </>
     );
@@ -63,6 +79,7 @@ export default async function Revision({ searchParams }: { searchParams: Promise
           <p className="sub">{t("Quedan {n} listos para contactar. Atajos: W = WhatsApp · S = saltar · D = descartar · E = editar", { n: left?.n ?? 0 })}</p>
         </div>
       </div>
+      <FilterBar path="/revision" filters={filters} show={{ stage: false }} />
       <Shortcuts />
       <div className="grid two">
         <div className="card">
@@ -90,18 +107,18 @@ export default async function Revision({ searchParams }: { searchParams: Promise
                 <WhatsAppButton prospectId={p.id} href={whatsappLink(p.phone, p.message)} kind="first" label={t("WhatsApp (W)")} />
               </span>
               <button className="btn secondary sm">{t("Guardar cambios")}</button>
-              <Link id="rv-skip" className="btn secondary sm" href={`/revision?skip=${nextSkip}`}>{t("Saltar (S)")}</Link>
+              <Link id="rv-skip" className="btn secondary sm" href={withF(`skip=${nextSkip}`)}>{t("Saltar (S)")}</Link>
             </div>
           </form>
           <div className="row" style={{ marginTop: 10 }}>
             <form action={reviewDiscardAction}>
               <input type="hidden" name="id" value={p.id} />
-              <input type="hidden" name="skip" value={skip.join(",")} />
+              <input type="hidden" name="back" value={withF(skip.length ? `skip=${skip.join(",")}` : "")} />
               <button id="rv-discard" className="btn danger sm">{t("Descartar (D)")}</button>
             </form>
             <form action={blockAction} className="row">
               <input type="hidden" name="id" value={p.id} />
-              <input type="hidden" name="next" value={`/revision?skip=${skip.join(",")}`} />
+              <input type="hidden" name="next" value={withF(skip.length ? `skip=${skip.join(",")}` : "")} />
               <input name="reason" placeholder={t("Motivo (opcional)")} style={{ width: 160 }} />
               <button className="btn danger sm">{t("No contactar")}</button>
             </form>

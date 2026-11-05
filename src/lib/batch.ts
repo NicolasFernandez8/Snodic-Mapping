@@ -3,25 +3,29 @@
  * y el parser que separa la respuesta y la guarda en cada ficha.
  */
 import { q } from "./db";
+import { filterSql, type Filters } from "./filters";
 import { messagePrompt, reportPrompt } from "./ai/prompts";
 import { promptInput, saveManualOutput, type OutputKind } from "./agents/agent34-writer";
 
 export type BatchItem = { id: number; name: string; score: number | null; reviews: number };
 
 /** Prospectos que necesitan mensaje (o informe), con reseñas cargadas, por puntaje. */
-export async function batchCandidates(kind: OutputKind, limit: number): Promise<BatchItem[]> {
+export async function batchCandidates(kind: OutputKind, limit: number, filters: Filters = {}, meId?: number): Promise<BatchItem[]> {
   const needs =
     kind === "message"
       ? `NOT EXISTS (SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'message' AND o.content IS NOT NULL)`
       : `EXISTS (SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'message' AND o.content IS NOT NULL)
          AND NOT EXISTS (SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'report' AND o.content IS NOT NULL)`;
+  const params: unknown[] = [limit];
+  const extra = filterSql(filters, params, meId);
   return q<BatchItem>(
     `SELECT p.id, p.name, p.score, (SELECT count(*)::int FROM reviews r WHERE r.prospect_id = p.id) AS reviews
-     FROM prospects p
+     FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id
      WHERE p.status <> 'discarded' AND NOT p.do_not_contact AND p.duplicate_of IS NULL
        AND EXISTS (SELECT 1 FROM reviews r WHERE r.prospect_id = p.id) AND ${needs}
+       ${extra.length ? "AND " + extra.join(" AND ") : ""}
      ORDER BY p.score DESC NULLS LAST, p.id LIMIT $1`,
-    [limit],
+    params,
   );
 }
 
