@@ -177,3 +177,28 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outl
 .chip.on, .chip:hover { background: var(--blue); color: #fff; border-color: var(--blue); text-decoration: none; }
 
 .dim-title { font-size: 13px; margin: 0 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* Barra de cantidad */
+.quota { display: grid; gap: 4px; min-width: 240px; }
+.quota-row { display: flex; gap: 10px; align-items: center; }
+.quota-row input[type="range"] { flex: 1; accent-color: var(--blue); padding: 0; border: 0; background: transparent; }
+.quota-row input[type="number"] { width: 72px; text-align: center; font-weight: 700; }
+.run-now { display: flex; gap: 16px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }
+.run-now .quota { flex: 1 1 320px; }
+
+/* Calendario */
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-head { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; padding: 4px 0; }
+.cal-cell { min-height: 92px; border: 1px solid var(--border); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 3px; color: var(--text); overflow: hidden; }
+.cal-cell:hover { border-color: var(--blue); text-decoration: none; }
+.cal-cell.empty-cell { border: 0; }
+.cal-cell.today .cal-day { background: var(--blue); color: #fff; border-radius: 999px; padding: 0 7px; }
+.cal-cell.sel { outline: 2px solid var(--blue); }
+.cal-day { font-weight: 700; font-size: 13px; align-self: flex-start; }
+.cal-ev { font-size: 11px; border-radius: 4px; padding: 1px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--blue-soft); color: var(--blue); }
+.cal-ev.done { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+.cal-ev.failed { background: color-mix(in srgb, var(--err) 15%, transparent); color: var(--err); }
+.cal-ev.queued { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+.day-pick { display: inline-flex; gap: 4px; align-items: center; font-weight: 500; margin: 0; }
+.day-pick input { width: auto; }
+@media (max-width: 700px) { .cal-cell { min-height: 56px; } .cal-ev { font-size: 0; padding: 3px; } .cal-ev::before { content: "●"; font-size: 9px; } }

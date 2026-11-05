@@ -237,6 +237,30 @@ d("pipeline de agentes (integración)", () => {
     const { rescoreAll } = await import("../src/lib/score-store");
     expect(await rescoreAll(2)).toBeGreaterThan(2);
 
+    // Mapeos programados.
+    const sch = await import("../src/lib/schedules");
+    const soon = new Date(Date.now() + 120000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const loc = sch.zonedParts(soon, "Europe/Madrid");
+    await sch.createSchedule(
+      { name: "Test una vez", kind: "once", jobType: "map_localities", quota: 7, date: `${loc.y}-${pad(loc.m)}-${pad(loc.d)}`, time: `${pad(loc.h)}:${pad(loc.mi)}`, tz: "Europe/Madrid" },
+      admin.id,
+    );
+    await sch.createSchedule(
+      { name: "Test semanal", kind: "weekly", jobType: "daily_pipeline", quota: 2, time: "09:00", weekdays: [0, 1, 2, 3, 4, 5, 6], tz: "Europe/Madrid" },
+      admin.id,
+    );
+    await expect(
+      sch.createSchedule({ name: "Pasado", kind: "once", jobType: "map_localities", quota: 1, date: "2020-01-01", time: "09:00", tz: "Europe/Madrid" }, admin.id),
+    ).rejects.toThrow(/ya pasaron/);
+    expect(await sch.runDueSchedules(new Date())).toBe(0);
+    expect(await sch.runDueSchedules(new Date(Date.now() + 3 * 60000))).toBe(1);
+    const sj = await db.one<{ type: string; payload: { quota: number } }>("SELECT type, payload FROM jobs ORDER BY id DESC LIMIT 1");
+    expect(sj).toMatchObject({ type: "map_localities", payload: { quota: 7 } });
+    const once = await db.one<{ active: boolean; next_run_at: string | null }>("SELECT active, next_run_at FROM schedules WHERE name = 'Test una vez'");
+    expect(once).toEqual({ active: false, next_run_at: null });
+    await db.q("DELETE FROM jobs");
+
     // Cola de trabajos.
     const job = await jobs.enqueue("collect_data", { limit: 1 });
     const picked = await jobs.pickJob();

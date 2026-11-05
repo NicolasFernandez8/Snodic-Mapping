@@ -87,3 +87,8 @@ Migración `005_perf_quality`. Tests: 39/39.
 | Response insights + learned score | 5 | Métricas → "Qué funciona": tasa de respuesta por característica, búsqueda sugerida (≥50 contactados) y ±15 puntos según prospectos parecidos. |
 
 Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas guardadas). Tests: 42/42.
+
+## 2026-11-05 · Cantidad a mapear y calendario
+- Barra deslizante + número editable (1–50) en Panel ("Solo mapear" / "Pipeline completo"), Agentes y Ajustes.
+- `/calendario`: mes con mapeos programados (azul), ejecutados (verde) y con error (rojo); programar una vez o semanal (días + hora), con cantidad y tipo; pausar, reanudar, borrar. Zona horaria Argentina o Madrid.
+- El worker revisa cada minuto los programados vencidos (migración `007_schedules`). Tests: 44/44.

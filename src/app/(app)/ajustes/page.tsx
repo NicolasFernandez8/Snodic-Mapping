@@ -3,6 +3,7 @@ import { getSetting, q } from "@/lib/db";
 import type { Niche } from "@/lib/agents/types";
 import { importRegionAction, saveNiche, saveSettings } from "@/app/actions";
 import { saveOutreachSettingsAction, saveVariantAction } from "@/app/crm-actions";
+import { QuotaSlider } from "@/app/quota-slider";
 
 export const dynamic = "force-dynamic";
 
@@ -45,8 +46,7 @@ export default async function Ajustes() {
             <p className="help">{t("El Agente 1 solo guarda lugares de este rubro. Podés crear rubros nuevos abajo.")}</p>
           </div>
           <div className="field">
-            <label htmlFor="daily_locality_quota">{t("Localidades por día")}</label>
-            <input id="daily_locality_quota" name="daily_locality_quota" type="number" min={1} max={50} defaultValue={quota} />
+            <QuotaSlider name="daily_locality_quota" defaultValue={quota} label={t("Localidades por día")} />
           </div>
           <div className="field">
             <label htmlFor="prospect_source">{t("Fuente de prospectos")}</label>

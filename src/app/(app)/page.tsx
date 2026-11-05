@@ -4,6 +4,7 @@ import { getSetting, one, q } from "@/lib/db";
 import { workerAgeSeconds } from "@/lib/status";
 import { runAgent } from "@/app/actions";
 import { AutoRefresh } from "@/app/auto-refresh";
+import { QuotaSlider } from "@/app/quota-slider";
 import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
@@ -54,11 +55,7 @@ export default async function Panel() {
             {t("Rubro activo:")}{" "}<strong>{niche?.label ?? "-"}</strong> · <Link href="/ajustes">{t("cambiar")}</Link>
           </p>
         </div>
-        <form action={runAgent} className="row">
-          <AutoRefresh active={jobs.some((j) => j.status === "queued" || j.status === "running")} />
-          <input type="hidden" name="type" value="daily_pipeline" />
-          <button className="btn">{t("▶ Ejecutar pipeline ahora")}</button>
-        </form>
+        <AutoRefresh active={jobs.some((j) => j.status === "queued" || j.status === "running")} />
       </div>
 
       {(workerAge === null || workerAge > 180) && (
@@ -68,6 +65,14 @@ export default async function Panel() {
             : t("El worker de agentes no da señales hace {n} min: revisá el contenedor snodic-mapping-worker.", { n: Math.round(workerAge / 60) })}
         </div>
       )}
+      <form action={runAgent} className="card run-now" style={{ marginBottom: 16 }}>
+        <QuotaSlider defaultValue={quota} label={t("¿Cuántas localidades mapear ahora?")} />
+        <div className="row">
+          <button className="btn secondary" name="type" value="map_localities">{t("Solo mapear")}</button>
+          <button className="btn" name="type" value="daily_pipeline">{t("▶ Ejecutar pipeline ahora")}</button>
+          <Link className="btn secondary" href="/calendario">{t("📅 Programar")}</Link>
+        </div>
+      </form>
       <div className="grid kpis" style={{ marginBottom: 16 }}>
         {kpis.map((k) => (
           <div key={k.label} className="card kpi">

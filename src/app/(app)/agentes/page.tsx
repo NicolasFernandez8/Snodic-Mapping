@@ -2,6 +2,8 @@ import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
 import { config } from "@/lib/config";
 import { runAgent } from "@/app/actions";
+import { QuotaSlider } from "@/app/quota-slider";
+import { getSetting } from "@/lib/db";
 import { AutoRefresh } from "@/app/auto-refresh";
 import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 
@@ -50,6 +52,7 @@ const AGENTS = [
 export default async function Agentes() {
   const t = await getT();
   const cfg = config();
+  const quota = await getSetting<number>("daily_locality_quota", 3);
   const jobs = await q<{
     id: number;
     type: string;
@@ -95,6 +98,7 @@ export default async function Agentes() {
             <strong>{t(a.title)}</strong>
             <span className="sub" style={{ margin: 0, flex: 1 }}>{t(a.desc)}</span>
             <input type="hidden" name="type" value={a.type} />
+            {a.type === "map_localities" && <QuotaSlider defaultValue={quota} />}
             <button className="btn sm">{t("Ejecutar")}</button>
           </form>
         ))}

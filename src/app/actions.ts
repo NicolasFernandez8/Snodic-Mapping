@@ -25,8 +25,8 @@ export async function runAgent(formData: FormData) {
   const type = String(formData.get("type")) as JobType;
   if (!JOB_TYPES.includes(type)) throw new Error("Trabajo inválido");
   const payload: Record<string, unknown> = {};
-  const quota = formData.get("quota");
-  if (quota) payload.quota = Number(quota);
+  const quota = Number(formData.get("quota"));
+  if (Number.isFinite(quota) && quota > 0) payload.quota = Math.max(1, Math.min(50, Math.round(quota)));
   await enqueue(type, payload);
   revalidatePath("/agentes");
   redirect("/agentes");

@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
-import { q } from "@/lib/db";
+import { q, setSetting } from "@/lib/db";
+import { createSchedule, deleteSchedule, setScheduleActive } from "@/lib/schedules";
 import { saveBatch } from "@/lib/batch";
 import { blockProspect, unblockProspect } from "@/lib/quality";
 import { assign, isStage, setStage } from "@/lib/crm";
@@ -93,4 +94,50 @@ export async function deleteSearchAction(f: FormData) {
   await deleteSearch(Number(f.get("id")));
   const back = String(f.get("back") ?? "/prospectos");
   redirect(back.startsWith("/") ? back : "/prospectos");
+}
+
+// --- Calendario de mapeos ---
+const TZ_OK = ["America/Argentina/Buenos_Aires", "Europe/Madrid"];
+
+export async function createScheduleAction(f: FormData) {
+  const me = await requireUser();
+  const tz = String(f.get("tz"));
+  try {
+    await createSchedule(
+      {
+        name: String(f.get("name") ?? ""),
+        kind: f.get("kind") === "weekly" ? "weekly" : "once",
+        jobType: f.get("job_type") === "daily_pipeline" ? "daily_pipeline" : "map_localities",
+        quota: Number(f.get("quota") ?? 3),
+        date: String(f.get("date") ?? ""),
+        time: String(f.get("time") ?? ""),
+        weekdays: f.getAll("weekdays").map(Number),
+        tz: TZ_OK.includes(tz) ? tz : "Europe/Madrid",
+      },
+      me.id,
+    );
+  } catch (e) {
+    redirect(`/calendario?error=${encodeURIComponent((e as Error).message)}`);
+  }
+  revalidatePath("/calendario");
+  redirect("/calendario");
+}
+
+export async function toggleScheduleAction(f: FormData) {
+  await requireUser();
+  await setScheduleActive(Number(f.get("id")), f.get("active") === "1");
+  revalidatePath("/calendario");
+}
+
+export async function deleteScheduleAction(f: FormData) {
+  await requireUser();
+  await deleteSchedule(Number(f.get("id")));
+  revalidatePath("/calendario");
+}
+
+export async function setCalendarTzAction(f: FormData) {
+  await requireUser();
+  const tz = String(f.get("tz"));
+  if (TZ_OK.includes(tz)) await setSetting("calendar_tz", tz);
+  revalidatePath("/calendario");
 }

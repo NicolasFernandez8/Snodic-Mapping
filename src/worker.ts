@@ -8,6 +8,7 @@ import { enqueue, failJob, finishJob, pickJob, requeueStale } from "./lib/jobs";
 import { runJob } from "./lib/agents/orchestrator";
 import { q } from "./lib/db";
 import { heartbeat } from "./lib/status";
+import { runDueSchedules } from "./lib/schedules";
 import { simplifyArea } from "./lib/geo/simplify";
 import type { Area } from "./lib/geo/geometry";
 
@@ -33,6 +34,10 @@ async function loop() {
   await backfillSimpleBoundaries();
   await heartbeat().catch(() => {});
   setInterval(() => heartbeat().catch((e) => log(`Latido falló: ${e.message}`)), 30000);
+  // Mapeos programados desde el calendario: se revisan cada minuto.
+  const checkSchedules = () => runDueSchedules(new Date(), log).catch((e) => log(`Programados: ${e.message}`));
+  await checkSchedules();
+  setInterval(checkSchedules, 60000);
   while (!stopping) {
     const job = await pickJob().catch((e) => {
       log(`Error tomando trabajo: ${e.message}`);

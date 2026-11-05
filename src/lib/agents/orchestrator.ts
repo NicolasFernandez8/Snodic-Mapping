@@ -45,7 +45,7 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
     case "generate_reports":
       return runWriterAgent("report", llmFromConfig(), Number(p.limit ?? 30), log);
     case "daily_pipeline":
-      return dailyPipeline(log);
+      return dailyPipeline(log, p.quota ? Number(p.quota) : undefined);
     case "rescore":
       return { rescored: await rescoreAll() };
     case "dedupe":
@@ -55,7 +55,7 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
   }
 }
 
-export async function dailyPipeline(log: AgentLog) {
+export async function dailyPipeline(log: AgentLog, quotaOverride?: number) {
   const steps: Record<string, unknown> = {};
   const step = async (name: string, fn: () => Promise<unknown>) => {
     try {
@@ -65,7 +65,7 @@ export async function dailyPipeline(log: AgentLog) {
       log(`${name}: ${(e as Error).message}`);
     }
   };
-  const quota = await getSetting<number>("daily_locality_quota", 3);
+  const quota = quotaOverride ?? (await getSetting<number>("daily_locality_quota", 3));
   const auto = await getSetting<boolean>("auto_generate_outputs", true);
   await step("agente1_mapeo", async () => mapNextLocalities(quota, await sourceFromSettings(), log));
   await step("agente2_datos", () => collectData(500, log));

@@ -474,3 +474,26 @@ describe("filtros de búsqueda", () => {
     expect(learnedBonus(lift, { category: "otro", brand: "NH", pains: [] })).toBeNull();
   });
 });
+
+describe("mapeos programados", () => {
+  it("convierte hora local a UTC con horario de verano", async () => {
+    const { zonedToUtc } = await import("../src/lib/schedules");
+    expect(zonedToUtc(2026, 1, 15, 9, 0, "Europe/Madrid").toISOString()).toBe("2026-01-15T08:00:00.000Z"); // invierno UTC+1
+    expect(zonedToUtc(2026, 7, 15, 9, 0, "Europe/Madrid").toISOString()).toBe("2026-07-15T07:00:00.000Z"); // verano UTC+2
+    expect(zonedToUtc(2026, 11, 5, 4, 59, "America/Argentina/Buenos_Aires").toISOString()).toBe("2026-11-05T07:59:00.000Z");
+  });
+  it("calcula la próxima ejecución semanal", async () => {
+    const { nextRun, occurrences } = await import("../src/lib/schedules");
+    // jueves 5/11/2026 03:30 UTC = 00:30 en Argentina
+    const from = new Date("2026-11-05T03:30:00Z");
+    const s = { kind: "weekly" as const, run_at: null, weekdays: [1, 3], time_of_day: "09:00", tz: "America/Argentina/Buenos_Aires" };
+    expect(nextRun(s, from)?.toISOString()).toBe("2026-11-09T12:00:00.000Z"); // lunes 9 a las 09:00 ART
+    const occ = occurrences(
+      { ...s, id: 1, name: "x", job_type: "map_localities", quota: 3, active: true, next_run_at: null, last_run_at: null, last_job_id: null, created_by: null },
+      new Date("2026-11-01T00:00:00Z"),
+      new Date("2026-12-01T00:00:00Z"),
+    );
+    expect(occ).toHaveLength(9); // 5 lunes + 4 miércoles en noviembre 2026
+    expect(nextRun({ kind: "once", run_at: "2026-01-01T00:00:00Z", weekdays: [], time_of_day: null, tz: "UTC" }, from)).toBeNull();
+  });
+});

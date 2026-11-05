@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/seguimientos", label: "Seguimientos", icon: "↻" },
   { href: "/metricas", label: "Métricas", icon: "↗" },
   { href: "/casos", label: "Casos de éxito", icon: "★" },
+  { href: "/calendario", label: "Calendario", icon: "📅" },
   { href: "/agentes", label: "Agentes", icon: "⚙" },
   { href: "/ajustes", label: "Ajustes", icon: "✎" },
   { href: "/usuarios", label: "Usuarios", icon: "👤" },
