@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/server";
+
 export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   new: { label: "Nuevo", tone: "muted" },
   enriched: { label: "Datos listos", tone: "" },
@@ -22,9 +24,10 @@ export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   paused: { label: "Pausada", tone: "muted" },
 };
 
-export function Badge({ status }: { status: string }) {
+export async function Badge({ status }: { status: string }) {
+  const t = await getT();
   const s = STATUS_LABEL[status] ?? { label: status, tone: "muted" };
-  return <span className={`badge ${s.tone}`}>{s.label}</span>;
+  return <span className={`badge ${s.tone}`}>{t(s.label)}</span>;
 }
 
 /** Muestra "-" para datos vacíos (convención de Snodic). */

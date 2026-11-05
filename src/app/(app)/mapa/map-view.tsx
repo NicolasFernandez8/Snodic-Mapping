@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { FeatureCollection } from "geojson";
+import { useT } from "@/lib/i18n/client";
 
 const STATUS_COLOR: Record<string, string> = {
   mapped: "#1c6fef",
@@ -10,6 +11,14 @@ const STATUS_COLOR: Record<string, string> = {
   pending: "#8a9ab3",
   failed: "#d93a3a",
   skipped: "#c0c7d2",
+};
+
+const STATUS_TEXT: Record<string, string> = {
+  mapped: "Mapeada",
+  mapping: "Mapeando",
+  pending: "Pendiente",
+  failed: "Error",
+  skipped: "Omitida",
 };
 
 type Data = {
@@ -31,6 +40,7 @@ function FitBounds({ data }: { data: Data | null }) {
 }
 
 export default function MapView() {
+  const t = useT();
   const [data, setData] = useState<Data | null>(null);
   useEffect(() => {
     // Recarga cada 10 s: las localidades cambian de color y aparecen los puntos a medida que el Agente 1 avanza.
@@ -60,7 +70,7 @@ export default function MapView() {
           }}
           onEachFeature={(f, layer) =>
             layer.bindPopup(
-              `<strong>${escapeHtml(f.properties.name)}</strong><br/>Estado: ${f.properties.status}<br/>Prospectos: ${f.properties.prospects}` +
+              `<strong>${escapeHtml(f.properties.name)}</strong><br/>${t("Estado: {s}", { s: t(STATUS_TEXT[f.properties.status] ?? f.properties.status) })}<br/>${t("Prospectos")}: ${f.properties.prospects}` +
                 (f.properties.error ? `<br/><span style="color:#d93a3a">${escapeHtml(f.properties.error)}</span>` : ""),
             )
           }
@@ -78,7 +88,7 @@ export default function MapView() {
             <br />
             {p.locality ?? "-"} · {p.rating ? `${p.rating}★` : "-"}
             <br />
-            <a href={`/prospectos/${p.id}`}>Ver ficha →</a>
+            <a href={`/prospectos/${p.id}`}>{t("Ver ficha →")}</a>
           </Popup>
         </CircleMarker>
       ))}

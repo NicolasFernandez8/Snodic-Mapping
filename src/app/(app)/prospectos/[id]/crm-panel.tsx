@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import { one, q } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { activities, STAGES, STAGE_LABEL, whatsappLink, type Stage } from "@/lib/crm";
@@ -27,6 +28,7 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 export async function CrmPanel({ id }: { id: number }) {
+  const t = await getT();
   const me = await requireUser();
   const p = (await one<{
     name: string;
@@ -73,8 +75,8 @@ export async function CrmPanel({ id }: { id: number }) {
     <div className="grid two" style={{ marginBottom: 16 }}>
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}>
-          <h2 style={{ margin: 0 }}>Captación</h2>
-          <span className="badge">{STAGE_LABEL[p.stage]}</span>
+          <h2 style={{ margin: 0 }}>{t("Captación")}</h2>
+          <span className="badge">{t(STAGE_LABEL[p.stage])}</span>
         </div>
         <div className="row" style={{ marginBottom: 12 }}>
           {message ? (
@@ -83,74 +85,74 @@ export async function CrmPanel({ id }: { id: number }) {
               href={wa}
               kind="first"
               alreadyBy={contactedBy && contactedBy !== me.username ? contactedBy : null}
-              label={p.stage === "to_contact" ? "Enviar mensaje por WhatsApp" : "Abrir WhatsApp con el mensaje"}
+              label={p.stage === "to_contact" ? t("Enviar mensaje por WhatsApp") : t("Abrir WhatsApp con el mensaje")}
             />
           ) : (
-            <span className="help">Falta el mensaje del Agente 3 para habilitar WhatsApp.</span>
+            <span className="help">{t("Falta el mensaje del Agente 3 para habilitar WhatsApp.")}</span>
           )}
-          {p.message_variant && <span className="badge muted">Variante {p.message_variant}</span>}
+          {p.message_variant && <span className="badge muted">{t("Variante")}{" "}{p.message_variant}</span>}
         </div>
         <form action={setStageAction} className="row" style={{ marginBottom: 10 }}>
           <input type="hidden" name="id" value={id} />
           <select name="stage" defaultValue={p.stage} style={{ width: "auto" }}>
             {STAGES.map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
+              <option key={s.key} value={s.key}>{t(s.label)}</option>
             ))}
           </select>
-          <input name="note" placeholder="Nota (opcional)" style={{ flex: 1, minWidth: 140 }} />
-          <button className="btn sm">Cambiar etapa</button>
+          <input name="note" placeholder={t("Nota (opcional)")} style={{ flex: 1, minWidth: 140 }} />
+          <button className="btn sm">{t("Cambiar etapa")}</button>
         </form>
         <form action={assignAction} className="row" style={{ marginBottom: 10 }}>
           <input type="hidden" name="id" value={id} />
-          <label htmlFor="assignee" style={{ margin: 0 }}>Responsable</label>
+          <label htmlFor="assignee" style={{ margin: 0 }}>{t("Responsable")}</label>
           <select id="assignee" name="assignee" defaultValue={p.assigned_to ?? ""} style={{ width: "auto" }}>
-            <option value="">Sin asignar</option>
+            <option value="">{t("Sin asignar")}</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>{u.username}</option>
             ))}
           </select>
-          <button className="btn secondary sm">Asignar</button>
+          <button className="btn secondary sm">{t("Asignar")}</button>
         </form>
         <dl className="dl">
-          <dt>Contactado</dt><dd>{fmtDate(p.contacted_at)}</dd>
-          <dt>Próximo seguimiento</dt><dd>{p.next_follow_up_at ? fmtDate(p.next_follow_up_at) : "-"} ({p.follow_ups_sent} enviados)</dd>
+          <dt>{t("Contactado")}</dt><dd>{fmtDate(p.contacted_at)}</dd>
+          <dt>{t("Próximo seguimiento")}</dt><dd>{p.next_follow_up_at ? fmtDate(p.next_follow_up_at) : "-"} {t("({n} enviados)", { n: p.follow_ups_sent })}</dd>
         </dl>
 
-        <h2 style={{ marginTop: 18 }}>Mini-auditoría pública</h2>
+        <h2 style={{ marginTop: 18 }}>{t("Mini-auditoría pública")}</h2>
         {auditUrl ? (
           <>
             <div className="row">
               <a href={auditUrl} target="_blank" rel="noreferrer">{auditUrl}</a>
-              <CopyButton text={auditUrl} label="Copiar link" />
+              <CopyButton text={auditUrl} label={t("Copiar link")} />
             </div>
             <p className="help">
-              Vistas: {p.audit_views}
-              {p.audit_last_viewed_at && ` · última ${fmtDate(p.audit_last_viewed_at)}`}
+              {t("Vistas: {n}", { n: p.audit_views })}
+              {p.audit_last_viewed_at && ` · ${t("última {d}", { d: fmtDate(p.audit_last_viewed_at) })}`}
             </p>
             <form action={revokeAuditAction}>
               <input type="hidden" name="id" value={id} />
-              <button className="btn danger sm">Despublicar</button>
+              <button className="btn danger sm">{t("Despublicar")}</button>
             </form>
           </>
         ) : report ? (
           <form action={createAuditAction}>
             <input type="hidden" name="id" value={id} />
             <p className="help" style={{ marginTop: 0 }}>
-              Página con las 2 oportunidades del Agente 4 y tu marca, para mandar en el seguimiento.
+              {t("Página con las 2 oportunidades del Agente 4 y tu marca, para mandar en el seguimiento.")}
             </p>
-            <button className="btn secondary sm">Publicar mini-auditoría</button>
+            <button className="btn secondary sm">{t("Publicar mini-auditoría")}</button>
           </form>
         ) : (
-          <p className="help">Necesita el informe del Agente 4.</p>
+          <p className="help">{t("Necesita el informe del Agente 4.")}</p>
         )}
       </div>
 
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}>
-          <h2 style={{ margin: 0 }}>Puntaje {p.score ?? "-"}/100</h2>
+          <h2 style={{ margin: 0 }}>{t("Puntaje {n}/100", { n: p.score ?? "-" })}</h2>
           <form action={rescoreAction}>
             <input type="hidden" name="id" value={id} />
-            <button className="btn secondary sm">Recalcular</button>
+            <button className="btn secondary sm">{t("Recalcular")}</button>
           </form>
         </div>
         {p.score_breakdown.length ? (
@@ -160,11 +162,11 @@ export async function CrmPanel({ id }: { id: number }) {
             ))}
           </ul>
         ) : (
-          <p className="help">Sin puntaje todavía.</p>
+          <p className="help">{t("Sin puntaje todavía.")}</p>
         )}
         {suggested.length > 0 && (
           <>
-            <h2>Casos para mencionar</h2>
+            <h2>{t("Casos para mencionar")}</h2>
             {suggested.map((c) => (
               <p key={c.id} style={{ margin: "0 0 6px" }}>
                 <strong>{c.title}</strong> — {c.result ?? c.summary}
@@ -172,24 +174,24 @@ export async function CrmPanel({ id }: { id: number }) {
             ))}
           </>
         )}
-        <h2 style={{ marginTop: 14 }}>Historial del equipo</h2>
+        <h2 style={{ marginTop: 14 }}>{t("Historial del equipo")}</h2>
         <form action={addNoteAction} className="row" style={{ marginBottom: 10 }}>
           <input type="hidden" name="id" value={id} />
-          <input name="body" placeholder="Agregar nota interna…" style={{ flex: 1 }} required />
-          <button className="btn sm">Anotar</button>
+          <input name="body" placeholder={t("Agregar nota interna…")} style={{ flex: 1 }} required />
+          <button className="btn sm">{t("Anotar")}</button>
         </form>
         {history.length === 0 ? (
-          <p className="help">Sin actividad.</p>
+          <p className="help">{t("Sin actividad.")}</p>
         ) : (
           <ul className="timeline">
             {history.map((h) => (
               <li key={h.id}>
                 <div className="help">
-                  {fmtDate(h.created_at)} · {h.username ?? "sistema"} · {KIND_LABEL[h.kind] ?? h.kind}
+                  {fmtDate(h.created_at)} · {h.username ?? t("sistema")} · {t(KIND_LABEL[h.kind] ?? h.kind)}
                 </div>
                 {h.kind === "stage" && (
                   <div>
-                    {STAGE_LABEL[h.from_stage as Stage] ?? h.from_stage} → <strong>{STAGE_LABEL[h.to_stage as Stage] ?? h.to_stage}</strong>
+                    {t(STAGE_LABEL[h.from_stage as Stage] ?? h.from_stage ?? "")} → <strong>{t(STAGE_LABEL[h.to_stage as Stage] ?? h.to_stage ?? "")}</strong>
                   </div>
                 )}
                 {h.body && <div>{h.body}</div>}

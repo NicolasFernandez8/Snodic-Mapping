@@ -16,8 +16,11 @@
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+:root { color-scheme: light; }
+
+/* Tema oscuro: por preferencia del sistema (salvo que se elija "claro") o elegido a mano. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #071226;
     --surface: #0d1c36;
     --text: #e6edf7;
@@ -25,7 +28,18 @@
     --border: #1d3054;
     --blue-soft: #12305f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+    --bg: #071226;
+    --surface: #0d1c36;
+    --text: #e6edf7;
+    --muted: #93a3bb;
+    --border: #1d3054;
+    --blue-soft: #12305f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -131,3 +145,17 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outl
 .audit-body { max-width: 720px; margin: -32px auto 0; padding: 0 16px 40px; display: grid; gap: 16px; }
 .audit-card h2 { font-size: 15px; margin: 14px 0 4px; color: var(--blue); }
 .audit-card p { margin: 0; }
+
+/* Selector de idioma y tema */
+.prefs { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid #2a4472; border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; color: #c9d6ea; border: 0; padding: 4px 9px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.seg button + button { border-left: 1px solid #2a4472; }
+.seg button.on { background: var(--blue); color: #fff; }
+.login-prefs { position: fixed; top: 14px; right: 16px; }
+
+/* Leaflet en oscuro */
+:root[data-theme="dark"] .leaflet-tile-pane { filter: brightness(0.75) invert(1) hue-rotate(180deg) contrast(0.9); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .leaflet-tile-pane { filter: brightness(0.75) invert(1) hue-rotate(180deg) contrast(0.9); }
+}

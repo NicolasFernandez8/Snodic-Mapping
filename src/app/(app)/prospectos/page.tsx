@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { q } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 type Search = { status?: string; locality?: string; s?: string; page?: string; stage?: string; mine?: string; sort?: string };
 
 export default async function Prospectos({ searchParams }: { searchParams: Promise<Search> }) {
+  const t = await getT();
   const sp = await searchParams;
   const me = await requireUser();
   const page = Math.max(1, Number(sp.page ?? 1));
@@ -71,30 +73,30 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
     <>
       <div className="page-head">
         <div>
-          <h1>Prospectos</h1>
-          <p className="sub">{n} resultados</p>
+          <h1>{t("Prospectos")}</h1>
+          <p className="sub">{t("{n} resultados", { n })}</p>
         </div>
-        <a className="btn secondary" href="/api/export/csv">⬇ Exportar CSV</a>
+        <a className="btn secondary" href="/api/export/csv">{t("⬇ Exportar CSV")}</a>
       </div>
 
       <form className="card row" style={{ marginBottom: 16 }}>
         <div style={{ flex: "2 1 220px" }}>
-          <input name="s" placeholder="Buscar por nombre o dirección" defaultValue={sp.s} />
+          <input name="s" placeholder={t("Buscar por nombre o dirección")} defaultValue={sp.s} />
         </div>
         <div style={{ flex: "1 1 160px" }}>
           <select name="status" defaultValue={sp.status ?? ""}>
-            <option value="">Todos los estados</option>
-            <option value="new">Nuevo</option>
-            <option value="enriched">Datos listos</option>
-            <option value="message_ready">Mensaje listo</option>
-            <option value="report_ready">Informe listo</option>
-            <option value="synced">En Notion</option>
-            <option value="discarded">Descartado</option>
+            <option value="">{t("Todos los estados")}</option>
+            <option value="new">{t("Nuevo")}</option>
+            <option value="enriched">{t("Datos listos")}</option>
+            <option value="message_ready">{t("Mensaje listo")}</option>
+            <option value="report_ready">{t("Informe listo")}</option>
+            <option value="synced">{t("En Notion")}</option>
+            <option value="discarded">{t("Descartado")}</option>
           </select>
         </div>
         <div style={{ flex: "1 1 160px" }}>
           <select name="locality" defaultValue={sp.locality ?? ""}>
-            <option value="">Todas las localidades</option>
+            <option value="">{t("Todas las localidades")}</option>
             {localities.map((l) => (
               <option key={l.id} value={l.id}>{l.name}</option>
             ))}
@@ -102,32 +104,32 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
         </div>
         <div style={{ flex: "1 1 150px" }}>
           <select name="stage" defaultValue={sp.stage ?? ""}>
-            <option value="">Todas las etapas</option>
+            <option value="">{t("Todas las etapas")}</option>
             {STAGES.map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
+              <option key={s.key} value={s.key}>{t(s.label)}</option>
             ))}
           </select>
         </div>
         <div style={{ flex: "1 1 140px" }}>
           <select name="sort" defaultValue={sp.sort ?? ""}>
-            <option value="">Mayor puntaje primero</option>
-            <option value="recent">Más recientes</option>
+            <option value="">{t("Mayor puntaje primero")}</option>
+            <option value="recent">{t("Más recientes")}</option>
           </select>
         </div>
         <label className="row" style={{ margin: 0, fontWeight: 500 }}>
-          <input type="checkbox" name="mine" value="1" defaultChecked={sp.mine === "1"} style={{ width: "auto" }} /> Míos
+          <input type="checkbox" name="mine" value="1" defaultChecked={sp.mine === "1"} style={{ width: "auto" }} />{" "}{t("Míos")}
         </label>
-        <button className="btn">Filtrar</button>
+        <button className="btn">{t("Filtrar")}</button>
       </form>
 
       <div className="card table-wrap" style={{ padding: 0 }}>
         {rows.length === 0 ? (
-          <div className="empty">No hay prospectos con estos filtros.</div>
+          <div className="empty">{t("No hay prospectos con estos filtros.")}</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Puntaje</th><th>Nombre</th><th>Localidad</th><th>Categoría</th><th>Teléfono</th><th>Etapa</th><th>Responsable</th><th>Agentes</th>
+                <th>{t("Puntaje")}</th><th>{t("Nombre")}</th><th>{t("Localidad")}</th><th>{t("Categoría")}</th><th>{t("Teléfono")}</th><th>{t("Etapa")}</th><th>{t("Responsable")}</th><th>{t("Agentes")}</th>
               </tr>
             </thead>
             <tbody>
@@ -144,7 +146,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
                   <td><V v={r.locality} /></td>
                   <td><V v={r.category} /></td>
                   <td><V v={r.phone} /></td>
-                  <td>{STAGE_LABEL[r.stage]}</td>
+                  <td>{t(STAGE_LABEL[r.stage])}</td>
                   <td><V v={r.assigned} /></td>
                   <td><Badge status={r.status} /></td>
                 </tr>
@@ -155,9 +157,9 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
       </div>
       {n > 50 && (
         <div className="row" style={{ marginTop: 12, justifyContent: "flex-end" }}>
-          {page > 1 && <Link className="btn secondary sm" href={qs({ page: String(page - 1) })}>← Anterior</Link>}
-          <span className="sub">Página {page} de {Math.ceil(n / 50)}</span>
-          {page * 50 < n && <Link className="btn secondary sm" href={qs({ page: String(page + 1) })}>Siguiente →</Link>}
+          {page > 1 && <Link className="btn secondary sm" href={qs({ page: String(page - 1) })}>{t("← Anterior")}</Link>}
+          <span className="sub">{t("Página {p} de {n}", { p: page, n: Math.ceil(n / 50) })}</span>
+          {page * 50 < n && <Link className="btn secondary sm" href={qs({ page: String(page + 1) })}>{t("Siguiente →")}</Link>}
         </div>
       )}
     </>

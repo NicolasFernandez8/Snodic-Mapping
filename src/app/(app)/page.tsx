@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { getSetting, one, q } from "@/lib/db";
 import { runAgent } from "@/app/actions";
@@ -7,6 +8,7 @@ import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 export const dynamic = "force-dynamic";
 
 export default async function Panel() {
+  const t = await getT();
   const [stats, regions, jobs, niche, quota] = await Promise.all([
     one<Record<string, number>>(`SELECT
       (SELECT count(*)::int FROM localities) AS loc_total,
@@ -33,27 +35,27 @@ export default async function Panel() {
   ]);
   const s = stats ?? {};
   const kpis = [
-    { label: "Localidades mapeadas", value: `${s.loc_mapped ?? 0}/${s.loc_total ?? 0}`, hint: `${quota} por día` },
-    { label: "Prospectos", value: s.prospects ?? 0, hint: `+${s.prospects_today ?? 0} en 24 h` },
-    { label: "Mensajes (Agente 3)", value: s.with_message ?? 0, hint: "listos para enviar" },
-    { label: "Informes (Agente 4)", value: s.with_report ?? 0, hint: "con 2 ideas" },
-    { label: "En Notion", value: s.synced ?? 0, hint: "página completa" },
-    { label: "Para revisar", value: s.to_review ?? 0, hint: "revisión humana" },
+    { label: t("Localidades mapeadas"), value: `${s.loc_mapped ?? 0}/${s.loc_total ?? 0}`, hint: t("{n} por día", { n: quota }) },
+    { label: t("Prospectos"), value: s.prospects ?? 0, hint: t("+{n} en 24 h", { n: s.prospects_today ?? 0 }) },
+    { label: t("Mensajes (Agente 3)"), value: s.with_message ?? 0, hint: t("listos para enviar") },
+    { label: t("Informes (Agente 4)"), value: s.with_report ?? 0, hint: t("con 2 ideas") },
+    { label: t("En Notion"), value: s.synced ?? 0, hint: t("página completa") },
+    { label: t("Para revisar"), value: s.to_review ?? 0, hint: t("revisión humana") },
   ];
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>Panel de captación</h1>
+          <h1>{t("Panel de captación")}</h1>
           <p className="sub">
-            Rubro activo: <strong>{niche?.label ?? "-"}</strong> · <Link href="/ajustes">cambiar</Link>
+            {t("Rubro activo:")}{" "}<strong>{niche?.label ?? "-"}</strong> · <Link href="/ajustes">{t("cambiar")}</Link>
           </p>
         </div>
         <form action={runAgent} className="row">
           <AutoRefresh active={jobs.some((j) => j.status === "queued" || j.status === "running")} />
           <input type="hidden" name="type" value="daily_pipeline" />
-          <button className="btn">▶ Ejecutar pipeline ahora</button>
+          <button className="btn">{t("▶ Ejecutar pipeline ahora")}</button>
         </form>
       </div>
 
@@ -69,10 +71,10 @@ export default async function Panel() {
 
       <div className="grid two">
         <div className="card">
-          <h2>Recorrido por regiones</h2>
+          <h2>{t("Recorrido por regiones")}</h2>
           {regions.length === 0 ? (
             <div className="empty">
-              Todavía no hay regiones. <Link href="/ajustes#region">Importá Alicante</Link> para empezar.
+              {t("Todavía no hay regiones.")}{" "}<Link href="/ajustes#region">{t("Importá Alicante")}</Link>{" "}{t("para empezar.")}
             </div>
           ) : (
             regions.map((r) => (
@@ -81,7 +83,7 @@ export default async function Panel() {
                   <strong>{r.name}</strong>
                   <span className="row">
                     <span className="sub" style={{ margin: 0 }}>
-                      {r.mapped}/{r.total} · {r.prospects} prospectos
+                      {t("{a}/{b} · {n} prospectos", { a: r.mapped, b: r.total, n: r.prospects })}
                     </span>
                     <Badge status={r.status} />
                   </span>
@@ -96,18 +98,18 @@ export default async function Panel() {
 
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 8 }}>
-            <h2 style={{ margin: 0 }}>Últimas ejecuciones</h2>
-            <Link href="/agentes">Ver todo</Link>
+            <h2 style={{ margin: 0 }}>{t("Últimas ejecuciones")}</h2>
+            <Link href="/agentes">{t("Ver todo")}</Link>
           </div>
           {jobs.length === 0 ? (
-            <div className="empty">Sin ejecuciones todavía.</div>
+            <div className="empty">{t("Sin ejecuciones todavía.")}</div>
           ) : (
             <table>
               <tbody>
                 {jobs.map((j) => (
                   <tr key={j.id}>
                     <td>
-                      {JOB_LABEL[j.type] ?? j.type}
+                      {t(JOB_LABEL[j.type] ?? j.type)}
                       {j.last_error && <div className="help" style={{ color: "var(--err)" }}>{j.last_error.slice(0, 120)}</div>}
                     </td>
                     <td><Badge status={j.status} /></td>

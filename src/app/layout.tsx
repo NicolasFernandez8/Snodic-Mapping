@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
+import { getLang, getTheme } from "@/lib/i18n/server";
+import { I18nProvider } from "@/lib/i18n/client";
 
 export const metadata: Metadata = {
   title: "Snodic Mapping",
@@ -8,9 +10,10 @@ export const metadata: Metadata = {
   icons: { icon: "/logo.png" },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [lang, theme] = await Promise.all([getLang(), getTheme()]);
   return (
-    <html lang="es">
+    <html lang={lang} data-theme={theme === "system" ? undefined : theme} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -18,7 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <I18nProvider lang={lang}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

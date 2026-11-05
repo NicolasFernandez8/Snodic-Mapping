@@ -366,3 +366,27 @@ describe("captación", () => {
     ]);
   });
 });
+
+describe("idiomas", () => {
+  it("traduce con interpolación y cae al español si falta", async () => {
+    const { makeT } = await import("../src/lib/i18n/core");
+    expect(makeT("en")("Página {p} de {n}", { p: 1, n: 3 })).toBe("Page 1 of 3");
+    expect(makeT("es")("Página {p} de {n}", { p: 1, n: 3 })).toBe("Página 1 de 3");
+    expect(makeT("en")("Texto sin traducir")).toBe("Texto sin traducir");
+  });
+  it("todos los textos de la interfaz tienen traducción al inglés", async () => {
+    const { EN } = await import("../src/lib/i18n/en");
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const walk = (d: string): string[] =>
+      readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
+    const missing = new Set<string>();
+    for (const f of walk("src/app").filter((f) => f.endsWith(".tsx") && !f.includes("/a/"))) {
+      for (const m of readFileSync(f, "utf8").matchAll(/\bt\("((?:[^"\\]|\\.)*)"/g)) {
+        const key = JSON.parse(`"${m[1]}"`);
+        if (!(key in EN)) missing.add(key);
+      }
+    }
+    expect([...missing]).toEqual([]);
+  });
+});

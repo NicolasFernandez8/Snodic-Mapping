@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useT } from "@/lib/i18n/client";
 
 const LINKS = [
   { href: "/", label: "Panel", icon: "▦" },
@@ -18,6 +19,7 @@ const LINKS = [
 export function Nav({ isAdmin }: { isAdmin: boolean }) {
   void isAdmin; // todos ven "Usuarios": los miembros solo pueden cambiar su contraseña
   const path = usePathname();
+  const t = useT();
   return (
     <nav className="nav">
       {LINKS.map((l) => {
@@ -25,7 +27,7 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
         return (
           <Link key={l.href} href={l.href} className={active ? "active" : ""}>
             <span aria-hidden>{l.icon}</span>
-            {l.label}
+            {t(l.label)}
           </Link>
         );
       })}

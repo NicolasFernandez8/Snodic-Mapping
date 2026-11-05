@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { q } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
@@ -21,6 +22,7 @@ type Card = {
 };
 
 export default async function Pipeline({ searchParams }: { searchParams: Promise<{ mine?: string; region?: string }> }) {
+  const t = await getT();
   const me = await requireUser();
   const sp = await searchParams;
   const mine = sp.mine === "1";
@@ -39,12 +41,12 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
     <>
       <div className="page-head">
         <div>
-          <h1>Pipeline de captación</h1>
-          <p className="sub">Ordenado por puntaje: arriba los que conviene contactar primero.</p>
+          <h1>{t("Pipeline de captación")}</h1>
+          <p className="sub">{t("Ordenado por puntaje: arriba los que conviene contactar primero.")}</p>
         </div>
         <div className="row">
-          <Link className={`btn ${mine ? "secondary" : ""} sm`} href="/pipeline">Todos</Link>
-          <Link className={`btn ${mine ? "" : "secondary"} sm`} href="/pipeline?mine=1">Mis prospectos</Link>
+          <Link className={`btn ${mine ? "secondary" : ""} sm`} href="/pipeline">{t("Todos")}</Link>
+          <Link className={`btn ${mine ? "" : "secondary"} sm`} href="/pipeline?mine=1">{t("Mis prospectos")}</Link>
         </div>
       </div>
       <div className="kanban">
@@ -53,7 +55,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
           return (
             <section key={s.key} className="kanban-col">
               <header>
-                <strong>{s.label}</strong>
+                <strong>{t(s.label)}</strong>
                 <span className="badge muted">{list.length}</span>
               </header>
               {list.slice(0, 60).map((c) => (
@@ -62,24 +64,24 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                     <Link href={`/prospectos/${c.id}`}><strong>{c.name}</strong></Link>
                     {c.score !== null && <span className={`badge ${c.score >= 60 ? "ok" : c.score >= 35 ? "warn" : "muted"}`}>{c.score}</span>}
                   </div>
-                  <div className="help"><V v={c.locality} /> · {c.assigned ?? "sin asignar"}</div>
+                  <div className="help"><V v={c.locality} /> · {c.assigned ?? t("sin asignar")}</div>
                   {s.key === "to_contact" && c.message && (
                     <div style={{ marginTop: 6 }}>
-                      <WhatsAppButton prospectId={c.id} href={whatsappLink(c.phone, c.message)} kind="first" label="WhatsApp" />
+                      <WhatsAppButton prospectId={c.id} href={whatsappLink(c.phone, c.message)} kind="first" label={t("WhatsApp")} />
                     </div>
                   )}
                   <form action={setStageAction} className="row" style={{ marginTop: 6, flexWrap: "nowrap" }}>
                     <input type="hidden" name="id" value={c.id} />
                     <select name="stage" defaultValue={c.stage} style={{ padding: "4px 6px", fontSize: 12 }}>
                       {STAGES.map((x) => (
-                        <option key={x.key} value={x.key}>{x.label}</option>
+                        <option key={x.key} value={x.key}>{t(x.label)}</option>
                       ))}
                     </select>
-                    <button className="btn secondary sm">Mover</button>
+                    <button className="btn secondary sm">{t("Mover")}</button>
                   </form>
                 </article>
               ))}
-              {list.length > 60 && <div className="help">+{list.length - 60} más en Prospectos</div>}
+              {list.length > 60 && <div className="help">{t("+{n} más en Prospectos", { n: list.length - 60 })}</div>}
             </section>
           );
         })}

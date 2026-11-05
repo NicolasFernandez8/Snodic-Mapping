@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { one, q } from "@/lib/db";
@@ -18,6 +19,7 @@ import { CrmPanel } from "./crm-panel";
 export const dynamic = "force-dynamic";
 
 export default async function Prospecto({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getT();
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const p = await one<{
@@ -66,21 +68,21 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
       <div className="page-head">
         <div>
           <p className="sub" style={{ margin: 0 }}>
-            <Link href="/prospectos">← Prospectos</Link> · {p.region ?? "-"} › {p.locality ?? "-"}
+            <Link href="/prospectos">{t("← Prospectos")}</Link> · {p.region ?? "-"} › {p.locality ?? "-"}
           </p>
           <h1>{p.name}</h1>
           <div className="row" style={{ marginTop: 6 }}>
             <Badge status={p.status} />
-            {notionUrl && <a href={notionUrl} target="_blank" rel="noreferrer">Abrir en Notion ↗</a>}
-            {p.google_maps_url && <a href={p.google_maps_url} target="_blank" rel="noreferrer">Google Maps ↗</a>}
+            {notionUrl && <a href={notionUrl} target="_blank" rel="noreferrer">{t("Abrir en Notion ↗")}</a>}
+            {p.google_maps_url && <a href={p.google_maps_url} target="_blank" rel="noreferrer">{t("Google Maps ↗")}</a>}
           </div>
         </div>
         <form action={discardProspectAction}>
           <input type="hidden" name="id" value={p.id} />
           {p.status === "discarded" ? (
-            <><input type="hidden" name="restore" value="1" /><button className="btn secondary">Restaurar</button></>
+            <><input type="hidden" name="restore" value="1" /><button className="btn secondary">{t("Restaurar")}</button></>
           ) : (
-            <button className="btn danger">Descartar</button>
+            <button className="btn danger">{t("Descartar")}</button>
           )}
         </form>
       </div>
@@ -89,21 +91,21 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
 
       <div className="grid two" style={{ marginBottom: 16 }}>
         <div className="card">
-          <h2>Datos (Agente 2)</h2>
+          <h2>{t("Datos (Agente 2)")}</h2>
           <dl className="dl">
-            <dt>Categoría</dt><dd><V v={p.category} /></dd>
-            <dt>Días</dt><dd><V v={p.business_days} /></dd>
-            <dt>Horario</dt><dd><V v={p.business_hours} /></dd>
-            <dt>Dirección</dt><dd><V v={p.address} /></dd>
-            <dt>Rating</dt><dd>{p.rating ? `${p.rating}★ · ${p.reviews_count ?? 0} reseñas` : <V v={null} />}</dd>
-            <dt>Reseñas</dt><dd><V v={p.reviews_url} href /></dd>
-            <dt>Fuente</dt><dd>{p.source}</dd>
-            <dt>Alta</dt><dd>{fmtDate(p.created_at)}</dd>
-            <dt>Notion</dt><dd>{p.notion_synced_at ? `sincronizado ${fmtDate(p.notion_synced_at)}` : <V v={null} />}</dd>
+            <dt>{t("Categoría")}</dt><dd><V v={p.category} /></dd>
+            <dt>{t("Días")}</dt><dd><V v={p.business_days} /></dd>
+            <dt>{t("Horario")}</dt><dd><V v={p.business_hours} /></dd>
+            <dt>{t("Dirección")}</dt><dd><V v={p.address} /></dd>
+            <dt>{t("Rating")}</dt><dd>{p.rating ? t("{r}★ · {n} reseñas", { r: p.rating, n: p.reviews_count ?? 0 }) : <V v={null} />}</dd>
+            <dt>{t("Reseñas")}</dt><dd><V v={p.reviews_url} href /></dd>
+            <dt>{t("Fuente")}</dt><dd>{p.source}</dd>
+            <dt>{t("Alta")}</dt><dd>{fmtDate(p.created_at)}</dd>
+            <dt>{t("Notion")}</dt><dd>{p.notion_synced_at ? t("sincronizado {d}", { d: fmtDate(p.notion_synced_at) }) : <V v={null} />}</dd>
           </dl>
           <form action={updateProspectAction} style={{ marginTop: 16 }}>
             <input type="hidden" name="id" value={p.id} />
-            <p className="help" style={{ marginTop: 0 }}>Completá a mano lo que el agente no encontró (“-”).</p>
+            <p className="help" style={{ marginTop: 0 }}>{t("Completá a mano lo que el agente no encontró (“-”).")}</p>
             <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
               {EDITABLE.map(([f, label, ph]) => (
                 <div key={f}>
@@ -112,23 +114,22 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
                 </div>
               ))}
             </div>
-            <button className="btn sm" style={{ marginTop: 10 }}>Guardar datos</button>
+            <button className="btn sm" style={{ marginTop: 10 }}>{t("Guardar datos")}</button>
           </form>
         </div>
 
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>Reseñas ({reviews.length})</h2>
+            <h2 style={{ margin: 0 }}>{t("Reseñas ({n})", { n: reviews.length })}</h2>
             {p.google_maps_url && (
               <a className="btn secondary sm" href={p.reviews_url || p.google_maps_url} target="_blank" rel="noreferrer">
-                Abrir en Google Maps ↗
+                {t("Abrir en Google Maps ↗")}
               </a>
             )}
           </div>
           {reviews.length === 0 ? (
             <div className="empty">
-              Sin reseñas. Abrí la ficha en Google Maps, copiá las reseñas y pegalas abajo: los agentes 3 y 4 las necesitan
-              para no inventar datos.
+              {t("Sin reseñas. Abrí la ficha en Google Maps, copiá las reseñas y pegalas abajo: los agentes 3 y 4 las necesitan para no inventar datos.")}
             </div>
           ) : (
             <div style={{ display: "grid", gap: 10, maxHeight: 420, overflow: "auto" }}>
@@ -141,7 +142,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
             </div>
           )}
           <details style={{ marginTop: 12 }} open={reviews.length === 0}>
-            <summary>Pegar reseñas</summary>
+            <summary>{t("Pegar reseñas")}</summary>
             <form action={saveReviewsAction} style={{ marginTop: 8 }}>
               <input type="hidden" name="id" value={p.id} />
               <textarea
@@ -149,11 +150,11 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
                 rows={7}
                 placeholder={"5★ Habitaciones limpias y personal muy amable.\n\n2★ Nadie contesta el teléfono para reservar."}
               />
-              <p className="help">Una reseña por bloque (dejá una línea vacía entre reseñas). Opcional: empezar con “5★”.</p>
+              <p className="help">{t("Una reseña por bloque (dejá una línea vacía entre reseñas). Opcional: empezar con “5★”.")}</p>
               <div className="row">
-                <button className="btn sm">Guardar reseñas</button>
+                <button className="btn sm">{t("Guardar reseñas")}</button>
                 <label className="row" style={{ margin: 0, fontWeight: 500 }}>
-                  <input type="checkbox" name="replace" style={{ width: "auto" }} /> Reemplazar las actuales
+                  <input type="checkbox" name="replace" style={{ width: "auto" }} />{" "}{t("Reemplazar las actuales")}
                 </label>
               </div>
             </form>
@@ -163,7 +164,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
 
       <div className="grid two">
         <OutputCard
-          title="Mensaje de WhatsApp (Agente 3)"
+          title={t("Mensaje de WhatsApp (Agente 3)")}
           kind="message"
           id={p.id}
           out={message}
@@ -171,7 +172,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
           manual={manual}
         />
         <OutputCard
-          title="Informe de oportunidades (Agente 4)"
+          title={t("Informe de oportunidades (Agente 4)")}
           kind="report"
           id={p.id}
           out={report}
@@ -194,7 +195,7 @@ const EDITABLE = [
   ["rating", "Rating - Google", "4,9"],
 ] as const;
 
-function OutputCard(props: {
+async function OutputCard(props: {
   title: string;
   kind: OutputKind;
   id: number;
@@ -202,6 +203,7 @@ function OutputCard(props: {
   prompt: string;
   manual: boolean;
 }) {
+  const t = await getT();
   const { out } = props;
   return (
     <div className="card">
@@ -227,22 +229,22 @@ function OutputCard(props: {
       ) : (
         <div className="empty">
           {props.manual
-            ? "Modo manual: copiá el prompt, pegalo en Claude y guardá la respuesta abajo."
-            : "Todavía no se generó."}
+            ? t("Modo manual: copiá el prompt, pegalo en Claude y guardá la respuesta abajo.")
+            : t("Todavía no se generó.")}
         </div>
       )}
       <div className="row" style={{ marginTop: 12 }}>
-        <CopyButton text={props.prompt} label="Copiar prompt" />
+        <CopyButton text={props.prompt} label={t("Copiar prompt")} />
         {!props.manual && (
           <form action={generateAction}>
             <input type="hidden" name="id" value={props.id} />
             <input type="hidden" name="kind" value={props.kind} />
-            <button className="btn sm">{out?.content ? "Regenerar" : "Generar"}</button>
+            <button className="btn sm">{out?.content ? t("Regenerar") : t("Generar")}</button>
           </form>
         )}
       </div>
       <details style={{ marginTop: 12 }}>
-        <summary>{out?.content ? "Editar a mano" : "Pegar respuesta"}</summary>
+        <summary>{out?.content ? t("Editar a mano") : t("Pegar respuesta")}</summary>
         <form action={saveOutputAction} style={{ marginTop: 8 }}>
           <input type="hidden" name="id" value={props.id} />
           <input type="hidden" name="kind" value={props.kind} />

@@ -53,3 +53,8 @@
 | Shared team workspace | 5 | Responsable, filtros "míos", notas, aviso de doble contacto |
 
 Migración `004_crm`. Tests: 31/31.
+
+## 2026-11-05 · Idioma y tema
+- Selector ES/EN y tema Auto/Claro/Oscuro (cookies por navegador) en la barra lateral y en el login.
+- Textos de la interfaz traducidos (`src/lib/i18n/en.ts`; la clave es el texto en español). Un test falla si aparece un texto nuevo sin traducción.
+- Lo que va a prospectos (mensajes, informes, seguimientos, mini-auditoría) queda siempre en español de España.

@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
 import { config } from "@/lib/config";
 import { runAgent } from "@/app/actions";
@@ -35,6 +36,7 @@ const AGENTS = [
 ];
 
 export default async function Agentes() {
+  const t = await getT();
   const cfg = config();
   const jobs = await q<{
     id: number;
@@ -61,14 +63,14 @@ export default async function Agentes() {
     <>
       <div className="page-head">
         <div>
-          <h1>Agentes</h1>
-          <p className="sub">El worker ejecuta la cola y corre el pipeline diario ({cfg.WORKER_CRON}, {cfg.TZ}).</p>
+          <h1>{t("Agentes")}</h1>
+          <p className="sub">{t("El worker ejecuta la cola y corre el pipeline diario ({cron}, {tz}).", { cron: cfg.WORKER_CRON, tz: cfg.TZ })}</p>
         </div>
         <div className="row">
           <AutoRefresh active={jobs.some((j) => j.status === "queued" || j.status === "running")} />
           {checks.map((c) => (
             <span key={c.label} className={`badge ${c.ok ? "ok" : "warn"}`} title={c.hint}>
-              {c.ok ? "✓" : "!"} {c.label}
+              {c.ok ? "✓" : "!"} {t(c.label)}
             </span>
           ))}
         </div>
@@ -77,37 +79,37 @@ export default async function Agentes() {
       <div className="grid kpis" style={{ marginBottom: 20 }}>
         {AGENTS.map((a) => (
           <form key={a.type} action={runAgent} className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span className="badge" style={{ alignSelf: "flex-start" }}>Agente {a.n}</span>
-            <strong>{a.title}</strong>
-            <span className="sub" style={{ margin: 0, flex: 1 }}>{a.desc}</span>
+            <span className="badge" style={{ alignSelf: "flex-start" }}>{t("Agente")}{" "}{a.n}</span>
+            <strong>{t(a.title)}</strong>
+            <span className="sub" style={{ margin: 0, flex: 1 }}>{t(a.desc)}</span>
             <input type="hidden" name="type" value={a.type} />
-            <button className="btn sm">Ejecutar</button>
+            <button className="btn sm">{t("Ejecutar")}</button>
           </form>
         ))}
       </div>
 
       <div className="card">
-        <h2>Historial</h2>
+        <h2>{t("Historial")}</h2>
         {jobs.length === 0 ? (
-          <div className="empty">Sin ejecuciones.</div>
+          <div className="empty">{t("Sin ejecuciones.")}</div>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th>#</th><th>Trabajo</th><th>Estado</th><th>Creado</th><th>Detalle</th></tr>
+                <tr><th>#</th><th>{t("Trabajo")}</th><th>{t("Estado")}</th><th>{t("Creado")}</th><th>{t("Detalle")}</th></tr>
               </thead>
               <tbody>
                 {jobs.map((j) => (
                   <tr key={j.id}>
                     <td>{j.id}</td>
-                    <td>{JOB_LABEL[j.type] ?? j.type}</td>
-                    <td><Badge status={j.status} />{j.attempts > 1 && <div className="help">intento {j.attempts}</div>}</td>
+                    <td>{t(JOB_LABEL[j.type] ?? j.type)}</td>
+                    <td><Badge status={j.status} />{j.attempts > 1 && <div className="help">{t("intento")}{" "}{j.attempts}</div>}</td>
                     <td className="sub">{fmtDate(j.created_at)}</td>
                     <td style={{ maxWidth: 520 }}>
                       {j.last_error && <div style={{ color: "var(--err)" }}>{j.last_error}</div>}
                       {j.result?.log?.length ? (
                         <details>
-                          <summary>{j.result.log.length} líneas de log</summary>
+                          <summary>{t("{n} líneas de log", { n: j.result.log.length })}</summary>
                           <div className="pre">{j.result.log.join("\n")}</div>
                         </details>
                       ) : null}

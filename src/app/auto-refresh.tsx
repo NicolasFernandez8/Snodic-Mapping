@@ -1,9 +1,11 @@
 "use client";
+import { useT } from "@/lib/i18n/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 /** Refresca la página cada `seconds` mientras haya agentes trabajando, para ver el avance en vivo. */
 export function AutoRefresh({ active, seconds = 4 }: { active: boolean; seconds?: number }) {
+  const t = useT();
   const router = useRouter();
   useEffect(() => {
     if (!active) return;
@@ -11,6 +13,6 @@ export function AutoRefresh({ active, seconds = 4 }: { active: boolean; seconds?
     return () => clearInterval(t);
   }, [active, seconds, router]);
   return active ? (
-    <span className="badge warn" style={{ alignSelf: "center" }}>● Agentes trabajando · actualizando en vivo</span>
+    <span className="badge warn" style={{ alignSelf: "center" }}>{t("● Agentes trabajando · actualizando en vivo")}</span>
   ) : null;
 }

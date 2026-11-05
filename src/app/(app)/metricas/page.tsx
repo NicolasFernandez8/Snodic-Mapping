@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
 import { STAGES, STAGE_LABEL, type Stage } from "@/lib/crm";
 
@@ -13,18 +14,19 @@ const AGG = `count(*)::int AS total,
 
 const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)} %` : "-");
 
-function Breakdown({ title, rows, label }: { title: string; rows: Row[]; label: (k: string | null) => string }) {
+async function Breakdown({ title, rows, label }: { title: string; rows: Row[]; label: (k: string | null) => string }) {
+  const t = await getT();
   const max = Math.max(1, ...rows.map((r) => r.contacted));
   return (
     <div className="card">
       <h2>{title}</h2>
       {rows.length === 0 ? (
-        <div className="empty">Sin datos todavía.</div>
+        <div className="empty">{t("Sin datos todavía.")}</div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th></th><th>Contactados</th><th>Respuesta</th><th>Reunión</th><th>Clientes</th></tr>
+              <tr><th></th><th>{t("Contactados")}</th><th>{t("Respuesta")}</th><th>{t("Reunión")}</th><th>{t("Clientes")}</th></tr>
             </thead>
             <tbody>
               {rows.map((r) => (
@@ -50,6 +52,7 @@ function Breakdown({ title, rows, label }: { title: string; rows: Row[]; label: 
 }
 
 export default async function Metricas() {
+  const t = await getT();
   const [funnel, byRegion, byLocality, byCategory, byVariant, byScore, weekly] = await Promise.all([
     q<{ stage: Stage; n: number }>("SELECT stage, count(*)::int AS n FROM prospects WHERE status <> 'discarded' GROUP BY stage"),
     q<Row>(`SELECT r.name AS key, ${AGG} FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id
@@ -78,45 +81,45 @@ export default async function Metricas() {
     <>
       <div className="page-head">
         <div>
-          <h1>Métricas de captación</h1>
-          <p className="sub">Qué zonas, rubros y mensajes funcionan mejor.</p>
+          <h1>{t("Métricas de captación")}</h1>
+          <p className="sub">{t("Qué zonas, rubros y mensajes funcionan mejor.")}</p>
         </div>
       </div>
       <div className="grid kpis" style={{ marginBottom: 16 }}>
-        <div className="card kpi"><div className="label">Prospectos</div><div className="value">{total}</div></div>
-        <div className="card kpi"><div className="label">Contactados</div><div className="value">{contacted}</div></div>
-        <div className="card kpi"><div className="label">Tasa de respuesta</div><div className="value">{pct(replied, contacted)}</div></div>
-        <div className="card kpi"><div className="label">Reuniones</div><div className="value">{count("meeting") + count("client")}</div></div>
-        <div className="card kpi"><div className="label">Clientes</div><div className="value">{count("client")}</div><div className="hint">{pct(count("client"), contacted)} de conversión</div></div>
+        <div className="card kpi"><div className="label">{t("Prospectos")}</div><div className="value">{total}</div></div>
+        <div className="card kpi"><div className="label">{t("Contactados")}</div><div className="value">{contacted}</div></div>
+        <div className="card kpi"><div className="label">{t("Tasa de respuesta")}</div><div className="value">{pct(replied, contacted)}</div></div>
+        <div className="card kpi"><div className="label">{t("Reuniones")}</div><div className="value">{count("meeting") + count("client")}</div></div>
+        <div className="card kpi"><div className="label">{t("Clientes")}</div><div className="value">{count("client")}</div><div className="hint">{t("{p} de conversión", { p: pct(count("client"), contacted) })}</div></div>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h2>Embudo</h2>
+        <h2>{t("Embudo")}</h2>
         {STAGES.filter((s) => s.key !== "lost").map((s) => (
           <div key={s.key} style={{ marginBottom: 8 }}>
             <div className="row" style={{ justifyContent: "space-between" }}>
-              <span>{STAGE_LABEL[s.key]}</span>
+              <span>{t(STAGE_LABEL[s.key])}</span>
               <strong>{count(s.key)}</strong>
             </div>
             <div className="progress"><div style={{ width: `${total ? (100 * count(s.key)) / total : 0}%` }} /></div>
           </div>
         ))}
-        <p className="help">Descartados: {count("lost")}</p>
+        <p className="help">{t("Descartados:")} {count("lost")}</p>
       </div>
 
       <div className="grid two">
-        <Breakdown title="A/B de mensajes (Agente 3)" rows={byVariant} label={(k) => k ?? "-"} />
-        <Breakdown title="Por puntaje" rows={byScore} label={(k) => k ?? "-"} />
-        <Breakdown title="Por región" rows={byRegion} label={(k) => k ?? "Sin región"} />
-        <Breakdown title="Por localidad" rows={byLocality} label={(k) => k ?? "Sin localidad"} />
-        <Breakdown title="Por categoría" rows={byCategory} label={(k) => k ?? "Sin categoría"} />
+        <Breakdown title={t("A/B de mensajes (Agente 3)")} rows={byVariant} label={(k) => k ?? "-"} />
+        <Breakdown title={t("Por puntaje")} rows={byScore} label={(k) => k ?? "-"} />
+        <Breakdown title={t("Por región")} rows={byRegion} label={(k) => k ?? t("Sin región")} />
+        <Breakdown title={t("Por localidad")} rows={byLocality} label={(k) => k ?? t("Sin localidad")} />
+        <Breakdown title={t("Por categoría")} rows={byCategory} label={(k) => k ?? t("Sin categoría")} />
         <div className="card">
-          <h2>Últimas semanas</h2>
+          <h2>{t("Últimas semanas")}</h2>
           {weekly.length === 0 ? (
-            <div className="empty">Sin actividad todavía.</div>
+            <div className="empty">{t("Sin actividad todavía.")}</div>
           ) : (
             <table>
-              <thead><tr><th>Semana</th><th>Mensajes enviados</th><th>Respuestas</th></tr></thead>
+              <thead><tr><th>{t("Semana")}</th><th>{t("Mensajes enviados")}</th><th>{t("Respuestas")}</th></tr></thead>
               <tbody>
                 {weekly.map((w) => (
                   <tr key={w.week}><td>{w.week}</td><td>{w.contacted}</td><td>{w.replied}</td></tr>
@@ -126,7 +129,7 @@ export default async function Metricas() {
           )}
         </div>
       </div>
-      <p className="help">Para que el A/B sea confiable hacen falta al menos ~30 contactados por variante.</p>
+      <p className="help">{t("Para que el A/B sea confiable hacen falta al menos ~30 contactados por variante.")}</p>
     </>
   );
 }

@@ -34,4 +34,5 @@ npm run typecheck && npm run build
 - Revisión humana antes de enviar mensajes a prospectos.
 - Toda página/acción/API exige sesión (`requireUser` / `apiUser`); contraseñas solo como hash scrypt, nunca en el repo.
 - Notion apagado por defecto (setting `notion_enabled`).
+- Textos de UI con `t("texto en español")` (`getT()` en server, `useT()` en client) y su traducción en `src/lib/i18n/en.ts`.
 - Commits chicos; actualizar `docs/PROGRESS.md` y `docs/HANDOFF.md` en cada hito.
