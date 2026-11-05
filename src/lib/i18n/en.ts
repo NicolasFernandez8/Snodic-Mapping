@@ -392,4 +392,10 @@ export const EN: Record<string, string> = {
   "Usuario o contraseña incorrectos": "Wrong username or password",
   "Completá usuario y contraseña": "Enter username and password",
   "Demasiados intentos. Probá de nuevo en 15 minutos.": "Too many attempts. Try again in 15 minutes.",
+
+  // Rendimiento y calidad
+  "El worker de agentes nunca se inició: los agentes no van a correr. Revisá el contenedor snodic-mapping-worker.":
+    "The agents worker has never started: agents won’t run. Check the snodic-mapping-worker container.",
+  "El worker de agentes no da señales hace {n} min: revisá el contenedor snodic-mapping-worker.":
+    "The agents worker hasn’t reported in {n} min: check the snodic-mapping-worker container.",
 };

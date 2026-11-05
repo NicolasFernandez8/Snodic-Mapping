@@ -11,6 +11,7 @@ export function nameKey(name: string): string {
   return name
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
+    .replace(/\./g, "")
     .toLowerCase()
     .replace(/[^a-z0-9 ]+/g, " ")
     .split(/\s+/)
