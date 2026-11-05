@@ -1,0 +1,68 @@
+/**
+ * Coordina los 4 agentes. Cada trabajo de la cola se resuelve acá.
+ * El "daily_pipeline" corre todo en orden: mapear → recopilar → Notion → mensaje → informe → Notion.
+ */
+import { getSetting } from "../db";
+import { llmFromConfig } from "../ai/llm";
+import { parseKmlSectors } from "../geo/kml-import";
+import type { Job } from "../jobs";
+import { importRegion, importSectors, mapNextLocalities, sourceFromSettings } from "./agent1-mapper";
+import { collectData, syncProspectsToNotion } from "./agent2-collector";
+import { runWriterAgent, syncBodiesToNotion } from "./agent34-writer";
+import type { AgentLog } from "./types";
+
+export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog): Promise<unknown> {
+  const p = job.payload as Record<string, unknown>;
+  switch (job.type) {
+    case "import_region":
+      if (typeof p.kml === "string") return importSectors(String(p.name), parseKmlSectors(p.kml));
+      return importRegion(
+        {
+          name: String(p.name),
+          adminLevel: p.adminLevel ? Number(p.adminLevel) : undefined,
+          localityLevel: p.localityLevel ? Number(p.localityLevel) : undefined,
+          relationId: p.relationId ? Number(p.relationId) : undefined,
+        },
+        log,
+      );
+    case "map_localities": {
+      const quota = Number(p.quota ?? (await getSetting<number>("daily_locality_quota", 3)));
+      return mapNextLocalities(quota, await sourceFromSettings(), log);
+    }
+    case "collect_data":
+      return collectData(Number(p.limit ?? 100), log);
+    case "sync_notion":
+      return { props: await syncProspectsToNotion(200, log), bodies: await syncBodiesToNotion(200, log) };
+    case "generate_messages":
+      return runWriterAgent("message", llmFromConfig(), Number(p.limit ?? 30), log);
+    case "generate_reports":
+      return runWriterAgent("report", llmFromConfig(), Number(p.limit ?? 30), log);
+    case "daily_pipeline":
+      return dailyPipeline(log);
+    default:
+      throw new Error(`Tipo de trabajo desconocido: ${job.type}`);
+  }
+}
+
+export async function dailyPipeline(log: AgentLog) {
+  const steps: Record<string, unknown> = {};
+  const step = async (name: string, fn: () => Promise<unknown>) => {
+    try {
+      steps[name] = await fn();
+    } catch (e) {
+      steps[name] = { error: (e as Error).message };
+      log(`${name}: ${(e as Error).message}`);
+    }
+  };
+  const quota = await getSetting<number>("daily_locality_quota", 3);
+  const auto = await getSetting<boolean>("auto_generate_outputs", true);
+  await step("agente1_mapeo", async () => mapNextLocalities(quota, await sourceFromSettings(), log));
+  await step("agente2_datos", () => collectData(500, log));
+  await step("agente2_notion", () => syncProspectsToNotion(500, log));
+  if (auto) {
+    await step("agente3_mensajes", () => runWriterAgent("message", llmFromConfig(), 200, log));
+    await step("agente4_informes", () => runWriterAgent("report", llmFromConfig(), 200, log));
+    await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
+  }
+  return steps;
+}

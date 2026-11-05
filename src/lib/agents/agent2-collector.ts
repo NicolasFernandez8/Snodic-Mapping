@@ -1,0 +1,155 @@
+/**
+ * AGENTE 2 — Recopilación y almacenamiento de datos.
+ * Completa cada prospecto nuevo con los datos disponibles por API oficial (teléfono, web,
+ * enlace de reseñas y reseñas) y lo registra en Notion. Lo que no se encuentra queda como "-"
+ * para que se complete a mano.
+ */
+import { config } from "../config";
+import { one, q } from "../db";
+import { EMPTY, NotionClient, type ProspectFields } from "../notion";
+import { PlacesClient, type PlaceDetails } from "../sources/places";
+import type { AgentLog, ProspectRow } from "./types";
+
+export const PROSPECT_COLUMNS = `p.id, p.locality_id, p.niche_key, p.source, p.source_id, p.name, p.category, p.address, p.phone,
+  p.website, p.email, p.instagram, p.google_maps_url, p.reviews_url, p.rating, p.reviews_count, p.lat, p.lng,
+  p.status, p.notion_page_id, p.notion_blocks, p.raw`;
+
+/** Enlace de reseñas: el de la API o, si no hay, la ficha de Maps. */
+export function reviewsLink(p: Pick<ProspectRow, "reviews_url" | "google_maps_url">): string {
+  return p.reviews_url || p.google_maps_url || "";
+}
+
+export function instagramFromWebsite(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const m = /instagram\.com\/([A-Za-z0-9_.]+)/i.exec(url);
+  return m ? `https://instagram.com/${m[1]}` : null;
+}
+
+async function saveDetails(p: ProspectRow, d: PlaceDetails) {
+  const website = d.website ?? p.website;
+  await q(
+    `UPDATE prospects SET phone = COALESCE($2, phone), website = COALESCE($3, website),
+       reviews_url = COALESCE($4, reviews_url), google_maps_url = COALESCE($5, google_maps_url),
+       rating = COALESCE($6, rating), reviews_count = COALESCE($7, reviews_count),
+       address = COALESCE(address, $8), instagram = COALESCE(instagram, $9),
+       raw = raw || jsonb_build_object('google_place_id', $10::text), updated_at = now()
+     WHERE id = $1`,
+    [
+      p.id,
+      d.phone ?? null,
+      website ?? null,
+      d.reviewsUrl ?? null,
+      d.googleMapsUrl ?? null,
+      d.rating ?? null,
+      d.reviewsCount ?? null,
+      d.address ?? null,
+      instagramFromWebsite(website),
+      d.id,
+    ],
+  );
+  for (const r of d.reviews) {
+    await q(
+      `INSERT INTO reviews (prospect_id, author, rating, text, published_at, language)
+       VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
+      [p.id, r.author ?? null, r.rating ?? null, r.text, r.publishedAt ?? null, r.language ?? null],
+    );
+  }
+}
+
+/** Para prospectos de OSM: intenta encontrar la ficha de Google para obtener reseñas. */
+async function findGooglePlace(client: PlacesClient, p: ProspectRow, localityName: string) {
+  if (p.lat === null || p.lng === null) return null;
+  const d = 0.003; // ~300 m
+  const res = await client.textSearch(`${p.name} ${localityName}`, [p.lng - d, p.lat - d, p.lng + d, p.lat + d]);
+  return res[0]?.id ?? null;
+}
+
+export async function collectData(limit = 50, log: AgentLog = () => {}, places?: PlacesClient | null) {
+  const client = places === undefined ? (config().GOOGLE_MAPS_API_KEY ? PlacesClient.fromConfig() : null) : places;
+  const rows = await q<ProspectRow & { locality_name: string | null }>(
+    `SELECT ${PROSPECT_COLUMNS}, l.name AS locality_name FROM prospects p
+     LEFT JOIN localities l ON l.id = p.locality_id
+     WHERE p.status = 'new' ORDER BY p.id LIMIT $1`,
+    [limit],
+  );
+  let enriched = 0;
+  for (const p of rows) {
+    try {
+      if (client) {
+        const placeId =
+          p.source === "google_places"
+            ? p.source_id
+            : ((p.raw.google_place_id as string | undefined) ?? (await findGooglePlace(client, p, p.locality_name ?? "")));
+        if (placeId) await saveDetails(p, await client.details(placeId));
+      }
+      await q("UPDATE prospects SET status = 'enriched', updated_at = now() WHERE id = $1", [p.id]);
+      enriched++;
+    } catch (e) {
+      log(`${p.name}: ${(e as Error).message}`);
+    }
+  }
+  log(`${enriched}/${rows.length} prospectos completados`);
+  return { processed: rows.length, enriched };
+}
+
+export async function notionFields(id: number): Promise<ProspectFields> {
+  const p = await one<ProspectRow & { locality_name: string | null; region_name: string | null }>(
+    `SELECT ${PROSPECT_COLUMNS}, l.name AS locality_name, r.name AS region_name
+     FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN regions r ON r.id = l.region_id
+     WHERE p.id = $1`,
+    [id],
+  );
+  if (!p) throw new Error(`Prospecto ${id} inexistente`);
+  return {
+    name: p.name,
+    locality: p.locality_name,
+    region: p.region_name,
+    category: p.category,
+    address: p.address,
+    phone: p.phone,
+    website: p.website,
+    email: p.email,
+    instagram: p.instagram,
+    google_maps_url: p.google_maps_url,
+    reviews_url: p.reviews_url,
+    rating: p.rating === null ? null : Number(p.rating),
+    reviews_count: p.reviews_count,
+    status: "Mapeado",
+  };
+}
+
+/** Crea o actualiza en Notion los prospectos con datos completados. */
+export async function syncProspectsToNotion(limit = 50, log: AgentLog = () => {}, notion = NotionClient.fromConfig()) {
+  if (!notion) {
+    log("Notion no configurado (NOTION_TOKEN / NOTION_DATABASE_ID): se omite la sincronización");
+    return { synced: 0, skipped: true };
+  }
+  const rows = await q<{ id: number; name: string; notion_page_id: string | null }>(
+    `SELECT id, name, notion_page_id FROM prospects
+     WHERE status IN ('enriched','message_ready','report_ready','synced')
+       AND (notion_synced_at IS NULL OR notion_synced_at < updated_at)
+     ORDER BY id LIMIT $1`,
+    [limit],
+  );
+  let synced = 0;
+  const missingProps = new Set<string>();
+  for (const r of rows) {
+    try {
+      const { pageId, missing } = await notion.upsertProspect(r.notion_page_id, await notionFields(r.id));
+      missing.forEach((m) => missingProps.add(m));
+      await q("UPDATE prospects SET notion_page_id = $2, notion_synced_at = now() + interval '1 second' WHERE id = $1", [
+        r.id,
+        pageId,
+      ]);
+      synced++;
+    } catch (e) {
+      log(`${r.name}: ${(e as Error).message}`);
+    }
+  }
+  if (missingProps.size)
+    log(`Propiedades no encontradas en la base de Notion (revisar NOTION_PROPERTY_MAP): ${[...missingProps].join(", ")}`);
+  log(`${synced} prospectos sincronizados con Notion`);
+  return { synced, missingProperties: [...missingProps] };
+}
+
+export { EMPTY };
