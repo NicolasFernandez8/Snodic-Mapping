@@ -218,3 +218,59 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outl
 .btn:not(.secondary):not(.danger) { box-shadow: 0 2px 10px color-mix(in srgb, var(--blue) 30%, transparent); }
 .card { background-image: linear-gradient(180deg, color-mix(in srgb, var(--blue) 3%, transparent), transparent 40%); }
 .cal-cell.today .cal-day { background: var(--blue); }
+
+/* ===== Temática de nodos ===== */
+.shell { position: relative; isolation: isolate; }
+.node-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; opacity: 0.75; }
+.sidebar { overflow: hidden; isolation: isolate; }
+@media (max-width: 860px) { .sidebar { position: relative; } }
+.node-side { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; opacity: 0.6; }
+.login-wrap { position: relative; overflow: hidden; isolation: isolate; }
+.node-login { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.audit-hero { position: relative; overflow: hidden; isolation: isolate; }
+.node-hero { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; opacity: 0.8; }
+.login-card { backdrop-filter: blur(6px); background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.brand img { box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 60%, transparent); animation: brandPulse 4s ease-in-out infinite; }
+
+/* ===== Animaciones ===== */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes growX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes brandPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 45%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
+@keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+
+main > * { animation: fadeUp 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+main > *:nth-child(2) { animation-delay: 0.04s; }
+main > *:nth-child(3) { animation-delay: 0.08s; }
+main > *:nth-child(4) { animation-delay: 0.12s; }
+main > *:nth-child(5) { animation-delay: 0.16s; }
+.grid > .card, .kanban-col, .cal-cell { animation: fadeUp 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.grid > .card:nth-child(2) { animation-delay: 0.05s; }
+.grid > .card:nth-child(3) { animation-delay: 0.1s; }
+.grid > .card:nth-child(4) { animation-delay: 0.15s; }
+.grid > .card:nth-child(5) { animation-delay: 0.2s; }
+.grid > .card:nth-child(6) { animation-delay: 0.25s; }
+.grid > .card:nth-child(n + 7) { animation-delay: 0.3s; }
+.kanban-col:nth-child(2) { animation-delay: 0.05s; } .kanban-col:nth-child(3) { animation-delay: 0.1s; }
+.kanban-col:nth-child(4) { animation-delay: 0.15s; } .kanban-col:nth-child(5) { animation-delay: 0.2s; } .kanban-col:nth-child(6) { animation-delay: 0.25s; }
+tbody tr { animation: fadeIn 0.4s ease both; }
+.progress > div { transform-origin: left; animation: growX 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+.card, .kanban-card, .cal-cell, .chip { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.card:hover { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 10px 28px color-mix(in srgb, var(--blue) 14%, transparent); border-color: color-mix(in srgb, var(--blue) 30%, var(--border)); }
+.grid.kpis .card:hover, .kanban-card:hover, .cal-cell:hover { transform: translateY(-2px); }
+.btn { transition: transform 0.12s ease, filter 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+.btn:active { transform: scale(0.97); }
+.btn:not(.secondary):not(.danger):hover { box-shadow: 0 4px 18px color-mix(in srgb, var(--blue) 45%, transparent); }
+.nav a { transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease; }
+.nav a:hover { transform: translateX(3px); }
+.kpi .value { background: linear-gradient(90deg, var(--text), var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.notice { animation: fadeUp 0.35s ease both; }
+input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 18%, transparent); transition: box-shadow 0.2s ease; }
+tr:hover td { transition: background 0.15s ease; }
+.live { animation: livePulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

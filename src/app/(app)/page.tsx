@@ -5,6 +5,7 @@ import { workerAgeSeconds } from "@/lib/status";
 import { runAgent } from "@/app/actions";
 import { AutoRefresh } from "@/app/auto-refresh";
 import { QuotaSlider } from "@/app/quota-slider";
+import { CountUp } from "@/app/count-up";
 import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +78,7 @@ export default async function Panel() {
         {kpis.map((k) => (
           <div key={k.label} className="card kpi">
             <div className="label">{k.label}</div>
-            <div className="value">{k.value}</div>
+            <div className="value"><CountUp value={k.value} /></div>
             <div className="hint">{k.hint}</div>
           </div>
         ))}

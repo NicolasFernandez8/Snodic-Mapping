@@ -39,6 +39,6 @@ export function AutoRefresh({ active: initial }: { active: boolean }) {
   }, [router]);
 
   return busy ? (
-    <span className="badge warn" style={{ alignSelf: "center" }}>{t("● Agentes trabajando · actualizando en vivo")}</span>
+    <span className="badge warn live" style={{ alignSelf: "center" }}>{t("● Agentes trabajando · actualizando en vivo")}</span>
   ) : null;
 }

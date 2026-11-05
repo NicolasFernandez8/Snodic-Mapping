@@ -2,6 +2,7 @@ import { getT } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import { logoutAction } from "@/app/auth-actions";
 import { Nav } from "@/app/nav";
+import { NodeNetwork } from "@/app/node-network";
 import { Preferences } from "@/app/preferences";
 import { getTheme } from "@/lib/i18n/server";
 
@@ -12,7 +13,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await requireUser();
   return (
     <div className="shell">
+      <NodeNetwork />
       <aside className="sidebar">
+        <NodeNetwork className="node-side" density={0.35} interactive={false} />
         <div className="brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="Snodic" />

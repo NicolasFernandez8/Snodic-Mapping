@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auditBySlug, parseReport, recordAuditView } from "@/lib/audit";
 import { getSetting } from "@/lib/db";
+import { NodeNetwork } from "@/app/node-network";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Análisis gratuito · Snodic", robots: { index: false, follow: false } };
@@ -23,6 +24,7 @@ export default async function Audit({ params }: { params: Promise<{ slug: string
   return (
     <div className="audit">
       <header className="audit-hero">
+        <NodeNetwork className="node-hero" density={0.8} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="Snodic" />
         <p className="audit-kicker">Análisis gratuito de reseñas</p>
