@@ -1,27 +1,27 @@
 # Handoff
 
-**Objetivo:** automatizar la captación de prospectos de Snodic (Alicante → otras zonas) con 4 agentes.
-**Fase:** MVP funcional completo; falta puesta en marcha con claves reales en la PC de Snodic.
+**Objetivo:** automatizar la captación de prospectos de Snodic (Alicante → otras zonas) con 4 agentes y un módulo de captación (CRM liviano), todo a costo cero.
+**Fase:** funcionalidad completa y probada en la nube con datos demo; falta la puesta en marcha en la PC de Snodic.
 
-## Estado
-- Código, tests y docs listos en `main` (ver `docs/PROGRESS.md`).
-- Nada desplegado todavía en la PC; nada tocado en la infraestructura existente.
+## Estado (2026-11-05)
+- `main` al día. 39 tests (unit + integración con PostgreSQL), typecheck y build OK.
+- Migraciones: `001_init` … `005_perf_quality`.
+- Pantallas: Panel, Mapa, Prospectos (filtros, CSV, acciones masivas), Revisión rápida, Prompts en lote, Pipeline, Seguimientos, Métricas, Casos de éxito, Agentes, Ajustes, Usuarios, mini-auditoría pública `/a/<código>`.
+- Idioma ES/EN y tema auto/claro/oscuro. App instalable en el celular.
+- Notion apagado por defecto. Sin servicios pagos (OSM + modo manual de IA).
+- No se tocó la infraestructura existente.
 
-## Próximos pasos (en orden)
-1. **Usuario:** seguir `docs/SETUP.md` §1–3 en la PC (clonar, `.env`, GRANT CREATE, migrar, levantar).
-2. **Usuario:** crear la integración de Notion (gratis) y compartir la base de prospectos con ella. **Sin** claves de Google ni Anthropic: modo costo cero.
-3. Por cada prospecto: abrir en Google Maps → pegar reseñas → copiar prompts en la app de Claude → pegar respuestas.
-4. Primera corrida con 1 localidad (Ajustes → cuota 1) y revisar en Notion que las columnas coinciden; ajustar `NOTION_PROPERTY_MAP` si hace falta.
-5. Importar la región Alicante (nivel 6 → 8 o 8 → 10) y dejar correr el cron diario.
+## No verificado en la nube
+- Llamadas reales a Overpass/Notion (red del entorno bloqueada) → probadas con respuestas simuladas.
+- `docker build` (Docker Hub limitó las descargas) → probar en la PC.
 
-## Ideas siguientes (no empezadas)
-- Webhook para que n8n dispare el pipeline o reciba avisos.
-- Detección de duplicados entre fuentes (OSM ↔ Google) por cercanía + nombre.
-- Panel de métricas de respuesta (cuando se registre el resultado del contacto).
-- Refrescar reseñas periódicamente y purgar datos según términos de Google.
+## Próximos pasos (usuario, en la PC)
+1. `git pull` en `C:\Users\Nico_\Snodic\mapping`, `.env` desde `.env.example`.
+2. pgAdmin: `GRANT CREATE ON DATABASE snodic TO snodic_app;` (una vez).
+3. `docker compose build` → `docker compose --profile tools run --rm migrate` → `docker compose up -d web worker`.
+4. Crear admins: `docker compose run --rm -it web npm run user -- create <usuario> admin`.
+5. `tailscale serve --bg --https=8445 http://127.0.0.1:3000` y compartir la máquina con el socio.
+6. Ajustes → Agregar región "Alicante" (6 → 8) → Panel → Ejecutar pipeline.
 
 ## Comandos clave
-`npm run dev` · `npm run worker` · `npm run migrate` · `npm test` · `docker compose up -d web worker`
-
-## Crédito cloud
-USD 100 de crédito de sesiones en la nube (claude.ai), vence 2026-11-05 04:59 GMT-3. Se usó para construir este MVP en una sola sesión.
+`npm run dev` · `npm run worker` · `npm run migrate` · `npm run user -- list` · `npm test` · `docker compose up -d web worker`
