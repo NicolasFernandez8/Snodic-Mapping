@@ -10,9 +10,9 @@ import {
   saveOutputAction,
   saveReviewsAction,
   updateProspectAction,
-} from "../../actions";
-import { CopyButton } from "../../copy-button";
-import { Badge, fmtDate, V } from "../../ui";
+} from "@/app/actions";
+import { CopyButton } from "@/app/copy-button";
+import { Badge, fmtDate, V } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
 

@@ -28,12 +28,34 @@ docker compose up -d web worker
 ```
 Abrí http://localhost:3000.
 
-## 4. Acceso remoto privado (Tailscale Serve)
-Los puertos 443/8443/8444 ya están usados por n8n, Portainer y pgAdmin. Propuesta:
+## 4. Acceso remoto (gratis, sin tarjeta)
+
+### 4a. Recomendado: Tailscale (privado)
 ```powershell
 tailscale serve --bg --https=8445 http://127.0.0.1:3000
 ```
-→ `https://nico.tailc83d1c.ts.net:8445/`. **No** activar Funnel. Opcional: `APP_BASIC_AUTH=usuario:clave` en `.env`.
+→ `https://nico.tailc83d1c.ts.net:8445/` desde tus dispositivos. **No** activar Funnel.
+
+**Para tu compañero:** compartile solo la PC, sin darle acceso a toda tu red:
+1. https://login.tailscale.com/admin/machines → máquina `nico` → `…` → **Share…** → ingresá su email.
+2. Él instala Tailscale (gratis), acepta la invitación y entra a la misma URL.
+3. Ve únicamente esa máquina. Podés revocarlo cuando quieras desde el mismo menú.
+
+### 4b. Alternativa: Cloudflare quick tunnel (público)
+Sin cuenta, sin dominio y sin tarjeta. La URL es pública, así que la protege solo el login de la app, y cambia cada vez que reinicia el contenedor:
+```powershell
+docker compose --profile tunnel up -d tunnel
+docker logs snodic-mapping-tunnel 2>&1 | findstr trycloudflare
+```
+Un túnel con URL fija y Cloudflare Access necesita un dominio propio en Cloudflare, y Zero Trust puede pedir un medio de pago: no lo usamos por la regla de costo cero.
+
+## 4c. Usuarios de la app
+La app pide usuario y contraseña. Creá los administradores desde la PC. La contraseña se pide oculta y se guarda solo como hash, nunca en archivos:
+```powershell
+docker compose run --rm -it web npm run user -- create Nico admin
+docker compose run --rm -it web npm run user -- create Ivan admin
+```
+Después se administran desde **Usuarios** en la app: crear, cambiar rol o contraseña y borrar. Otros comandos: `npm run user -- list | passwd <usuario> | role <usuario> admin|member | delete <usuario>`.
 
 ## 5. Modo 100 % gratuito (por defecto)
 

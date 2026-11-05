@@ -171,6 +171,22 @@ d("pipeline de agentes (integración)", () => {
     expect(page.blocks.length).toBe(before - 9 + 2);
     expect(JSON.stringify(page.blocks[1].b)).toContain("Texto corregido");
 
+    // Usuarios: login, bloqueo por intentos y último admin.
+    const users = await import("../src/lib/auth/users");
+    await users.createUser("admin1", "clave-segura-1", "admin");
+    await expect(users.createUser("ADMIN1", "clave-segura-1", "admin")).rejects.toThrow(/ya existe/);
+    const token = await users.login("Admin1", "clave-segura-1", null);
+    expect(token).toBeTruthy();
+    expect((await users.userFromToken(token))?.username).toBe("admin1");
+    expect(await users.userFromToken("token-falso")).toBeNull();
+    await expect(users.deleteUser("admin1")).rejects.toThrow(/último administrador/);
+    await expect(users.setRole("admin1", "member")).rejects.toThrow(/último administrador/);
+    for (let i = 0; i < 5; i++) expect(await users.login("admin1", "mala", null)).toBeNull();
+    await expect(users.login("admin1", "clave-segura-1", null)).rejects.toThrow(/Demasiados intentos/);
+    await users.setPassword("admin1", "clave-nueva-2");
+    expect(await users.userFromToken(token)).toBeNull(); // cambiar contraseña cierra sesiones
+    await users.logout(token);
+
     // Cola de trabajos.
     const job = await jobs.enqueue("collect_data", { limit: 1 });
     const picked = await jobs.pickJob();

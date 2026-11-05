@@ -1,5 +1,5 @@
 import { q } from "@/lib/db";
-import { retryLocalityAction } from "../actions";
+import { retryLocalityAction } from "@/app/actions";
 import { ClientMap } from "./client-map";
 
 export const dynamic = "force-dynamic";

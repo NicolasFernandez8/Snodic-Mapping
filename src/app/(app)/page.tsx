@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getSetting, one, q } from "@/lib/db";
-import { runAgent } from "./actions";
-import { Badge, fmtDate, JOB_LABEL } from "./ui";
+import { runAgent } from "@/app/actions";
+import { AutoRefresh } from "@/app/auto-refresh";
+import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,8 @@ export default async function Panel() {
             Rubro activo: <strong>{niche?.label ?? "-"}</strong> · <Link href="/ajustes">cambiar</Link>
           </p>
         </div>
-        <form action={runAgent}>
+        <form action={runAgent} className="row">
+          <AutoRefresh active={jobs.some((j) => j.status === "queued" || j.status === "running")} />
           <input type="hidden" name="type" value="daily_pipeline" />
           <button className="btn">▶ Ejecutar pipeline ahora</button>
         </form>

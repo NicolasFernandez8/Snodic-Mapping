@@ -9,6 +9,7 @@
     "worker": "tsx src/worker.ts",
     "migrate": "tsx src/lib/migrate.ts",
     "seed:demo": "tsx src/scripts/seed-demo.ts",
+    "user": "tsx src/scripts/user.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

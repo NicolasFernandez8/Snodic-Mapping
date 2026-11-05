@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { q, setSetting } from "@/lib/db";
+import { requireUser } from "@/lib/auth/session";
 import { enqueue, type JobType } from "@/lib/jobs";
 import { llmFromConfig } from "@/lib/ai/llm";
 import { saveManualReviews } from "@/lib/agents/agent2-collector";
@@ -18,6 +19,7 @@ const JOB_TYPES: JobType[] = [
 ];
 
 export async function runAgent(formData: FormData) {
+  await requireUser();
   const type = String(formData.get("type")) as JobType;
   if (!JOB_TYPES.includes(type)) throw new Error("Trabajo inválido");
   const payload: Record<string, unknown> = {};
@@ -29,6 +31,7 @@ export async function runAgent(formData: FormData) {
 }
 
 export async function importRegionAction(formData: FormData) {
+  await requireUser("admin");
   const name = String(formData.get("name") ?? "").trim();
   if (!name) throw new Error("Falta el nombre");
   const kmlFile = formData.get("kml");
@@ -46,10 +49,12 @@ export async function importRegionAction(formData: FormData) {
 }
 
 export async function saveSettings(formData: FormData) {
+  await requireUser("admin");
   await setSetting("active_niche", String(formData.get("active_niche")));
   await setSetting("daily_locality_quota", Math.max(1, Math.min(50, Number(formData.get("daily_locality_quota") || 3))));
   await setSetting("prospect_source", String(formData.get("prospect_source")) === "google_places" ? "google_places" : "osm");
   await setSetting("auto_generate_outputs", formData.get("auto_generate_outputs") === "on");
+  await setSetting("notion_enabled", formData.get("notion_enabled") === "on");
   revalidatePath("/ajustes");
   revalidatePath("/");
 }
@@ -61,6 +66,7 @@ const list = (v: FormDataEntryValue | null) =>
     .filter(Boolean);
 
 export async function saveNiche(formData: FormData) {
+  await requireUser("admin");
   const label = String(formData.get("label") ?? "").trim();
   const key =
     String(formData.get("key") ?? "").trim() ||
@@ -93,6 +99,7 @@ export async function saveNiche(formData: FormData) {
 }
 
 export async function generateAction(formData: FormData) {
+  await requireUser();
   const id = Number(formData.get("id"));
   const kind = String(formData.get("kind")) as OutputKind;
   await generateOutput(id, kind, llmFromConfig());
@@ -101,6 +108,7 @@ export async function generateAction(formData: FormData) {
 }
 
 export async function saveOutputAction(formData: FormData) {
+  await requireUser();
   const id = Number(formData.get("id"));
   const kind = String(formData.get("kind")) as OutputKind;
   const content = String(formData.get("content") ?? "").trim();
@@ -109,6 +117,7 @@ export async function saveOutputAction(formData: FormData) {
 }
 
 export async function updateProspectAction(formData: FormData) {
+  await requireUser();
   const id = Number(formData.get("id"));
   const fields = ["phone", "email", "website", "instagram", "facebook", "business_days", "business_hours"] as const;
   const values = fields.map((f) => String(formData.get(f) ?? "").trim() || null);
@@ -123,6 +132,7 @@ export async function updateProspectAction(formData: FormData) {
 }
 
 export async function discardProspectAction(formData: FormData) {
+  await requireUser();
   const id = Number(formData.get("id"));
   const restore = formData.get("restore") === "1";
   if (restore) {
@@ -135,12 +145,14 @@ export async function discardProspectAction(formData: FormData) {
 }
 
 export async function retryLocalityAction(formData: FormData) {
+  await requireUser();
   await q("UPDATE localities SET status = 'pending', last_error = NULL WHERE id = $1", [Number(formData.get("id"))]);
   revalidatePath("/mapa");
   revalidatePath("/");
 }
 
 export async function saveReviewsAction(formData: FormData) {
+  await requireUser();
   const id = Number(formData.get("id"));
   const text = String(formData.get("reviews") ?? "");
   await saveManualReviews(id, text, formData.get("replace") === "on");

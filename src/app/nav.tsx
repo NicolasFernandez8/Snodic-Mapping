@@ -8,9 +8,11 @@ const LINKS = [
   { href: "/prospectos", label: "Prospectos", icon: "☰" },
   { href: "/agentes", label: "Agentes", icon: "⚙" },
   { href: "/ajustes", label: "Ajustes", icon: "✎" },
+  { href: "/usuarios", label: "Usuarios", icon: "👤" },
 ];
 
-export function Nav() {
+export function Nav({ isAdmin }: { isAdmin: boolean }) {
+  void isAdmin; // todos ven "Usuarios": los miembros solo pueden cambiar su contraseña
   const path = usePathname();
   return (
     <nav className="nav">

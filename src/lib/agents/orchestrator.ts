@@ -32,6 +32,10 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
     case "collect_data":
       return collectData(Number(p.limit ?? 100), log);
     case "sync_notion":
+      if (!(await getSetting<boolean>("notion_enabled", false))) {
+        log("Sincronización con Notion desactivada en Ajustes: no se envió nada");
+        return { skipped: true };
+      }
       return { props: await syncProspectsToNotion(200, log), bodies: await syncBodiesToNotion(200, log) };
     case "generate_messages":
       return runWriterAgent("message", llmFromConfig(), Number(p.limit ?? 30), log);
@@ -58,11 +62,13 @@ export async function dailyPipeline(log: AgentLog) {
   const auto = await getSetting<boolean>("auto_generate_outputs", true);
   await step("agente1_mapeo", async () => mapNextLocalities(quota, await sourceFromSettings(), log));
   await step("agente2_datos", () => collectData(500, log));
-  await step("agente2_notion", () => syncProspectsToNotion(500, log));
+  const notion = await getSetting<boolean>("notion_enabled", false);
+  if (notion) await step("agente2_notion", () => syncProspectsToNotion(500, log));
+  else log("Notion desactivado en Ajustes: los datos quedan solo en la app");
   if (auto) {
     await step("agente3_mensajes", () => runWriterAgent("message", llmFromConfig(), 200, log));
     await step("agente4_informes", () => runWriterAgent("report", llmFromConfig(), 200, log));
-    await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
+    if (notion) await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
   }
   return steps;
 }

@@ -1,4 +1,5 @@
 import { q } from "@/lib/db";
+import { apiUser } from "@/lib/auth/session";
 import { toKml } from "@/lib/geo/kml";
 import type { Area } from "@/lib/geo/geometry";
 
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
  * ?only=mapped exporta solo localidades ya mapeadas.
  */
 export async function GET(req: Request) {
+  const auth = await apiUser();
+  if (auth instanceof Response) return auth;
   const only = new URL(req.url).searchParams.get("only");
   const locs = await q<{ name: string; status: string; boundary: Area | null; prospects_found: number }>(
     `SELECT name, status, boundary, prospects_found FROM localities ${only === "mapped" ? "WHERE status = 'mapped'" : ""} ORDER BY distance_km`,

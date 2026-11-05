@@ -1,9 +1,12 @@
 import { q } from "@/lib/db";
+import { apiUser } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
 /** GeoJSON de localidades (polígonos) y prospectos (puntos) para el mapa. */
 export async function GET(req: Request) {
+  const auth = await apiUser();
+  if (auth instanceof Response) return auth;
   const region = new URL(req.url).searchParams.get("region");
   const params = region ? [Number(region)] : [];
   const filter = region ? "WHERE l.region_id = $1" : "";

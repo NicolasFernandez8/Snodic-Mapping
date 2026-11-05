@@ -1,7 +1,8 @@
 import { q } from "@/lib/db";
 import { config } from "@/lib/config";
-import { runAgent } from "../actions";
-import { Badge, fmtDate, JOB_LABEL } from "../ui";
+import { runAgent } from "@/app/actions";
+import { AutoRefresh } from "@/app/auto-refresh";
+import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,7 @@ export default async function Agentes() {
           <p className="sub">El worker ejecuta la cola y corre el pipeline diario ({cfg.WORKER_CRON}, {cfg.TZ}).</p>
         </div>
         <div className="row">
+          <AutoRefresh active={jobs.some((j) => j.status === "queued" || j.status === "running")} />
           {checks.map((c) => (
             <span key={c.label} className={`badge ${c.ok ? "ok" : "warn"}`} title={c.hint}>
               {c.ok ? "✓" : "!"} {c.label}

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { FeatureCollection } from "geojson";
@@ -19,8 +19,11 @@ type Data = {
 
 function FitBounds({ data }: { data: Data | null }) {
   const map = useMap();
+  const done = useRef(false);
   useEffect(() => {
-    if (!data?.localities.features.length) return;
+    // Encuadra solo la primera vez, para no mover el mapa en cada recarga.
+    if (done.current || !data?.localities.features.length) return;
+    done.current = true;
     const b = L.geoJSON(data.localities).getBounds();
     if (b.isValid()) map.fitBounds(b, { padding: [20, 20] });
   }, [data, map]);
@@ -30,9 +33,15 @@ function FitBounds({ data }: { data: Data | null }) {
 export default function MapView() {
   const [data, setData] = useState<Data | null>(null);
   useEffect(() => {
-    fetch("/api/geo")
-      .then((r) => r.json())
-      .then(setData);
+    // Recarga cada 10 s: las localidades cambian de color y aparecen los puntos a medida que el Agente 1 avanza.
+    const load = () =>
+      fetch("/api/geo")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d && setData(d))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 10000);
+    return () => clearInterval(t);
   }, []);
 
   return (
@@ -43,7 +52,7 @@ export default function MapView() {
       />
       {data && (
         <GeoJSON
-          key={data.localities.features.length}
+          key={JSON.stringify(data.localities.features.map((f) => f.properties?.status))}
           data={data.localities}
           style={(f) => {
             const c = STATUS_COLOR[f?.properties?.status] ?? "#8a9ab3";

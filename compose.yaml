@@ -37,7 +37,20 @@ services:
     profiles: [tools]
     depends_on: [web]
 
+  # Opción B de acceso externo (gratis, sin cuenta ni tarjeta): "quick tunnel" de Cloudflare.
+  # Genera una URL pública https://<algo>.trycloudflare.com que cambia en cada reinicio (ver logs).
+  # La app queda protegida por su login. Activar: docker compose --profile tunnel up -d tunnel
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: snodic-mapping-tunnel
+    command: tunnel --no-autoupdate --url http://snodic-mapping-web:3000
+    networks: [snodic]
+    depends_on: [web]
+    restart: unless-stopped
+    profiles: [tunnel]
+
 networks:
   snodic:
     name: snodic-postgres_default
     external: true
+

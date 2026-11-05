@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { q } from "@/lib/db";
-import { Badge, V } from "../ui";
+import { Badge, V } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
 

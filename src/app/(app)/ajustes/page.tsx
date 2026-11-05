@@ -1,16 +1,17 @@
 import { getSetting, q } from "@/lib/db";
 import type { Niche } from "@/lib/agents/types";
-import { importRegionAction, saveNiche, saveSettings } from "../actions";
+import { importRegionAction, saveNiche, saveSettings } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Ajustes() {
-  const [niches, active, quota, source, auto] = await Promise.all([
+  const [niches, active, quota, source, auto, notion] = await Promise.all([
     q<Niche>("SELECT * FROM niches ORDER BY label"),
     getSetting<string>("active_niche", "hospitality"),
     getSetting<number>("daily_locality_quota", 3),
     getSetting<string>("prospect_source", "osm"),
     getSetting<boolean>("auto_generate_outputs", true),
+    getSetting<boolean>("notion_enabled", false),
   ]);
 
   return (
@@ -49,6 +50,14 @@ export default async function Ajustes() {
             <input id="auto" name="auto_generate_outputs" type="checkbox" defaultChecked={auto} style={{ width: "auto" }} />
             <label htmlFor="auto" style={{ margin: 0 }}>El pipeline diario también genera mensajes e informes (agentes 3 y 4)</label>
           </div>
+          <div className="field row">
+            <input id="notion" name="notion_enabled" type="checkbox" defaultChecked={notion} style={{ width: "auto" }} />
+            <label htmlFor="notion" style={{ margin: 0 }}>Enviar a Notion</label>
+          </div>
+          <p className="help" style={{ marginTop: -6 }}>
+            Apagado: todo queda solo en la app (prospectos, mensajes e informes). Encendelo cuando quieras volcar a Notion;
+            se envían también los acumulados.
+          </p>
           <button className="btn">Guardar</button>
         </form>
 

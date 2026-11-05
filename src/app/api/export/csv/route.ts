@@ -1,4 +1,5 @@
 import { q } from "@/lib/db";
+import { apiUser } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ const cell = (v: unknown) => {
 
 /** CSV (con "-" en datos vacíos) para importar en Notion o planillas. */
 export async function GET() {
+  const auth = await apiUser();
+  if (auth instanceof Response) return auth;
   const rows = await q<Record<string, unknown>>(
     `SELECT p.*, l.name AS locality, r.name AS region,
        NULLIF(concat_ws(' [] ', NULLIF(p.instagram,''), NULLIF(p.facebook,'')), '') AS contact_info,

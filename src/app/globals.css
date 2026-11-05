@@ -108,3 +108,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outl
   main { padding: 20px 16px 40px; }
   .dl { grid-template-columns: 1fr; }
 }
+
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: radial-gradient(circle at 30% 20%, #0a2c5e, var(--navy) 60%); }
+.login-card { width: 100%; max-width: 380px; padding: 28px; }
+.login-logo { display: block; width: 96px; height: 96px; margin: 0 auto 8px; border-radius: 16px; background: #fff; object-fit: contain; }

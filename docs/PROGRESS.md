@@ -21,7 +21,7 @@
 | Documentation | 3 | README, CLAUDE.md, docs/* |
 
 ## Verificado
-- `npm run typecheck`, `npm run build`, `npm test` (25/25 con TEST_DATABASE_URL).
+- `npm run typecheck`, `npm run build`, `npm test` (26/26 con TEST_DATABASE_URL).
 - Worker procesó un `daily_pipeline` real contra PostgreSQL local con datos demo.
 - Capturas de UI revisadas (escritorio y móvil).
 
@@ -33,3 +33,7 @@
 ## 2026-11-05 · Ajustes del usuario
 - Modo costo cero (OSM, reseñas pegadas a mano, IA manual).
 - Campos alineados con la base de Notion de Snodic (Business Days/Hours, Ready, Location, Webpage, Phone, Address, Contact Info, Area, Category, Email, Type, URL Google Maps). Migración `002_notion_fields`.
+- Usuarios con roles (admin/miembro), login con sesiones en DB, hash scrypt, bloqueo tras 5 intentos, CLI `npm run user`. Migración `003_users`.
+- Interruptor "Enviar a Notion" (apagado por defecto): los datos quedan solo en la app hasta activarlo.
+- Panel, Agentes y Mapa se actualizan en vivo mientras trabajan los agentes.
+- Acceso del equipo: Tailscale (compartir máquina) o Cloudflare quick tunnel, ambos sin costo.

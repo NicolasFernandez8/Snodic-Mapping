@@ -306,3 +306,15 @@ describe("campos de la base de Notion de Snodic", () => {
     expect(categoryLabel("camp_site")).toBe("Camp site");
   });
 });
+
+describe("contraseñas", () => {
+  it("hashea con scrypt y verifica", async () => {
+    const { hashPassword, verifyPassword } = await import("../src/lib/auth/password");
+    const h = await hashPassword("una-clave-larga");
+    expect(h.startsWith("scrypt$32768$8$1$")).toBe(true);
+    expect(h).not.toContain("una-clave-larga");
+    expect(await verifyPassword("una-clave-larga", h)).toBe(true);
+    expect(await verifyPassword("otra-clave", h)).toBe(false);
+    await expect(hashPassword("corta")).rejects.toThrow(/8 caracteres/);
+  });
+});
