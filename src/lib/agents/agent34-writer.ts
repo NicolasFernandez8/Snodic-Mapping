@@ -124,7 +124,12 @@ export async function advanceStatus(prospectId: number) {
   return status;
 }
 
-export async function runWriterAgent(kind: OutputKind, llm: Llm, limit = 20, log: AgentLog = () => {}) {
+export async function runWriterAgent(
+  kind: OutputKind,
+  llm: Llm,
+  limit = 20,
+  log: AgentLog = () => {},
+): Promise<{ processed: number } & Partial<Record<OutputRow["status"], number>>> {
   const fromStatus = kind === "message" ? "enriched" : "message_ready";
   const rows = await q<{ id: number; name: string }>(
     `SELECT p.id, p.name FROM prospects p
@@ -133,7 +138,7 @@ export async function runWriterAgent(kind: OutputKind, llm: Llm, limit = 20, log
      ORDER BY p.id LIMIT $3`,
     [fromStatus, kind, limit],
   );
-  const counts: Record<string, number> = {};
+  const counts: Partial<Record<OutputRow["status"], number>> = {};
   for (const r of rows) {
     const out = await generateOutput(r.id, kind, llm);
     counts[out!.status] = (counts[out!.status] ?? 0) + 1;
