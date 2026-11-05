@@ -2,7 +2,9 @@
  * Coordina los 4 agentes. Cada trabajo de la cola se resuelve acá.
  * El "daily_pipeline" corre todo en orden: mapear → recopilar → Notion → mensaje → informe → Notion.
  */
-import { getSetting } from "../db";
+import { getSetting, one } from "../db";
+import { notify } from "../notify";
+import { rescoreAll } from "../score-store";
 import { llmFromConfig } from "../ai/llm";
 import { parseKmlSectors } from "../geo/kml-import";
 import type { Job } from "../jobs";
@@ -43,6 +45,8 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
       return runWriterAgent("report", llmFromConfig(), Number(p.limit ?? 30), log);
     case "daily_pipeline":
       return dailyPipeline(log);
+    case "rescore":
+      return { rescored: await rescoreAll() };
     default:
       throw new Error(`Tipo de trabajo desconocido: ${job.type}`);
   }
@@ -70,5 +74,18 @@ export async function dailyPipeline(log: AgentLog) {
     await step("agente4_informes", () => runWriterAgent("report", llmFromConfig(), 200, log));
     if (notion) await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
   }
+  await step("resumen_n8n", async () => {
+    const s = await one<Record<string, number>>(`SELECT
+      (SELECT count(*)::int FROM prospects WHERE created_at > now() - interval '24 hours') AS nuevos,
+      (SELECT count(*)::int FROM prospects WHERE stage = 'contacted' AND next_follow_up_at <= now() + interval '12 hours') AS seguimientos,
+      (SELECT count(*)::int FROM prospects WHERE stage = 'to_contact' AND status IN ('message_ready','report_ready','synced')) AS listos_para_contactar,
+      (SELECT count(*)::int FROM activities WHERE kind = 'stage' AND to_stage = 'replied' AND created_at > now() - interval '24 hours') AS respuestas`);
+    const mapped = steps.agente1_mapeo as { locality: string; created: number }[] | undefined;
+    const sent = await notify("daily_summary", {
+      ...s,
+      localidades: Array.isArray(mapped) ? mapped.map((m) => `${m.locality} (+${m.created})`) : [],
+    });
+    return { sent, ...s };
+  });
   return steps;
 }

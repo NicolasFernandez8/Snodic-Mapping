@@ -318,3 +318,51 @@ describe("contraseñas", () => {
     await expect(hashPassword("corta")).rejects.toThrow(/8 caracteres/);
   });
 });
+
+describe("captación", () => {
+  it("arma links de WhatsApp oficiales", async () => {
+    const { whatsappLink } = await import("../src/lib/crm");
+    expect(whatsappLink("+34 624 20 72 88", "Hola!")).toBe("https://wa.me/34624207288?text=Hola!");
+    expect(whatsappLink("624207288", "a b")).toBe("https://wa.me/34624207288?text=a%20b");
+    expect(whatsappLink("123", "x")).toBeNull();
+    expect(whatsappLink(null, "x")).toBeNull();
+  });
+  it("arma seguimientos con auditoría y caso", async () => {
+    const { followUpMessage } = await import("../src/lib/crm");
+    const m1 = followUpMessage(1, "https://x/a/abc", "un hotel del centro a conseguir +20 % de reservas");
+    expect(m1).toContain("https://x/a/abc");
+    expect(m1).toContain("+20 %");
+    expect(m1).toContain("¿Con quién podría hablarlo?");
+    expect(followUpMessage(2, null, null)).toContain("Último mensaje");
+  });
+  it("puntúa prospectos con motivos", async () => {
+    const { scoreProspect, detectPains } = await import("../src/lib/scoring");
+    const reviews = [
+      { rating: 2, text: "Llamé tres veces para reservar y nadie contestó" },
+      { rating: 5, text: "Todo perfecto, reservé sin problema" },
+      { rating: 3, text: "El check-in tardó media hora" },
+    ];
+    expect(detectPains(reviews).map((p) => p.tag)).toEqual(expect.arrayContaining(["reservas", "teléfono", "check-in", "espera"]));
+    const s = scoreProspect({ phone: "1", website: "w", email: null, instagram: null, facebook: null, rating: 4.1, reviews_count: 120, category: "Hotel", reviews });
+    expect(s.score).toBeGreaterThan(60);
+    expect(s.score).toBeLessThanOrEqual(100);
+    expect(s.items.some((i) => i.reason.includes("reservas"))).toBe(true);
+    expect(scoreProspect({ phone: null, website: null, email: null, instagram: null, facebook: null, rating: null, reviews_count: null, category: null, reviews: [] }).score).toBe(0);
+  });
+  it("sugiere casos por problema", async () => {
+    const { matchCases } = await import("../src/lib/cases");
+    const cases = [
+      { id: 1, title: "A", tags: ["reservas"], summary: "s", result: null, link: null },
+      { id: 2, title: "B", tags: ["precio"], summary: "s", result: null, link: null },
+    ];
+    expect(matchCases(cases, [{ rating: 1, text: "imposible reservar" }]).map((c) => c.id)).toEqual([1]);
+  });
+  it("extrae ideas del informe para la mini-auditoría", async () => {
+    const { parseReport } = await import("../src/lib/audit");
+    const ideas = parseReport("IDEA 1\nProblema:\nNo contestan\nSolución:\nBot de WhatsApp\nImpacto:\nMás reservas\nClave:\nfácil\nIDEA 2\nProblema:\nCheck-in lento\nSolución:\nCheck-in online\nImpacto:\nMenos espera");
+    expect(ideas).toEqual([
+      { problem: "No contestan", solution: "Bot de WhatsApp", impact: "Más reservas" },
+      { problem: "Check-in lento", solution: "Check-in online", impact: "Menos espera" },
+    ]);
+  });
+});

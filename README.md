@@ -11,7 +11,19 @@ Automatiza el trabajo diario de captación de Snodic: recorrer una zona **locali
 
 **Costo cero:** todo funciona sin claves de pago ni datos de facturación (ver `docs/SETUP.md` §5).
 
-Interfaz: panel con avance, mapa de sectores, listado y ficha de prospectos (copiar mensaje, regenerar, editar a mano), ejecución de agentes con historial y ajustes (rubro, ritmo diario, regiones).
+Interfaz: panel con avance en vivo, mapa de sectores, listado y ficha de prospectos, ejecución de agentes con historial, ajustes y usuarios con roles.
+
+**Captación (después del mapeo):**
+- **Pipeline** kanban: Por contactar → Contactado → Respondió → Reunión → Cliente / Descartado, con historial y notas.
+- **WhatsApp click-to-chat** (`wa.me`, gratis): abre el chat con el mensaje cargado; la persona envía y la app lo registra.
+- **Seguimientos** automáticos: lista diaria de quién no respondió, con el mensaje de seguimiento armado.
+- **Puntaje 0–100** con motivos visibles, para contactar primero a los que más conviene.
+- **Métricas**: embudo y tasa de respuesta por región, localidad, categoría, puntaje y variante.
+- **A/B de mensajes**: variantes del Agente 3 repartidas en partes iguales.
+- **Casos de éxito** sugeridos según los problemas de las reseñas.
+- **Mini-auditoría pública** `/a/<código>` con las 2 oportunidades del Agente 4 y tu marca, con contador de vistas.
+- **Avisos a n8n**: resumen diario, respuestas y vistas de auditoría.
+- **Equipo**: responsables, "mis prospectos", notas internas y aviso si otro ya contactó.
 Exporta **KML para Google My Maps** y **CSV**.
 
 ## Inicio rápido (desarrollo)

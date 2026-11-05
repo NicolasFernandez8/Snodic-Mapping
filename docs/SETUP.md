@@ -57,6 +57,12 @@ docker compose run --rm -it web npm run user -- create Ivan admin
 ```
 Después se administran desde **Usuarios** en la app: crear, cambiar rol o contraseña y borrar. Otros comandos: `npm run user -- list | passwd <usuario> | role <usuario> admin|member | delete <usuario>`.
 
+## 4d. Avisos a n8n (opcional)
+En n8n: nuevo workflow → nodo **Webhook** (POST, path `snodic-mapping`) → por ejemplo un nodo de Telegram o email. En `.env`: `N8N_WEBHOOK_URL=http://n8n:5678/webhook/snodic-mapping`. Para que funcione con ese nombre, n8n tiene que estar en la red `snodic-postgres_default` (ya lo está). Eventos: `daily_summary`, `stage_changed`, `audit_viewed`.
+
+## 4e. Mini-auditorías públicas
+La página `/a/<código>` es la única que se ve sin login, y existe solo si alguien la publica desde la ficha. Para que el link funcione fuera de tu red, el prospecto tiene que poder llegar a la app: con Tailscale no puede, así que usá el quick tunnel (§4b) y poné esa URL en `APP_PUBLIC_URL`, o copiá el texto del análisis en el mensaje.
+
 ## 5. Modo 100 % gratuito (por defecto)
 
 Snodic trabaja **sin gastos ni datos de facturación**. Todo lo que usa la app por defecto es gratis y sin tarjeta:

@@ -13,6 +13,7 @@ import {
 } from "@/app/actions";
 import { CopyButton } from "@/app/copy-button";
 import { Badge, fmtDate, V } from "@/app/ui";
+import { CrmPanel } from "./crm-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,8 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
           )}
         </form>
       </div>
+
+      <CrmPanel id={p.id} />
 
       <div className="grid two" style={{ marginBottom: 16 }}>
         <div className="card">

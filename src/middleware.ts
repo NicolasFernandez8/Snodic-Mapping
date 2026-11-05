@@ -6,7 +6,8 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (pathname === "/login") return NextResponse.next();
+  // /login y las mini-auditorías públicas (/a/<código>) no requieren sesión.
+  if (pathname === "/login" || pathname.startsWith("/a/")) return NextResponse.next();
   if (req.cookies.get("snodic_session")?.value) return NextResponse.next();
   if (pathname.startsWith("/api/")) return new NextResponse("No autorizado", { status: 401 });
   const url = req.nextUrl.clone();

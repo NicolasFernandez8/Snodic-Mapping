@@ -187,6 +187,35 @@ d("pipeline de agentes (integración)", () => {
     expect(await users.userFromToken(token)).toBeNull(); // cambiar contraseña cierra sesiones
     await users.logout(token);
 
+    // Captación: variante A/B, WhatsApp, seguimientos, etapas, auditoría.
+    const crm = await import("../src/lib/crm");
+    const admin = (await db.one<{ id: number }>("SELECT id FROM users WHERE username = 'admin1'"))!;
+    const pv = await db.one<{ message_variant: string; score: number }>("SELECT message_variant, score FROM prospects WHERE id = $1", [prospect.id]);
+    expect(["A", "B", "C"]).toContain(pv?.message_variant);
+    await crm.markMessageSent(prospect.id, admin.id, "first");
+    let st = await db.one<{ stage: string; next_follow_up_at: string | null; assigned_to: number }>(
+      "SELECT stage, next_follow_up_at, assigned_to FROM prospects WHERE id = $1", [prospect.id]);
+    expect(st?.stage).toBe("contacted");
+    expect(st?.next_follow_up_at).not.toBeNull();
+    expect(st?.assigned_to).toBe(admin.id);
+    await db.q("UPDATE prospects SET next_follow_up_at = now() - interval '1 hour' WHERE id = $1", [prospect.id]);
+    expect((await crm.dueFollowUps()).map((r) => r.id)).toContain(prospect.id);
+    await crm.markMessageSent(prospect.id, admin.id, "follow_up");
+    await crm.markMessageSent(prospect.id, admin.id, "follow_up");
+    st = await db.one("SELECT stage, next_follow_up_at, assigned_to FROM prospects WHERE id = $1", [prospect.id]);
+    expect(st?.next_follow_up_at).toBeNull(); // llegó al máximo (2)
+    await crm.setStage(prospect.id, "replied", admin.id, "Pidió más info");
+    const acts = await crm.activities(prospect.id);
+    expect(acts[0]).toMatchObject({ kind: "stage", from_stage: "contacted", to_stage: "replied", body: "Pidió más info", username: "admin1" });
+    expect(acts.filter((x) => x.kind === "follow_up")).toHaveLength(2);
+    const audit = await import("../src/lib/audit");
+    const slug = await audit.createAudit(prospect.id, admin.id);
+    const a = await audit.auditBySlug(slug);
+    expect(audit.parseReport(a!.report!)).toHaveLength(2);
+    await audit.recordAuditView(prospect.id, "x");
+    await audit.recordAuditView(prospect.id, "x"); // no cuenta dos veces seguidas
+    expect((await db.one<{ audit_views: number }>("SELECT audit_views FROM prospects WHERE id = $1", [prospect.id]))?.audit_views).toBe(1);
+
     // Cola de trabajos.
     const job = await jobs.enqueue("collect_data", { limit: 1 });
     const picked = await jobs.pickJob();

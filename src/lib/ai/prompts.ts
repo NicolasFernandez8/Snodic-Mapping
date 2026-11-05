@@ -11,6 +11,8 @@ export type PromptInput = {
   reviewsUrl: string;
   businessLabel: string; // ej. "alojamientos"
   reviews: ReviewInput[];
+  /** Indicación extra de la variante A/B del mensaje (vacía = original). */
+  variantInstructions?: string;
 };
 
 function reviewsBlock(reviews: ReviewInput[]): string {
@@ -94,6 +96,7 @@ Estoy trabajando ahora con algunos ${input.businessLabel} en esto para documenta
 - Seguro (no dudoso)
 - Enfocado en negocio (ventas, clientes, reservas, etc.)
 
+${input.variantInstructions ? `\n---\n\n🧪 INDICACIÓN ADICIONAL:\n\n${input.variantInstructions}\n` : ""}
 Devolvé únicamente el mensaje final, sin comentarios ni explicaciones.`;
 }
 

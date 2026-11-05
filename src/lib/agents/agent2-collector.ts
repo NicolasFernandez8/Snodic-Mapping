@@ -10,6 +10,7 @@ import { EMPTY, NotionClient, type ProspectFields } from "../notion";
 import { PlacesClient, type PlaceDetails } from "../sources/places";
 import type { AgentLog, ProspectRow } from "./types";
 import { mapsSearchUrl } from "./agent1-mapper";
+import { rescore } from "../score-store";
 
 export const PROSPECT_COLUMNS = `p.id, p.locality_id, p.niche_key, p.source, p.source_id, p.name, p.category, p.address, p.phone,
   p.website, p.email, p.instagram, p.facebook, p.business_days, p.business_hours, p.google_maps_url, p.reviews_url, p.rating, p.reviews_count, p.lat, p.lng,
@@ -91,6 +92,7 @@ export async function collectData(limit = 50, log: AgentLog = () => {}, places?:
         ]);
       }
       await q("UPDATE prospects SET status = 'enriched', updated_at = now() WHERE id = $1", [p.id]);
+      await rescore(p.id);
       enriched++;
     } catch (e) {
       log(`${p.name}: ${(e as Error).message}`);
@@ -189,6 +191,7 @@ export async function saveManualReviews(prospectId: number, text: string, replac
       [prospectId, r.rating, r.text],
     );
   }
+  await rescore(prospectId);
   return reviews.length;
 }
 

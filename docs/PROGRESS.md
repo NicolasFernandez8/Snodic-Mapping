@@ -37,3 +37,19 @@
 - Interruptor "Enviar a Notion" (apagado por defecto): los datos quedan solo en la app hasta activarlo.
 - Panel, Agentes y Mapa se actualizan en vivo mientras trabajan los agentes.
 - Acceso del equipo: Tailscale (compartir máquina) o Cloudflare quick tunnel, ambos sin costo.
+
+## 2026-11-05 · Captación (10 funcionalidades)
+| Task (EN) | Pts | Resultado |
+|---|---|---|
+| Contact pipeline (CRM) | 5 | Etapas, kanban, historial (`activities`) |
+| Follow-up reminders | 5 | `/seguimientos`, días y máximo configurables |
+| WhatsApp click-to-chat | 2 | Botón `wa.me` que registra el envío |
+| Lead scoring | 5 | 0–100 con motivos, recalculado al completar datos/reseñas |
+| Conversion metrics | 5 | `/metricas` |
+| Message A/B testing | 3 | `message_variants`, reparto parejo |
+| Problem-based case studies | 3 | `/casos`, sugerencias por problema |
+| Free mini-audit page | 8 | `/a/<código>` público, noindex, vistas |
+| n8n notifications | 3 | `N8N_WEBHOOK_URL` |
+| Shared team workspace | 5 | Responsable, filtros "míos", notas, aviso de doble contacto |
+
+Migración `004_crm`. Tests: 31/31.

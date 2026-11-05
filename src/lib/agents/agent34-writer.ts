@@ -29,7 +29,23 @@ export type OutputRow = {
   created_at: string;
 };
 
-export async function promptInput(prospectId: number): Promise<PromptInput & { prospect: ProspectRow }> {
+/** Variante del mensaje para el prospecto: la ya asignada o la activa menos usada (reparto parejo). */
+export async function variantFor(prospectId: number): Promise<{ key: string; instructions: string } | null> {
+  const cur = await one<{ key: string; instructions: string }>(
+    `SELECT v.key, v.instructions FROM prospects p JOIN message_variants v ON v.key = p.message_variant WHERE p.id = $1`,
+    [prospectId],
+  );
+  if (cur) return cur;
+  const v = await one<{ key: string; instructions: string }>(
+    `SELECT v.key, v.instructions FROM message_variants v
+     LEFT JOIN prospects p ON p.message_variant = v.key
+     WHERE v.active GROUP BY v.key ORDER BY count(p.id), v.key LIMIT 1`,
+  );
+  if (v) await q("UPDATE prospects SET message_variant = $2 WHERE id = $1", [prospectId, v.key]);
+  return v;
+}
+
+export async function promptInput(prospectId: number): Promise<PromptInput & { prospect: ProspectRow; variant: string | null }> {
   const p = await one<ProspectRow & { business_label: string | null }>(
     `SELECT ${PROSPECT_COLUMNS}, n.business_label FROM prospects p LEFT JOIN niches n ON n.key = p.niche_key WHERE p.id = $1`,
     [prospectId],
@@ -39,8 +55,11 @@ export async function promptInput(prospectId: number): Promise<PromptInput & { p
     "SELECT rating, text FROM reviews WHERE prospect_id = $1 ORDER BY published_at DESC NULLS LAST, id",
     [prospectId],
   );
+  const variant = await variantFor(prospectId);
   return {
     prospect: p,
+    variant: variant?.key ?? null,
+    variantInstructions: variant?.instructions ?? "",
     name: p.name,
     reviewsUrl: reviewsLink(p),
     businessLabel: p.business_label ?? "negocios",
@@ -72,11 +91,12 @@ async function storeOutput(
   content: string | null,
   model: string | null,
   issues: string[],
+  variant: string | null = null,
 ) {
   return one<OutputRow>(
-    `INSERT INTO outputs (prospect_id, kind, status, content, prompt, model, issues)
-     VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb) RETURNING *`,
-    [prospectId, kind, status, content, prompt, model, JSON.stringify(issues)],
+    `INSERT INTO outputs (prospect_id, kind, status, content, prompt, model, issues, variant)
+     VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8) RETURNING *`,
+    [prospectId, kind, status, content, prompt, model, JSON.stringify(issues), kind === "message" ? variant : null],
   );
 }
 
@@ -86,16 +106,16 @@ export async function generateOutput(prospectId: number, kind: OutputKind, llm: 
   if (!input.reviews.length) {
     return storeOutput(prospectId, kind, "needs_review", prompt, null, null, [
       "Sin reseñas disponibles: completar a mano o cargar reseñas",
-    ]);
+    ], input.variant);
   }
   try {
     const res = await llm.complete(prompt, kind === "message" ? 600 : 2000);
-    if (res.mode === "manual") return storeOutput(prospectId, kind, "pending_manual", prompt, null, null, []);
+    if (res.mode === "manual") return storeOutput(prospectId, kind, "pending_manual", prompt, null, null, [], input.variant);
     const content = cleanOutput(res.text);
     const issues = kind === "message" ? validateMessage(content, input.name) : validateReport(content);
-    return storeOutput(prospectId, kind, issues.length ? "needs_review" : "ready", prompt, content, res.model, issues);
+    return storeOutput(prospectId, kind, issues.length ? "needs_review" : "ready", prompt, content, res.model, issues, input.variant);
   } catch (e) {
-    return storeOutput(prospectId, kind, "failed", prompt, null, null, [(e as Error).message]);
+    return storeOutput(prospectId, kind, "failed", prompt, null, null, [(e as Error).message], input.variant);
   }
 }
 
@@ -106,7 +126,7 @@ export async function saveManualOutput(prospectId: number, kind: OutputKind, con
   const clean = cleanOutput(content);
   const issues = kind === "message" ? validateMessage(clean, input.name) : validateReport(clean);
   // La revisión humana es la que manda: queda "ready" y las observaciones se guardan como aviso.
-  const out = await storeOutput(prospectId, kind, "ready", prompt, clean, "manual", issues);
+  const out = await storeOutput(prospectId, kind, "ready", prompt, clean, "manual", issues, input.variant);
   await advanceStatus(prospectId);
   return out;
 }

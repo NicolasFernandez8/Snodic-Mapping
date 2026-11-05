@@ -1,17 +1,24 @@
 import { getSetting, q } from "@/lib/db";
 import type { Niche } from "@/lib/agents/types";
 import { importRegionAction, saveNiche, saveSettings } from "@/app/actions";
+import { saveOutreachSettingsAction, saveVariantAction } from "@/app/crm-actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Ajustes() {
-  const [niches, active, quota, source, auto, notion] = await Promise.all([
+  const [niches, active, quota, source, auto, notion, variants, fuDays, fuMax, wa] = await Promise.all([
     q<Niche>("SELECT * FROM niches ORDER BY label"),
     getSetting<string>("active_niche", "hospitality"),
     getSetting<number>("daily_locality_quota", 3),
     getSetting<string>("prospect_source", "osm"),
     getSetting<boolean>("auto_generate_outputs", true),
     getSetting<boolean>("notion_enabled", false),
+    q<{ key: string; label: string; instructions: string; active: boolean }>(
+      "SELECT key, label, instructions, active FROM message_variants ORDER BY key",
+    ),
+    getSetting<number>("follow_up_days", 3),
+    getSetting<number>("follow_up_max", 2),
+    getSetting<string>("contact_whatsapp", ""),
   ]);
 
   return (
@@ -142,6 +149,57 @@ export default async function Ajustes() {
           </p>
           <button className="btn">Guardar rubro</button>
         </form>
+      </div>
+      <div className="grid two" style={{ marginTop: 16 }}>
+        <form action={saveOutreachSettingsAction} className="card">
+          <h2>Contacto y seguimientos</h2>
+          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="field">
+              <label htmlFor="follow_up_days">Días hasta el seguimiento</label>
+              <input id="follow_up_days" name="follow_up_days" type="number" min={1} max={30} defaultValue={fuDays} />
+            </div>
+            <div className="field">
+              <label htmlFor="follow_up_max">Máximo de seguimientos</label>
+              <input id="follow_up_max" name="follow_up_max" type="number" min={0} max={5} defaultValue={fuMax} />
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="contact_whatsapp">Tu WhatsApp (para el botón de la mini-auditoría)</label>
+            <input id="contact_whatsapp" name="contact_whatsapp" defaultValue={wa} placeholder="34600000000" />
+          </div>
+          <button className="btn">Guardar</button>
+        </form>
+
+        <div className="card">
+          <h2>Variantes del mensaje (A/B)</h2>
+          <p className="help" style={{ marginTop: 0 }}>
+            Se reparten en partes iguales entre los prospectos nuevos. La indicación se suma al prompt del Agente 3 sin
+            cambiar sus reglas. Compará resultados en Métricas.
+          </p>
+          {variants.map((v) => (
+            <form key={v.key} action={saveVariantAction} style={{ borderTop: "1px solid var(--border)", paddingTop: 10, marginTop: 10 }}>
+              <input type="hidden" name="key" value={v.key} />
+              <div className="row">
+                <strong>{v.key}</strong>
+                <input name="label" defaultValue={v.label} style={{ flex: 1 }} />
+                <label className="row" style={{ margin: 0, fontWeight: 500 }}>
+                  <input type="checkbox" name="active" defaultChecked={v.active} style={{ width: "auto" }} /> Activa
+                </label>
+              </div>
+              <textarea name="instructions" defaultValue={v.instructions} rows={2} style={{ marginTop: 6, minHeight: 0 }} placeholder="Vacío = prompt original" />
+              <button className="btn secondary sm" style={{ marginTop: 6 }}>Guardar {v.key}</button>
+            </form>
+          ))}
+          <form action={saveVariantAction} style={{ borderTop: "1px solid var(--border)", paddingTop: 10, marginTop: 10 }}>
+            <div className="row">
+              <input name="key" placeholder="D" style={{ width: 60 }} required />
+              <input name="label" placeholder="Nombre de la variante" style={{ flex: 1 }} required />
+              <input type="hidden" name="active" value="on" />
+            </div>
+            <textarea name="instructions" rows={2} style={{ marginTop: 6, minHeight: 0 }} placeholder="Indicación extra para el Agente 3" />
+            <button className="btn sm" style={{ marginTop: 6 }}>Agregar variante</button>
+          </form>
+        </div>
       </div>
     </>
   );
