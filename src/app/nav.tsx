@@ -7,6 +7,8 @@ const LINKS = [
   { href: "/", label: "Panel", icon: "▦" },
   { href: "/mapa", label: "Mapa", icon: "◉" },
   { href: "/prospectos", label: "Prospectos", icon: "☰" },
+  { href: "/revision", label: "Revisión rápida", icon: "⚡" },
+  { href: "/lote", label: "Prompts en lote", icon: "⧉" },
   { href: "/pipeline", label: "Pipeline", icon: "▥" },
   { href: "/seguimientos", label: "Seguimientos", icon: "↻" },
   { href: "/metricas", label: "Métricas", icon: "↗" },

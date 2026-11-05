@@ -20,6 +20,18 @@ const AGENTS = [
     type: "collect_data",
     desc: "Completa teléfono, web, enlace de reseñas y reseñas por API oficial. Lo que no encuentra queda como “-”.",
   },
+  {
+    n: 0,
+    title: "Buscar duplicados",
+    type: "dedupe",
+    desc: "Marca como duplicados los prospectos repetidos (mismo teléfono, o mismo nombre a menos de 150 m). Se queda el más completo.",
+  },
+  {
+    n: 0,
+    title: "Recalcular puntajes",
+    type: "rescore",
+    desc: "Vuelve a calcular el puntaje de todos los prospectos (en bloques).",
+  },
   { n: 2, title: "Sincronizar Notion", type: "sync_notion", desc: "Crea/actualiza la ficha de cada prospecto y escribe mensaje + informe en el cuerpo." },
   {
     n: 3,
@@ -79,7 +91,7 @@ export default async function Agentes() {
       <div className="grid kpis" style={{ marginBottom: 20 }}>
         {AGENTS.map((a) => (
           <form key={a.type} action={runAgent} className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span className="badge" style={{ alignSelf: "flex-start" }}>{t("Agente")}{" "}{a.n}</span>
+            <span className="badge" style={{ alignSelf: "flex-start" }}>{a.n ? `${t("Agente")} ${a.n}` : t("Mantenimiento")}</span>
             <strong>{t(a.title)}</strong>
             <span className="sub" style={{ margin: 0, flex: 1 }}>{t(a.desc)}</span>
             <input type="hidden" name="type" value={a.type} />

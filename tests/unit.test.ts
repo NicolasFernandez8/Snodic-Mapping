@@ -416,3 +416,27 @@ describe("calidad y rendimiento", () => {
     expect(out[0]).toEqual(out[out.length - 1]);
   });
 });
+
+describe("lote y CSV", () => {
+  it("separa la respuesta de un lote por id", async () => {
+    const { parseBatchResponse } = await import("../src/lib/batch");
+    const m = parseBatchResponse("blabla\n===RESPUESTA 12===\nHola!\nTexto 12\n===FIN 12===\n=== RESPUESTA 7 ===\nTexto 7\n=== FIN 7 ===\n===RESPUESTA 9===\n\n===FIN 9===");
+    expect([...m.keys()]).toEqual([12, 7]);
+    expect(m.get(12)).toBe("Hola!\nTexto 12");
+  });
+  it("lee CSV con comillas, punto y coma y encabezados de Notion", async () => {
+    const { parseCsv, mapHeaders } = await import("../src/lib/csv-import");
+    const rows = parseCsv('﻿Name;Phone;Address\n"Hotel ""Sol""";600 11 22 33;"C/ Mayor 1;\nAlicante"\n\nHostal Luna;;-\n');
+    expect(rows).toEqual([
+      ["Name", "Phone", "Address"],
+      ['Hotel "Sol"', "600 11 22 33", "C/ Mayor 1;\nAlicante"],
+      ["Hostal Luna", "", "-"],
+    ]);
+    expect(mapHeaders(["Name", "URL Google Maps", "Rating - Google Maps", "Localidad"])).toEqual({
+      name: 0,
+      google_maps_url: 1,
+      rating: 2,
+      locality: 3,
+    });
+  });
+});

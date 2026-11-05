@@ -216,6 +216,27 @@ d("pipeline de agentes (integración)", () => {
     await audit.recordAuditView(prospect.id, "x"); // no cuenta dos veces seguidas
     expect((await db.one<{ audit_views: number }>("SELECT audit_views FROM prospects WHERE id = $1", [prospect.id]))?.audit_views).toBe(1);
 
+    // No contactar, duplicados, CSV y lote.
+    const quality = await import("../src/lib/quality");
+    const csv = await import("../src/lib/csv-import");
+    const batch = await import("../src/lib/batch");
+    const imp = await csv.importProspectsCsv("Name,Phone,Location\nHotel Nuevo,611 22 33 44,Centro\nDemo Duplicado,611 22 33 44,Centro\n,,\n", admin.id);
+    expect(imp).toEqual({ created: 1, skipped: 1 }); // duplicado por teléfono (las filas vacías se ignoran)
+    const nuevo = (await db.one<{ id: number; locality_id: number | null }>("SELECT id, locality_id FROM prospects WHERE name = 'Hotel Nuevo'"))!;
+    expect(nuevo.locality_id).not.toBeNull();
+    await quality.blockProspect(nuevo.id, admin.id, "Pidió no ser contactado");
+    expect(await quality.isBlocked({ name: "Otro nombre", phone: "+34 611223344" })).toBe(true);
+    const reimport = await csv.importProspectsCsv("Name,Phone\nHotel Renombrado,611223344\n", admin.id);
+    expect(reimport.created).toBe(0);
+    await db.q("INSERT INTO prospects (source, source_id, name, lat, lng, phone) VALUES ('osm','node/9','Hotel Gemelo', 38.35, -0.5, NULL), ('osm','way/9','Gemelo', 38.3501, -0.5001, NULL)");
+    expect(await quality.dedupeAll()).toBeGreaterThanOrEqual(1);
+    const bp = await batch.buildBatchPrompt("message", [prospect.id]);
+    expect(bp).toContain(`===RESPUESTA ${prospect.id}===`);
+    const saved = await batch.saveBatch("message", [prospect.id, 99999], `===RESPUESTA ${prospect.id}===\nHola!\nPrueba lote\n===FIN ${prospect.id}===`);
+    expect(saved).toEqual({ saved: [prospect.id], missing: [99999] });
+    const { rescoreAll } = await import("../src/lib/score-store");
+    expect(await rescoreAll(2)).toBeGreaterThan(2);
+
     // Cola de trabajos.
     const job = await jobs.enqueue("collect_data", { limit: 1 });
     const picked = await jobs.pickJob();

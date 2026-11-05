@@ -58,3 +58,24 @@ Migración `004_crm`. Tests: 31/31.
 - Selector ES/EN y tema Auto/Claro/Oscuro (cookies por navegador) en la barra lateral y en el login.
 - Textos de la interfaz traducidos (`src/lib/i18n/en.ts`; la clave es el texto en español). Un test falla si aparece un texto nuevo sin traducción.
 - Lo que va a prospectos (mensajes, informes, seguimientos, mini-auditoría) queda siempre en español de España.
+
+## 2026-11-05 · Funcionalidad y rendimiento (15 mejoras)
+| Task (EN) | Pts | Resultado |
+|---|---|---|
+| Batch prompts (manual mode) | 5 | `/lote`: un prompt para 3–10 prospectos y parser de la respuesta |
+| Quick review mode | 5 | `/revision` con atajos W/S/D/E |
+| Do-not-contact list (GDPR) | 3 | Bloquea por teléfono o nombre, también al mapear e importar |
+| Duplicate detection | 5 | Al mapear/importar y trabajo "Buscar duplicados" |
+| CSV import | 3 | Encabezados de Notion o en español |
+| Bulk actions | 3 | Asignar, mover de etapa, descartar |
+| Installable app (PWA) | 2 | Manifest, íconos, service worker solo para estáticos |
+| Meeting .ics | 2 | En la ficha cuando la etapa es Reunión |
+| Light map + ETag | 5 | Polígonos simplificados, 304 si no hay cambios |
+| Pipeline query | 3 | 60 por etapa en una consulta |
+| Smart live refresh | 3 | `/api/status`, solo recarga si cambió |
+| Metrics cache + indexes | 3 | 60 s en memoria |
+| Robust Overpass | 3 | Caché 7 días, reintentos, servidores alternativos |
+| Batch rescoring | 2 | Bloques de 500 |
+| Worker heartbeat | 2 | Aviso en Panel y `/api/health` para n8n |
+
+Migración `005_perf_quality`. Tests: 39/39.

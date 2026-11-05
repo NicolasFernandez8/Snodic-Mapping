@@ -60,6 +60,9 @@ Después se administran desde **Usuarios** en la app: crear, cambiar rol o contr
 ## 4d. Avisos a n8n (opcional)
 En n8n: nuevo workflow → nodo **Webhook** (POST, path `snodic-mapping`) → por ejemplo un nodo de Telegram o email. En `.env`: `N8N_WEBHOOK_URL=http://n8n:5678/webhook/snodic-mapping`. Para que funcione con ese nombre, n8n tiene que estar en la red `snodic-postgres_default` (ya lo está). Eventos: `daily_summary`, `stage_changed`, `audit_viewed`.
 
+## 4d-bis. Monitoreo del worker con n8n
+`GET /api/health` (sin login) responde 200 si el worker dio señales en los últimos 3 minutos y 503 si no. En n8n: Schedule (cada 5 min) → HTTP Request a `http://snodic-mapping-web:3000/api/health` → si falla, aviso por Telegram/email.
+
 ## 4e. Mini-auditorías públicas
 La página `/a/<código>` es la única que se ve sin login, y existe solo si alguien la publica desde la ficha. Para que el link funcione fuera de tu red, el prospecto tiene que poder llegar a la app: con Tailscale no puede, así que usá el quick tunnel (§4b) y poné esa URL en `APP_PUBLIC_URL`, o copiá el texto del análisis en el mensaje.
 

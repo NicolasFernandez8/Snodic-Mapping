@@ -16,6 +16,8 @@ const JOB_TYPES: JobType[] = [
   "generate_reports",
   "sync_notion",
   "daily_pipeline",
+  "rescore",
+  "dedupe",
 ];
 
 export async function runAgent(formData: FormData) {

@@ -52,6 +52,8 @@ export const JOB_LABEL: Record<string, string> = {
   generate_messages: "Agente 3 · Mensajes",
   generate_reports: "Agente 4 · Informes",
   daily_pipeline: "Pipeline diario completo",
+  rescore: "Recalcular puntajes",
+  dedupe: "Buscar duplicados",
 };
 
 export function fmtDate(d: string | Date | null) {

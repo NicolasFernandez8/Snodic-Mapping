@@ -159,3 +159,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outl
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .leaflet-tile-pane { filter: brightness(0.75) invert(1) hue-rotate(180deg) contrast(0.9); }
 }
+
+.import-csv { position: relative; }
+.import-csv summary { list-style: none; }
+.import-csv summary::-webkit-details-marker { display: none; }
+.bulk-bar { margin-bottom: 8px; }

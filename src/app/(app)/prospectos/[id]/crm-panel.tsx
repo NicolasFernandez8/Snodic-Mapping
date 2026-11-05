@@ -13,6 +13,8 @@ import {
   setStageAction,
 } from "@/app/crm-actions";
 import { WhatsAppButton } from "@/app/whatsapp-button";
+import { blockAction, unblockAction } from "@/app/feature-actions";
+import Link from "next/link";
 import { CopyButton } from "@/app/copy-button";
 import { fmtDate } from "@/app/ui";
 import { baseUrl } from "@/app/base-url";
@@ -45,9 +47,12 @@ export async function CrmPanel({ id }: { id: number }) {
     audit_slug: string | null;
     audit_views: number;
     audit_last_viewed_at: string | null;
+    do_not_contact: boolean;
+    duplicate_of: number | null;
   }>(
     `SELECT p.name, p.phone, p.stage, p.assigned_to, u.username AS assigned, p.contacted_at, p.next_follow_up_at,
-            p.follow_ups_sent, p.score, p.score_breakdown, p.message_variant, p.audit_slug, p.audit_views, p.audit_last_viewed_at
+            p.follow_ups_sent, p.score, p.score_breakdown, p.message_variant, p.audit_slug, p.audit_views, p.audit_last_viewed_at,
+            p.do_not_contact, p.duplicate_of
      FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to WHERE p.id = $1`,
     [id],
   ))!;
@@ -67,7 +72,7 @@ export async function CrmPanel({ id }: { id: number }) {
     baseUrl(),
   ]);
   const suggested = matchCases(cases, reviews, report?.content ?? "").slice(0, 2);
-  const wa = message ? whatsappLink(p.phone, message.content) : null;
+  const wa = message && !p.do_not_contact ? whatsappLink(p.phone, message.content) : null;
   const contactedBy = history.find((h) => h.kind === "message_sent")?.username ?? null;
   const auditUrl = p.audit_slug ? `${base}/a/${p.audit_slug}` : null;
 
@@ -78,6 +83,22 @@ export async function CrmPanel({ id }: { id: number }) {
           <h2 style={{ margin: 0 }}>{t("Captación")}</h2>
           <span className="badge">{t(STAGE_LABEL[p.stage])}</span>
         </div>
+        {p.do_not_contact && (
+          <div className="notice" style={{ borderColor: "var(--err)" }}>
+            <strong>{t("No contactar")}</strong> · {t("Está en la lista de no contactar (RGPD). WhatsApp y seguimientos desactivados.")}
+            {me.role === "admin" && (
+              <form action={unblockAction} style={{ marginTop: 6 }}>
+                <input type="hidden" name="id" value={id} />
+                <button className="btn secondary sm">{t("Quitar de la lista")}</button>
+              </form>
+            )}
+          </div>
+        )}
+        {p.duplicate_of && (
+          <div className="notice">
+            {t("Duplicado de")} <Link href={`/prospectos/${p.duplicate_of}`}>#{p.duplicate_of}</Link>
+          </div>
+        )}
         <div className="row" style={{ marginBottom: 12 }}>
           {message ? (
             <WhatsAppButton
@@ -113,10 +134,31 @@ export async function CrmPanel({ id }: { id: number }) {
           </select>
           <button className="btn secondary sm">{t("Asignar")}</button>
         </form>
+        {p.stage === "meeting" && (
+          <form action={`/api/prospectos/${id}/ics`} method="get" className="row" style={{ marginBottom: 10 }}>
+            <label style={{ margin: 0 }}>{t("Agendar reunión")}</label>
+            <input type="date" name="date" required style={{ width: "auto" }} />
+            <input type="time" name="time" defaultValue="10:00" required style={{ width: "auto" }} />
+            <select name="minutes" defaultValue="30" style={{ width: "auto" }}>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+            </select>
+            <button className="btn secondary sm">{t("⬇ Calendario (.ics)")}</button>
+          </form>
+        )}
         <dl className="dl">
           <dt>{t("Contactado")}</dt><dd>{fmtDate(p.contacted_at)}</dd>
           <dt>{t("Próximo seguimiento")}</dt><dd>{p.next_follow_up_at ? fmtDate(p.next_follow_up_at) : "-"} {t("({n} enviados)", { n: p.follow_ups_sent })}</dd>
         </dl>
+
+        {!p.do_not_contact && (
+          <form action={blockAction} className="row" style={{ marginTop: 12 }}>
+            <input type="hidden" name="id" value={id} />
+            <input name="reason" placeholder={t("Motivo (opcional)")} style={{ flex: 1, minWidth: 140 }} />
+            <button className="btn danger sm">{t("No contactar")}</button>
+          </form>
+        )}
 
         <h2 style={{ marginTop: 18 }}>{t("Mini-auditoría pública")}</h2>
         {auditUrl ? (

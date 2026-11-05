@@ -3,11 +3,15 @@ import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { getLang, getTheme } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/client";
+import { SwRegister } from "./sw-register";
+
+export const viewport = { themeColor: "#021e45" };
 
 export const metadata: Metadata = {
   title: "Snodic Mapping",
   description: "Agentes de captación de prospectos por zonas",
-  icons: { icon: "/logo.png" },
+  icons: { icon: "/logo.png", apple: "/icon-192.png" },
+  appleWebApp: { capable: true, title: "Snodic", statusBarStyle: "black-translucent" },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -23,6 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <I18nProvider lang={lang}>{children}</I18nProvider>
+        <SwRegister />
       </body>
     </html>
   );

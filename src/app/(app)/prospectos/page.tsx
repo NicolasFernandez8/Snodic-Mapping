@@ -1,13 +1,14 @@
 import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { q } from "@/lib/db";
+import { bulkAction, importCsvAction } from "@/app/feature-actions";
 import { requireUser } from "@/lib/auth/session";
 import { STAGES, STAGE_LABEL, type Stage } from "@/lib/crm";
 import { Badge, V } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
 
-type Search = { status?: string; locality?: string; s?: string; page?: string; stage?: string; mine?: string; sort?: string };
+type Search = { status?: string; locality?: string; s?: string; page?: string; stage?: string; mine?: string; sort?: string; imported?: string; skipped?: string };
 
 export default async function Prospectos({ searchParams }: { searchParams: Promise<Search> }) {
   const t = await getT();
@@ -37,6 +38,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
     where.push(`(p.name ILIKE $${params.length} OR p.address ILIKE $${params.length})`);
   }
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const users = await q<{ id: number; username: string }>("SELECT id, username FROM users ORDER BY username");
   const [rows, total, localities] = await Promise.all([
     q<{
       id: number;
@@ -76,8 +78,25 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
           <h1>{t("Prospectos")}</h1>
           <p className="sub">{t("{n} resultados", { n })}</p>
         </div>
-        <a className="btn secondary" href="/api/export/csv">{t("⬇ Exportar CSV")}</a>
+        <div className="row">
+          <a className="btn secondary" href="/api/export/csv">{t("⬇ Exportar CSV")}</a>
+          <details className="import-csv">
+            <summary className="btn secondary">{t("⬆ Importar CSV")}</summary>
+            <form action={importCsvAction} className="card" style={{ position: "absolute", right: 0, zIndex: 10, width: 340 }}>
+              <input type="file" name="csv" accept=".csv,text/csv" required />
+              <p className="help">
+                {t("Columnas: Name (obligatoria), Phone, Address, Webpage, Email, Category, Location, Instagram, Facebook, URL Google Maps, Latitude, Longitude. Se saltean duplicados y los de “no contactar”.")}
+              </p>
+              <button className="btn sm">{t("Importar")}</button>
+            </form>
+          </details>
+        </div>
       </div>
+      {sp.imported !== undefined && (
+        <div className="notice" style={{ borderColor: "var(--ok)" }}>
+          {t("Importados: {n}. Salteados (duplicados o vacíos): {s}.", { n: sp.imported, s: sp.skipped ?? 0 })}
+        </div>
+      )}
 
       <form className="card row" style={{ marginBottom: 16 }}>
         <div style={{ flex: "2 1 220px" }}>
@@ -122,6 +141,25 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
         <button className="btn">{t("Filtrar")}</button>
       </form>
 
+      <form id="bulk" action={bulkAction} className="row bulk-bar">
+        <span className="help">{t("Con los seleccionados:")}</span>
+        <select name="bulk" defaultValue="" style={{ width: "auto" }} required>
+          <option value="" disabled>{t("Elegir acción…")}</option>
+          <optgroup label={t("Asignar a")}>
+            <option value="assign:">{t("Sin asignar")}</option>
+            {users.map((u) => (
+              <option key={u.id} value={`assign:${u.id}`}>{u.username}</option>
+            ))}
+          </optgroup>
+          <optgroup label={t("Mover a etapa")}>
+            {STAGES.map((s) => (
+              <option key={s.key} value={`stage:${s.key}`}>{t(s.label)}</option>
+            ))}
+          </optgroup>
+          <option value="discard">{t("Descartar")}</option>
+        </select>
+        <button className="btn secondary sm">{t("Aplicar")}</button>
+      </form>
       <div className="card table-wrap" style={{ padding: 0 }}>
         {rows.length === 0 ? (
           <div className="empty">{t("No hay prospectos con estos filtros.")}</div>
@@ -129,12 +167,13 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
           <table>
             <thead>
               <tr>
-                <th>{t("Puntaje")}</th><th>{t("Nombre")}</th><th>{t("Localidad")}</th><th>{t("Categoría")}</th><th>{t("Teléfono")}</th><th>{t("Etapa")}</th><th>{t("Responsable")}</th><th>{t("Agentes")}</th>
+                <th style={{ width: 28 }}></th><th>{t("Puntaje")}</th><th>{t("Nombre")}</th><th>{t("Localidad")}</th><th>{t("Categoría")}</th><th>{t("Teléfono")}</th><th>{t("Etapa")}</th><th>{t("Responsable")}</th><th>{t("Agentes")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
+                  <td><input type="checkbox" name="ids" value={r.id} form="bulk" aria-label={r.name} style={{ width: "auto" }} /></td>
                   <td>
                     {r.score !== null ? (
                       <span className={`badge ${r.score >= 60 ? "ok" : r.score >= 35 ? "warn" : "muted"}`}>{r.score}</span>
