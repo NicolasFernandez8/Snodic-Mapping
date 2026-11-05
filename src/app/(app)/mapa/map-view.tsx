@@ -6,7 +6,7 @@ import type { FeatureCollection } from "geojson";
 import { useT } from "@/lib/i18n/client";
 
 const STATUS_COLOR: Record<string, string> = {
-  mapped: "#1c6fef",
+  mapped: "#c2337f",
   mapping: "#d98a00",
   pending: "#8a9ab3",
   failed: "#d93a3a",
@@ -79,7 +79,7 @@ export default function MapView() {
           data={data.localities}
           style={(f) => {
             const c = STATUS_COLOR[f?.properties?.status] ?? "#8a9ab3";
-            return { color: "#021e45", weight: 1.2, fillColor: c, fillOpacity: f?.properties?.status === "pending" ? 0.08 : 0.25 };
+            return { color: "#4a1f4a", weight: 1.2, fillColor: c, fillOpacity: f?.properties?.status === "pending" ? 0.08 : 0.25 };
           }}
           onEachFeature={(f, layer) =>
             layer.bindPopup(
@@ -94,7 +94,7 @@ export default function MapView() {
           key={p.id}
           center={[p.lat, p.lng]}
           radius={6}
-          pathOptions={{ color: "#fff", weight: 1.5, fillColor: p.status === "synced" ? "#12a150" : "#1c6fef", fillOpacity: 1 }}
+          pathOptions={{ color: "#fff", weight: 1.5, fillColor: p.status === "synced" ? "#16a36a" : "#c2337f", fillOpacity: 1 }}
         >
           <Popup>
             <strong>{p.name}</strong>

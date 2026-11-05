@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="Snodic" />
           <div>
-            <strong>{t("snodic")}</strong>
+            <strong>Snodic</strong>
             <span>{t("Mapping")}</span>
           </div>
         </div>
@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div style={{ color: "#c9d6ea", fontWeight: 600 }}>{user.username}</div>
           <div>{user.role === "admin" ? t("Administrador") : t("Miembro")}</div>
           <form action={logoutAction} style={{ marginTop: 8 }}>
-            <button className="btn secondary sm" style={{ background: "transparent", color: "#c9d6ea", borderColor: "#2a4472" }}>
+            <button className="btn secondary sm" style={{ background: "transparent", color: "var(--side-text)", borderColor: "var(--side-line)" }}>
               {t("Cerrar sesión")}
             </button>
           </form>

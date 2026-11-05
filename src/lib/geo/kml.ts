@@ -18,7 +18,7 @@ const esc = (s: string) =>
 
 // KML usa aabbggrr.
 const STATUS_STYLE: Record<string, string> = {
-  mapped: "7fef6f1c",
+  mapped: "7f7f33c2",
   mapping: "7f00a5ff",
   pending: "40ffffff",
   failed: "7f0000ff",
@@ -46,7 +46,7 @@ export function toKml(title: string, localities: KmlLocality[], prospects: KmlPr
   const styles = Object.entries(STATUS_STYLE)
     .map(
       ([s, color]) =>
-        `<Style id="loc-${s}"><LineStyle><color>ff451e02</color><width>2</width></LineStyle><PolyStyle><color>${color}</color></PolyStyle></Style>`,
+        `<Style id="loc-${s}"><LineStyle><color>ff4a1f4a</color><width>2</width></LineStyle><PolyStyle><color>${color}</color></PolyStyle></Style>`,
     )
     .join("");
   const locs = localities

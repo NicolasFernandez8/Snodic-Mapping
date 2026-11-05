@@ -16,7 +16,7 @@ export default async function Mapa() {
         <div>
           <h1>{t("Mapa de sectores")}</h1>
           <div className="legend" style={{ marginTop: 6 }}>
-            <span><i style={{ background: "#1c6fef" }} />{t("Mapeada")}</span>
+            <span><i style={{ background: "#c2337f" }} />{t("Mapeada")}</span>
             <span><i style={{ background: "#d98a00" }} />{t("Mapeando")}</span>
             <span><i style={{ background: "#8a9ab3" }} />{t("Pendiente")}</span>
             <span><i style={{ background: "#d93a3a" }} />{t("Error")}</span>
