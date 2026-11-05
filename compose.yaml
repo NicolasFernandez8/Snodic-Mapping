@@ -1,0 +1,43 @@
+# Snodic-Mapping en la PC de Snodic, junto al PostgreSQL existente.
+# Uso: docker compose up -d --build   (desde C:\Users\Nico_\Snodic\mapping o donde clones el repo)
+# No modifica ni recrea snodic-postgres: solo se une a su red.
+name: snodic-mapping
+
+services:
+  web:
+    build: .
+    image: snodic-mapping:latest
+    container_name: snodic-mapping-web
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL_DOCKER}
+    ports:
+      - "127.0.0.1:3000:3000"   # solo local; acceso remoto vía Tailscale Serve
+    networks: [snodic]
+    restart: unless-stopped
+
+  worker:
+    image: snodic-mapping:latest
+    container_name: snodic-mapping-worker
+    command: ["npm", "run", "worker"]
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL_DOCKER}
+    networks: [snodic]
+    depends_on: [web]
+    restart: unless-stopped
+
+  migrate:
+    image: snodic-mapping:latest
+    command: ["npm", "run", "migrate"]
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL_MIGRATE}
+    networks: [snodic]
+    profiles: [tools]
+    depends_on: [web]
+
+networks:
+  snodic:
+    name: snodic-postgres_default
+    external: true

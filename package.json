@@ -8,6 +8,7 @@
     "start": "next start -p 3000",
     "worker": "tsx src/worker.ts",
     "migrate": "tsx src/lib/migrate.ts",
+    "seed:demo": "tsx src/scripts/seed-demo.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

@@ -10,7 +10,7 @@
 import { one, q } from "../db";
 import { messagePrompt, reportPrompt, type PromptInput } from "../ai/prompts";
 import { validateMessage, validateReport } from "../ai/validate";
-import type { Llm } from "../ai/llm";
+import { ManualLlm, type Llm } from "../ai/llm";
 import { NotionClient, paragraphs } from "../notion";
 import { PROSPECT_COLUMNS, reviewsLink } from "./agent2-collector";
 import type { AgentLog, ProspectRow } from "./types";
@@ -134,9 +134,10 @@ export async function runWriterAgent(
   const rows = await q<{ id: number; name: string }>(
     `SELECT p.id, p.name FROM prospects p
      WHERE p.status = $1 AND NOT EXISTS (
-       SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = $2 AND o.status IN ('ready','needs_review','pending_manual'))
+       SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = $2 AND o.status = ANY($4::text[]))
      ORDER BY p.id LIMIT $3`,
-    [fromStatus, kind, limit],
+    // En modo manual no se repiten los prompts pendientes; con IA real sí se procesan.
+    [fromStatus, kind, limit, llm instanceof ManualLlm ? ["ready", "needs_review", "pending_manual"] : ["ready", "needs_review"]],
   );
   const counts: Partial<Record<OutputRow["status"], number>> = {};
   for (const r of rows) {
