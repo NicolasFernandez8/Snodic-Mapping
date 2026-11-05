@@ -86,7 +86,15 @@ d("pipeline de agentes (integración)", () => {
       const body = init.body ? JSON.parse(init.body as string) : undefined;
       if (path.startsWith("/databases/"))
         return Response.json({
-          properties: { Nombre: { type: "title" }, Teléfono: { type: "phone_number" }, Localidad: { type: "rich_text" } },
+          properties: {
+            Name: { type: "title" },
+            Phone: { type: "phone_number" },
+            Location: { type: "rich_text" },
+            "Rating - Google Maps": { type: "number" },
+            Ready: { type: "checkbox" },
+            Type: { type: "select" },
+            "Business Hours": { type: "rich_text" },
+          },
         });
       if (path === "/pages" && init.method === "POST") {
         const id = `page${++seq}`;
@@ -114,8 +122,12 @@ d("pipeline de agentes (integración)", () => {
     expect(sync.synced).toBe(1);
     expect(sync.missingProperties).toContain("Email");
     const page = Object.values(pages)[0];
-    expect(page.properties["Teléfono"]).toEqual({ phone_number: null });
-    expect(JSON.stringify(page.properties["Localidad"])).toContain("Centro");
+    expect(page.properties["Phone"]).toEqual({ phone_number: null });
+    expect(JSON.stringify(page.properties["Location"])).toContain("Centro");
+    expect(page.properties["Rating - Google Maps"]).toEqual({ number: null }); // nombre truncado, se resuelve por prefijo
+    expect(page.properties["Ready"]).toEqual({ checkbox: false });
+    expect(page.properties["Type"]).toEqual({ select: { name: "Normal" } });
+    expect(JSON.stringify(page.properties["Business Hours"])).toContain('"-"');
 
     // Agentes 3 y 4 con un LLM falso.
     const llm = {

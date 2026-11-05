@@ -57,11 +57,24 @@ Snodic trabaja **sin gastos ni datos de facturación**. Todo lo que usa la app p
 2. En la base de prospectos del proyecto Snodic: `•••` → Conexiones → agregar “Snodic Mapping”.
 3. ID de la base: en la URL `notion.so/<workspace>/<ID>?v=...` es el bloque de 32 caracteres.
 4. `.env` → `NOTION_TOKEN=...` y `NOTION_DATABASE_ID=...`
-5. Propiedades: por defecto la app busca `Nombre, Localidad, Zona, Categoría, Dirección, Teléfono, Web, Email, Instagram, Google Maps, Reseñas, Rating, Nº reseñas, Estado`. Si tus columnas se llaman distinto:
-   ```
-   NOTION_PROPERTY_MAP={"name":"Name","locality":"Ciudad","phone":"Tel"}
-   ```
-   El tipo de cada columna se detecta solo. Las que no existan se informan en el historial de Agentes.
+5. Propiedades (ya configuradas para la base de Snodic):
+
+   | Notion | Qué escribe la app |
+   |---|---|
+   | (título) | Nombre del local |
+   | Business Days / Business Hours | Del horario de OSM: “Lunes a Domingo” / “12:30 a 16:00” |
+   | Rating - Google … | Se carga a mano en la ficha (gratis no hay rating) |
+   | Ready | ✓ cuando el mensaje y el informe están listos |
+   | Location | Localidad mapeada (ej. “Alicante Centro”) |
+   | Webpage · Phone · Email · Address | Datos de OSM (teléfono como `34624207288`) |
+   | Contact Info | `instagram [] facebook` |
+   | Area | Región que se está recorriendo |
+   | Category | “Hotel”, “Hostel”, “Guest House / Hostal”, “Tourist Apartment”… |
+   | Type | “Normal” |
+   | URL Google Maps | Link a la ficha / búsqueda en Google Maps |
+
+   No se tocan: Complete, ID, Num, Created time, Priority. Lo que no se encuentra queda `-` (o vacío si la columna es URL/teléfono/email/número).
+   Si cambiás un nombre de columna: `NOTION_PROPERTY_MAP={"locality":"Ciudad"}` (campos: name, business_days, business_hours, rating, ready, locality, website, phone, address, contact_info, region, category, email, type, google_maps_url).
 6. El cuerpo de cada página queda: **mensaje (Agente 3)**, dos renglones vacíos, **informe (Agente 4)**. Si corregís un texto desde la app, se reemplaza sin duplicar.
 
 ### IA para los agentes 3 y 4

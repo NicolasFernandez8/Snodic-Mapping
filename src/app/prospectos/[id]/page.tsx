@@ -28,6 +28,9 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
     website: string | null;
     email: string | null;
     instagram: string | null;
+    facebook: string | null;
+    business_days: string | null;
+    business_hours: string | null;
     google_maps_url: string | null;
     reviews_url: string | null;
     rating: string | null;
@@ -86,6 +89,8 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
           <h2>Datos (Agente 2)</h2>
           <dl className="dl">
             <dt>Categoría</dt><dd><V v={p.category} /></dd>
+            <dt>Días</dt><dd><V v={p.business_days} /></dd>
+            <dt>Horario</dt><dd><V v={p.business_hours} /></dd>
             <dt>Dirección</dt><dd><V v={p.address} /></dd>
             <dt>Rating</dt><dd>{p.rating ? `${p.rating}★ · ${p.reviews_count ?? 0} reseñas` : <V v={null} />}</dd>
             <dt>Reseñas</dt><dd><V v={p.reviews_url} href /></dd>
@@ -97,10 +102,10 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
             <input type="hidden" name="id" value={p.id} />
             <p className="help" style={{ marginTop: 0 }}>Completá a mano lo que el agente no encontró (“-”).</p>
             <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
-              {(["phone", "email", "website", "instagram"] as const).map((f) => (
+              {EDITABLE.map(([f, label, ph]) => (
                 <div key={f}>
-                  <label htmlFor={f}>{{ phone: "Teléfono", email: "Email", website: "Web", instagram: "Instagram" }[f]}</label>
-                  <input id={f} name={f} defaultValue={p[f] ?? ""} placeholder="-" />
+                  <label htmlFor={f}>{label}</label>
+                  <input id={f} name={f} defaultValue={p[f] ?? ""} placeholder={ph} />
                 </div>
               ))}
             </div>
@@ -174,6 +179,17 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
     </>
   );
 }
+
+const EDITABLE = [
+  ["phone", "Phone", "34624207288"],
+  ["email", "Email", "-"],
+  ["website", "Webpage", "-"],
+  ["instagram", "Instagram", "https://www.instagram.com/…"],
+  ["facebook", "Facebook", "https://www.facebook.com/…"],
+  ["business_days", "Business Days", "Lunes a Domingo"],
+  ["business_hours", "Business Hours", "12:30 a 16:00"],
+  ["rating", "Rating - Google", "4,9"],
+] as const;
 
 function OutputCard(props: {
   title: string;

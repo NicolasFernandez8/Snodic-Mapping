@@ -7,6 +7,7 @@
  * 3) Al terminar una región pasa automáticamente a la siguiente en cola.
  */
 import { config } from "../config";
+import { parseOpeningHours } from "../opening-hours";
 import { getSetting, one, q } from "../db";
 import { bbox, centroid, haversineKm, pointInArea, type Area, type Position } from "../geo/geometry";
 import { overpass, queries, relationIdOf, relationToBoundary } from "../geo/osm";
@@ -140,6 +141,9 @@ export type DiscoveredPlace = {
   website?: string;
   email?: string;
   instagram?: string;
+  facebook?: string;
+  businessDays?: string;
+  businessHours?: string;
   businessStatus?: string;
   raw: unknown;
 };
@@ -193,11 +197,12 @@ export class OsmSource implements ProspectSource {
           .filter(Boolean)
           .join(" ");
         const tag = niche.osm_tags.find((x) => t[x.k] === x.v);
+        const schedule = parseOpeningHours(t.opening_hours);
         return {
           source: "osm",
           sourceId: `${e.type}/${e.id}`,
           name: t.name,
-          category: tag ? tag.v : undefined,
+          category: tag ? categoryLabel(tag.v) : undefined,
           address: addr || undefined,
           lat,
           lng,
@@ -205,6 +210,9 @@ export class OsmSource implements ProspectSource {
           website: t.website ?? t["contact:website"],
           email: t.email ?? t["contact:email"],
           instagram: t["contact:instagram"] ?? t.instagram,
+          facebook: t["contact:facebook"] ?? t.facebook,
+          businessDays: schedule?.days,
+          businessHours: schedule?.hours,
           googleMapsUrl: mapsSearchUrl(t.name, addr || loc.name),
           raw: e,
         };
@@ -227,8 +235,9 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
     if (loc.boundary && !pointInArea([p.lng, p.lat], loc.boundary)) continue;
     const row = await one<{ inserted: boolean }>(
       `INSERT INTO prospects (locality_id, niche_key, source, source_id, name, category, address, phone, website, email,
-                              google_maps_url, rating, reviews_count, business_status, lat, lng, raw, instagram)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18)
+                              google_maps_url, rating, reviews_count, business_status, lat, lng, raw, instagram,
+                              facebook, business_days, business_hours)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21)
        ON CONFLICT (source, source_id) DO UPDATE SET
          rating = EXCLUDED.rating, reviews_count = EXCLUDED.reviews_count, updated_at = now()
        RETURNING (xmax = 0) AS inserted`,
@@ -251,6 +260,9 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
         p.lng,
         JSON.stringify(p.raw ?? {}),
         p.instagram ?? null,
+        p.facebook ?? null,
+        p.businessDays ?? null,
+        p.businessHours ?? null,
       ],
     );
     if (row?.inserted) created++;
@@ -319,4 +331,22 @@ export async function nextLocality(): Promise<LocalityRow | null> {
 export function mapsSearchUrl(name: string, where?: string | null): string {
   const query = [name, where].filter(Boolean).join(" ");
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/** Nombre de categoría para Notion a partir de la etiqueta OSM (estilo "Gastropub / Restaurant"). */
+const CATEGORY_LABELS: Record<string, string> = {
+  hotel: "Hotel",
+  hostel: "Hostel",
+  guest_house: "Guest House / Hostal",
+  apartment: "Tourist Apartment",
+  motel: "Motel",
+  chalet: "Chalet / Holiday Home",
+  restaurant: "Restaurant",
+  bar: "Bar",
+  cafe: "Cafe",
+  pub: "Pub",
+};
+
+export function categoryLabel(v: string): string {
+  return CATEGORY_LABELS[v] ?? v.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 }

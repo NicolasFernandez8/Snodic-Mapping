@@ -32,6 +32,9 @@ export type ProspectRow = {
   website: string | null;
   email: string | null;
   instagram: string | null;
+  facebook: string | null;
+  business_days: string | null;
+  business_hours: string | null;
   google_maps_url: string | null;
   reviews_url: string | null;
   rating: string | null;

@@ -2,20 +2,21 @@ import { q } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+// Mismas columnas que la base de Notion de Snodic (+ mensaje e informe).
 const COLS = [
-  ["name", "Nombre"],
-  ["region", "Zona"],
-  ["locality", "Localidad"],
-  ["category", "Categoría"],
-  ["address", "Dirección"],
-  ["phone", "Teléfono"],
-  ["website", "Web"],
+  ["name", "Name"],
+  ["business_days", "Business Days"],
+  ["business_hours", "Business Hours"],
+  ["rating", "Rating - Google Maps"],
+  ["locality", "Location"],
+  ["website", "Webpage"],
+  ["phone", "Phone"],
+  ["address", "Address"],
+  ["contact_info", "Contact Info"],
+  ["region", "Area"],
+  ["category", "Category"],
   ["email", "Email"],
-  ["instagram", "Instagram"],
-  ["google_maps_url", "Google Maps"],
-  ["reviews_url", "Reseñas"],
-  ["rating", "Rating"],
-  ["reviews_count", "Nº reseñas"],
+  ["google_maps_url", "URL Google Maps"],
   ["status", "Estado"],
   ["message", "Mensaje"],
   ["report", "Informe"],
@@ -30,6 +31,7 @@ const cell = (v: unknown) => {
 export async function GET() {
   const rows = await q<Record<string, unknown>>(
     `SELECT p.*, l.name AS locality, r.name AS region,
+       NULLIF(concat_ws(' [] ', NULLIF(p.instagram,''), NULLIF(p.facebook,'')), '') AS contact_info,
        (SELECT content FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'message' ORDER BY created_at DESC, id DESC LIMIT 1) AS message,
        (SELECT content FROM outputs o WHERE o.prospect_id = p.id AND o.kind = 'report' ORDER BY created_at DESC, id DESC LIMIT 1) AS report
      FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN regions r ON r.id = l.region_id

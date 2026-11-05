@@ -21,7 +21,7 @@
 | Documentation | 3 | README, CLAUDE.md, docs/* |
 
 ## Verificado
-- `npm run typecheck`, `npm run build`, `npm test` (21/21 con TEST_DATABASE_URL).
+- `npm run typecheck`, `npm run build`, `npm test` (25/25 con TEST_DATABASE_URL).
 - Worker procesó un `daily_pipeline` real contra PostgreSQL local con datos demo.
 - Capturas de UI revisadas (escritorio y móvil).
 
@@ -29,3 +29,7 @@
 - Llamadas reales a Overpass y Notion: la red del entorno las bloquea → probadas con fetch simulado.
 - `docker build`: Docker Hub respondió 429 (rate limit).
 - Push a GitHub: resuelto.
+
+## 2026-11-05 · Ajustes del usuario
+- Modo costo cero (OSM, reseñas pegadas a mano, IA manual).
+- Campos alineados con la base de Notion de Snodic (Business Days/Hours, Ready, Location, Webpage, Phone, Address, Contact Info, Area, Category, Email, Type, URL Google Maps). Migración `002_notion_fields`.

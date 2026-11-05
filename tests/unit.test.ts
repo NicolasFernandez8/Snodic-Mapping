@@ -264,3 +264,45 @@ describe("modo gratuito", () => {
     );
   });
 });
+
+describe("campos de la base de Notion de Snodic", () => {
+  it("traduce opening_hours de OSM", async () => {
+    const { parseOpeningHours } = await import("../src/lib/opening-hours");
+    expect(parseOpeningHours("Mo-Su 12:30-16:00")).toEqual({ days: "Lunes a Domingo", hours: "12:30 a 16:00" });
+    expect(parseOpeningHours("24/7")).toEqual({ days: "Lunes a Domingo", hours: "24 horas" });
+    expect(parseOpeningHours("Mo-Fr 09:00-14:00,17:00-20:00")).toEqual({
+      days: "Lunes a Viernes",
+      hours: "09:00 a 14:00 y 17:00 a 20:00",
+    });
+    expect(parseOpeningHours("Mo-Fr 09:00-18:00; Sa 10:00-14:00; Su off")).toEqual({
+      days: "Lunes a Viernes, Sábado",
+      hours: "Lunes a Viernes: 09:00 a 18:00 · Sábado: 10:00 a 14:00",
+    });
+    expect(parseOpeningHours("sunrise-sunset")).toBeNull();
+    expect(parseOpeningHours(null)).toBeNull();
+  });
+  it("formatea teléfono y contacto como en Notion", async () => {
+    const { formatPhone, contactInfo } = await import("../src/lib/agents/agent2-collector");
+    expect(formatPhone("+34 624 20 72 88")).toBe("34624207288");
+    expect(formatPhone("624207288")).toBe("34624207288");
+    expect(formatPhone("+34 965 11 11 11; +34 600 00 00 00")).toBe("34965111111");
+    expect(contactInfo({ instagram: "https://www.instagram.com/18teatro/", facebook: "https://www.facebook.com/x" })).toBe(
+      "https://www.instagram.com/18teatro/ [] https://www.facebook.com/x",
+    );
+    expect(contactInfo({ instagram: "@18teatro", facebook: null })).toBe("https://www.instagram.com/18teatro/");
+    expect(contactInfo({ instagram: null, facebook: null })).toBeNull();
+  });
+  it("resuelve propiedades por nombre exacto, mayúsculas, prefijo o título", async () => {
+    const { resolveProperty } = await import("../src/lib/notion");
+    const schema = { Nombre: "title", "Rating - Google Maps": "number", webpage: "url" };
+    expect(resolveProperty(schema, "Rating - Google")).toBe("Rating - Google Maps");
+    expect(resolveProperty(schema, "Webpage")).toBe("webpage");
+    expect(resolveProperty(schema, "Name", "name")).toBe("Nombre");
+    expect(resolveProperty(schema, "Email")).toBeNull();
+  });
+  it("etiqueta categorías", async () => {
+    const { categoryLabel } = await import("../src/lib/agents/agent1-mapper");
+    expect(categoryLabel("guest_house")).toBe("Guest House / Hostal");
+    expect(categoryLabel("camp_site")).toBe("Camp site");
+  });
+});

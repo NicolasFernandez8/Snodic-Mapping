@@ -12,7 +12,7 @@ import type { AgentLog, ProspectRow } from "./types";
 import { mapsSearchUrl } from "./agent1-mapper";
 
 export const PROSPECT_COLUMNS = `p.id, p.locality_id, p.niche_key, p.source, p.source_id, p.name, p.category, p.address, p.phone,
-  p.website, p.email, p.instagram, p.google_maps_url, p.reviews_url, p.rating, p.reviews_count, p.lat, p.lng,
+  p.website, p.email, p.instagram, p.facebook, p.business_days, p.business_hours, p.google_maps_url, p.reviews_url, p.rating, p.reviews_count, p.lat, p.lng,
   p.status, p.notion_page_id, p.notion_blocks, p.raw`;
 
 /** Enlace de reseñas: el de la API o, si no hay, la ficha de Maps. */
@@ -110,19 +110,21 @@ export async function notionFields(id: number): Promise<ProspectFields> {
   if (!p) throw new Error(`Prospecto ${id} inexistente`);
   return {
     name: p.name,
+    business_days: p.business_days,
+    business_hours: p.business_hours,
+    rating: p.rating === null ? null : Number(p.rating),
+    // Ready: tiene mensaje (Agente 3) e informe (Agente 4) listos para contactar.
+    ready: p.status === "report_ready" || p.status === "synced",
     locality: p.locality_name,
+    website: p.website,
+    phone: formatPhone(p.phone),
+    address: p.address,
+    contact_info: contactInfo(p),
     region: p.region_name,
     category: p.category,
-    address: p.address,
-    phone: p.phone,
-    website: p.website,
     email: p.email,
-    instagram: p.instagram,
+    type: "Normal",
     google_maps_url: p.google_maps_url,
-    reviews_url: p.reviews_url,
-    rating: p.rating === null ? null : Number(p.rating),
-    reviews_count: p.reviews_count,
-    status: "Mapeado",
   };
 }
 
@@ -188,4 +190,21 @@ export async function saveManualReviews(prospectId: number, text: string, replac
     );
   }
   return reviews.length;
+}
+
+/** "+34 624 20 72 88" → "34624207288" (formato usado en la base de Snodic). */
+export function formatPhone(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const first = phone.split(/[;,/]/)[0];
+  const digits = first.replace(/\D/g, "").replace(/^00/, "");
+  if (!digits) return null;
+  return digits.length === 9 ? `34${digits}` : digits; // números españoles sin prefijo
+}
+
+/** Redes sociales separadas por " [] " como en la base de Snodic. */
+export function contactInfo(p: { instagram: string | null; facebook: string | null }): string | null {
+  const parts = [p.instagram, p.facebook]
+    .filter((x): x is string => !!x && x.trim() !== "")
+    .map((x) => (x.startsWith("http") ? x : x.startsWith("@") ? `https://www.instagram.com/${x.slice(1)}/` : x));
+  return parts.length ? parts.join(" [] ") : null;
 }

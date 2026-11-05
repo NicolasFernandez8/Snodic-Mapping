@@ -12,25 +12,43 @@ const API = "https://api.notion.com/v1";
 const VERSION = "2022-06-28";
 export const EMPTY = "-";
 
-/** Campo interno -> nombre de la propiedad en Notion. */
+/**
+ * Campo interno -> nombre de la propiedad en la base de prospectos de Snodic.
+ * "name" va a la propiedad de título (se detecta sola aunque se llame distinto).
+ * No se tocan: Complete, ID, Num, Created time, Priority (las completa una persona o Notion).
+ */
 export const DEFAULT_PROPERTY_MAP: Record<string, string> = {
-  name: "Nombre",
-  locality: "Localidad",
-  region: "Zona",
-  category: "Categoría",
-  address: "Dirección",
-  phone: "Teléfono",
-  website: "Web",
+  name: "Name",
+  business_days: "Business Days",
+  business_hours: "Business Hours",
+  rating: "Rating - Google",
+  ready: "Ready",
+  locality: "Location",
+  website: "Webpage",
+  phone: "Phone",
+  address: "Address",
+  contact_info: "Contact Info",
+  region: "Area",
+  category: "Category",
   email: "Email",
-  instagram: "Instagram",
-  google_maps_url: "Google Maps",
-  reviews_url: "Reseñas",
-  rating: "Rating",
-  reviews_count: "Nº reseñas",
-  status: "Estado",
+  type: "Type",
+  google_maps_url: "URL Google Maps",
 };
 
-export type ProspectFields = Record<string, string | number | null | undefined>;
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Busca la propiedad: nombre exacto, sin distinguir mayúsculas, o que empiece igual ("Rating - Google …"). */
+export function resolveProperty(schema: Record<string, PropType>, wanted: string, field?: string): string | null {
+  if (schema[wanted]) return wanted;
+  const names = Object.keys(schema);
+  const w = norm(wanted);
+  const found = names.find((n) => norm(n) === w) ?? names.find((n) => norm(n).startsWith(w));
+  if (found) return found;
+  if (field === "name") return names.find((n) => schema[n] === "title") ?? null;
+  return null;
+}
+
+export type ProspectFields = Record<string, string | number | boolean | null | undefined>;
 
 type PropType =
   | "title"
@@ -55,8 +73,8 @@ const isEmpty = (v: unknown) => v === null || v === undefined || (typeof v === "
 const text = (s: string) => [{ type: "text", text: { content: s.slice(0, 2000) } }];
 
 /** Convierte un valor al formato de la propiedad según su tipo. */
-export function toNotionValue(type: PropType, value: string | number | null | undefined): unknown {
-  const empty = isEmpty(value);
+export function toNotionValue(type: PropType, value: string | number | boolean | null | undefined): unknown {
+  const empty = isEmpty(value) || value === false;
   const str = empty ? EMPTY : String(value);
   switch (type) {
     case "title":
@@ -79,6 +97,8 @@ export function toNotionValue(type: PropType, value: string | number | null | un
       return empty ? undefined : { status: { name: str } };
     case "multi_select":
       return { multi_select: empty ? [] : [{ name: str.slice(0, 100).replace(/,/g, " ") }] };
+    case "checkbox":
+      return { checkbox: value === true || value === 1 || value === "true" };
     default:
       return undefined; // tipo no soportado: se omite
   }
@@ -91,13 +111,13 @@ export function buildProperties(
 ): { properties: Record<string, unknown>; missing: string[] } {
   const properties: Record<string, unknown> = {};
   const missing: string[] = [];
-  for (const [field, propName] of Object.entries(map)) {
-    const type = schema[propName];
-    if (!type) {
-      missing.push(propName);
+  for (const [field, wanted] of Object.entries(map)) {
+    const propName = resolveProperty(schema, wanted, field);
+    if (!propName) {
+      missing.push(wanted);
       continue;
     }
-    const v = toNotionValue(type, fields[field]);
+    const v = toNotionValue(schema[propName], fields[field]);
     if (v !== undefined) properties[propName] = v;
   }
   return { properties, missing };

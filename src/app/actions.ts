@@ -110,11 +110,14 @@ export async function saveOutputAction(formData: FormData) {
 
 export async function updateProspectAction(formData: FormData) {
   const id = Number(formData.get("id"));
-  const fields = ["phone", "email", "website", "instagram"] as const;
+  const fields = ["phone", "email", "website", "instagram", "facebook", "business_days", "business_hours"] as const;
   const values = fields.map((f) => String(formData.get(f) ?? "").trim() || null);
+  const ratingRaw = String(formData.get("rating") ?? "").trim().replace(",", ".");
+  const rating = ratingRaw && !Number.isNaN(Number(ratingRaw)) ? Math.min(5, Math.max(0, Number(ratingRaw))) : null;
   await q(
-    `UPDATE prospects SET phone = $2, email = $3, website = $4, instagram = $5, updated_at = now() WHERE id = $1`,
-    [id, ...values],
+    `UPDATE prospects SET phone = $2, email = $3, website = $4, instagram = $5, facebook = $6,
+       business_days = $7, business_hours = $8, rating = $9, updated_at = now() WHERE id = $1`,
+    [id, ...values, rating],
   );
   revalidatePath(`/prospectos/${id}`);
 }
