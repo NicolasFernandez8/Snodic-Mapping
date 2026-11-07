@@ -3,9 +3,7 @@ import Link from "next/link";
 import { q } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { STAGES, whatsappLink } from "@/lib/crm";
-import { setStageAction } from "@/app/crm-actions";
-import { WhatsAppButton } from "@/app/whatsapp-button";
-import { V } from "@/app/ui";
+import { Board, type BoardCard } from "./board";
 import { FilterBar } from "../filter-bar";
 import { filterSql, parseFilters } from "@/lib/filters";
 
@@ -56,8 +54,17 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
       fparams,
     ),
   ]);
-  const by = (s: string) => cards.filter((c) => c.stage === s);
-  const totalOf = (s: string) => totals.find((x) => x.stage === s)?.n ?? 0;
+  const boardCards: BoardCard[] = cards.map((c) => ({
+    id: c.id,
+    name: c.name,
+    stage: c.stage,
+    locality: c.locality,
+    score: c.score,
+    assigned: c.assigned,
+    hasMessage: !!c.message,
+    waHref: c.message ? whatsappLink(c.phone, c.message) : null,
+  }));
+  const totalMap = Object.fromEntries(totals.map((x) => [x.stage, x.n]));
 
   return (
     <>
@@ -72,43 +79,8 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
         </div>
       </div>
       <FilterBar path="/pipeline" filters={filters} show={{ stage: false }} />
-      <div className="kanban">
-        {STAGES.map((s) => {
-          const list = by(s.key);
-          return (
-            <section key={s.key} className="kanban-col">
-              <header>
-                <strong>{t(s.label)}</strong>
-                <span className="badge muted">{totalOf(s.key)}</span>
-              </header>
-              {list.map((c) => (
-                <article key={c.id} className="kanban-card">
-                  <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
-                    <Link href={`/prospectos/${c.id}`}><strong>{c.name}</strong></Link>
-                    {c.score !== null && <span className={`badge ${c.score >= 60 ? "ok" : c.score >= 35 ? "warn" : "muted"}`}>{c.score}</span>}
-                  </div>
-                  <div className="help"><V v={c.locality} /> · {c.assigned ?? t("sin asignar")}</div>
-                  {s.key === "to_contact" && c.message && (
-                    <div style={{ marginTop: 6 }}>
-                      <WhatsAppButton prospectId={c.id} href={whatsappLink(c.phone, c.message)} kind="first" label={t("WhatsApp")} />
-                    </div>
-                  )}
-                  <form action={setStageAction} className="row" style={{ marginTop: 6, flexWrap: "nowrap" }}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <select name="stage" defaultValue={c.stage} style={{ padding: "4px 6px", fontSize: 12 }}>
-                      {STAGES.map((x) => (
-                        <option key={x.key} value={x.key}>{t(x.label)}</option>
-                      ))}
-                    </select>
-                    <button className="btn secondary sm">{t("Mover")}</button>
-                  </form>
-                </article>
-              ))}
-              {totalOf(s.key) > list.length && <div className="help">{t("+{n} más en Prospectos", { n: totalOf(s.key) - list.length })}</div>}
-            </section>
-          );
-        })}
-      </div>
+      <p className="help" style={{ marginTop: -6 }}>{t("Arrastrá una tarjeta a otra columna para cambiar su etapa.")}</p>
+      <Board stages={STAGES.map((x) => ({ key: x.key, label: x.label }))} cards={boardCards} totals={totalMap} />
     </>
   );
 }

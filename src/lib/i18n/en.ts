@@ -570,4 +570,11 @@ export const EN: Record<string, string> = {
     "Fills in phone, website, Google Maps link and score from open data. Anything not found stays as “-”.",
   "Agente 5 · Recalcular puntajes": "Agent 5 · Recalculate scores",
   "Agente 5 · Buscar duplicados": "Agent 5 · Find duplicates",
+
+  // Pipeline arrastrar y soltar
+  "Arrastrá una tarjeta a otra columna para cambiar su etapa.": "Drag a card to another column to change its stage.",
+  "Arrastrá la tarjeta a otra columna para cambiar la etapa": "Drag the card to another column to change the stage",
+  "No se pudo mover: {e}": "Couldn’t move it: {e}",
+  "{name} → {stage}": "{name} → {stage}",
+  "Soltá aquí": "Drop here",
 };

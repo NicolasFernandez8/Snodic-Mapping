@@ -308,3 +308,12 @@ tr:hover td { transition: background 0.15s ease; }
 .task .quota-row input[type="number"] { width: 62px; }
 svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .nav a.active svg.nav-ico, .nav a:hover svg.nav-ico { opacity: 1; }
+
+/* Pipeline: arrastrar y soltar */
+.kanban-card[draggable="true"] { cursor: grab; }
+.kanban-card.dragging { opacity: 0.45; transform: rotate(1.5deg) scale(0.98); }
+.kanban-col.drop-over { outline: 2px dashed var(--blue); outline-offset: -4px; background: color-mix(in srgb, var(--blue) 10%, transparent); }
+.kanban-empty { border: 1px dashed var(--border); border-radius: 10px; padding: 18px 8px; text-align: center; color: var(--muted); font-size: 12px; }
+.stage-select { margin-top: 6px; padding: 4px 6px; font-size: 12px; }
+.toast { position: fixed; bottom: 20px; right: 20px; z-index: 50; background: var(--surface); color: var(--text); border: 1px solid var(--blue); border-radius: 10px; padding: 10px 14px; box-shadow: var(--shadow); animation: fadeUp 0.25s ease both; font-weight: 600; }
+.toast-err { border-color: var(--err); color: var(--err); }

@@ -112,3 +112,19 @@ export async function saveOutreachSettingsAction(f: FormData) {
   await setSetting("contact_whatsapp", String(f.get("contact_whatsapp") ?? "").replace(/\D/g, ""));
   revalidatePath("/ajustes");
 }
+
+/** Arrastrar y soltar en el Pipeline: aplica la etapa con toda su lógica y devuelve el resultado. */
+export async function moveStageAction(id: number, stage: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const me = await requireUser();
+    if (!Number.isInteger(id) || !isStage(stage)) return { ok: false, error: "Etapa inválida" };
+    await setStage(id, stage, me.id);
+    revalidatePath("/pipeline");
+    revalidatePath("/seguimientos");
+    revalidatePath("/metricas");
+    revalidatePath(`/prospectos/${id}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
