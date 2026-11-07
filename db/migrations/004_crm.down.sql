@@ -8,4 +8,4 @@ ALTER TABLE prospects
   DROP COLUMN IF EXISTS score, DROP COLUMN IF EXISTS score_breakdown, DROP COLUMN IF EXISTS message_variant,
   DROP COLUMN IF EXISTS audit_slug, DROP COLUMN IF EXISTS audit_views, DROP COLUMN IF EXISTS audit_last_viewed_at;
 DELETE FROM settings WHERE key IN ('follow_up_days','follow_up_max','contact_whatsapp');
-DELETE FROM public.schema_migrations WHERE version = '004_crm';
+DELETE FROM mapping.schema_migrations WHERE version = '004_crm';

@@ -4,4 +4,4 @@ DROP INDEX IF EXISTS activities_kind_idx, prospects_assigned_idx, prospects_stag
 DROP TABLE IF EXISTS overpass_cache, do_not_contact;
 ALTER TABLE prospects DROP COLUMN IF EXISTS do_not_contact, DROP COLUMN IF EXISTS duplicate_of;
 ALTER TABLE localities DROP COLUMN IF EXISTS boundary_simple;
-DELETE FROM public.schema_migrations WHERE version = '005_perf_quality';
+DELETE FROM mapping.schema_migrations WHERE version = '005_perf_quality';

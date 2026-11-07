@@ -10,12 +10,21 @@ export async function migrate(databaseUrl: string, dir = join(process.cwd(), "db
   const client = new Client({ connectionString: databaseUrl });
   await client.connect();
   try {
+    // El registro de migraciones vive en el esquema propio "mapping": desde PostgreSQL 15 un usuario
+    // sin privilegios no puede crear tablas en "public".
+    await client.query("CREATE SCHEMA IF NOT EXISTS mapping");
     await client.query(
-      `CREATE TABLE IF NOT EXISTS public.schema_migrations (
+      `CREATE TABLE IF NOT EXISTS mapping.schema_migrations (
          version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`,
     );
+    // Compatibilidad: instalaciones que ya tenían el registro en public.
+    const legacy = await client.query<{ t: string | null }>("SELECT to_regclass('public.schema_migrations')::text AS t");
+    if (legacy.rows[0]?.t)
+      await client.query(
+        "INSERT INTO mapping.schema_migrations SELECT version, applied_at FROM public.schema_migrations ON CONFLICT DO NOTHING",
+      );
     const done = new Set(
-      (await client.query<{ version: string }>("SELECT version FROM public.schema_migrations")).rows.map(
+      (await client.query<{ version: string }>("SELECT version FROM mapping.schema_migrations")).rows.map(
         (r) => r.version,
       ),
     );
@@ -29,7 +38,7 @@ export async function migrate(databaseUrl: string, dir = join(process.cwd(), "db
       await client.query("BEGIN");
       try {
         await client.query(readFileSync(join(dir, f), "utf8"));
-        await client.query("INSERT INTO public.schema_migrations (version) VALUES ($1)", [version]);
+        await client.query("INSERT INTO mapping.schema_migrations (version) VALUES ($1)", [version]);
         await client.query("COMMIT");
         applied.push(version);
       } catch (e) {
