@@ -2,177 +2,252 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Fondo animado de nodos conectados (temática "Snodic" = nodos).
- * - Liviano: canvas 2D, cantidad de nodos según el tamaño de pantalla, DPR limitado a 2.
- * - Se pausa con la pestaña oculta y respeta "reducir movimiento" (dibuja una vez, sin animar).
- * - Toma los colores del tema (--blue = acento) y se actualiza al cambiar claro/oscuro.
- * - Los nodos cercanos al cursor se conectan con él.
+ * Fondo de nodos con la misma animación que la web oficial de Snodic (snodic-consulting.web.app):
+ * - Estrellas que titilan, cada una vuelve a su lugar con un resorte suave.
+ * - El cursor las aparta (radio 160 px) y, cerca de él (230 px), cada nodo se conecta con sus 2 vecinos
+ *   más cercanos (< 120 px); las líneas se encienden y se apagan de a poco.
+ * - Parte de los nodos "se resuelven": al quedar bien conectados se iluminan con el color de acento.
+ * Colores tomados del tema de Mapping: --star (r, g, b) para los nodos y --done para el acento.
+ * Respeta "reducir movimiento" y en pantallas táctiles solo titila (sin cursor).
  */
-export function NodeNetwork({ density = 1, interactive = true, className = "node-bg" }: { density?: number; interactive?: boolean; className?: string }) {
+export function NodeNetwork({
+  density = 1,
+  interactive = true,
+  className = "node-bg",
+}: {
+  density?: number;
+  interactive?: boolean;
+  className?: string;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = ref.current!;
     const ctx = canvas.getContext("2d")!;
+    const touch = window.matchMedia("(max-width: 768px), (pointer: coarse)").matches;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let w = 0, h = 0, dpr = 1, raf = 0, running = true;
-    let color = "#c2337f";
-    const mouse = { x: -9999, y: -9999 };
-    type N = { x: number; y: number; vx: number; vy: number; r: number; hub: boolean };
-    let nodes: N[] = [];
+    const still = touch || reduce || !interactive;
 
-    const readColor = () => {
-      color = getComputedStyle(document.documentElement).getPropertyValue("--blue").trim() || "#c2337f";
-    };
-    const rgba = (a: number) => {
-      const c = color.replace("#", "");
-      const n = parseInt(c.length === 3 ? c.split("").map((x) => x + x).join("") : c, 16);
-      return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+    const SPRING = 0.02;
+    const DAMP = 0.86;
+    const AREA = 4200 / density; // px² por nodo
+    let W = 0, H = 0, running = false, raf = 0;
+    let star = "243,232,242";
+    let done = [240, 80, 143];
+    let pointer: { x: number; y: number } | null = null;
+    type Node = { hx: number; hy: number; x: number; y: number; vx: number; vy: number; r: number; p: number; s: number; v: number; solvable: boolean };
+    let nodes: Node[] = [];
+    let links = new Map<number, number>();
+    const key = (a: number, b: number) => (a < b ? a * 1e5 + b : b * 1e5 + a);
+    const mix = (t: number) => star.split(",").map(Number).map((c, i) => Math.round(c + (done[i] - c) * t)).join(",");
+
+    const readColors = () => {
+      const cs = getComputedStyle(document.documentElement);
+      star = cs.getPropertyValue("--star").trim().replace(/\s+/g, "") || star;
+      const d = cs.getPropertyValue("--done").trim().replace("#", "");
+      if (d.length === 6) done = [0, 2, 4].map((i) => parseInt(d.slice(i, i + 2), 16));
     };
 
     const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      dpr = Math.min(2, window.devicePixelRatio || 1);
-      w = rect.width;
-      h = rect.height;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+      const dpr = Math.min(window.devicePixelRatio || 1, touch ? 1.5 : 2);
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.round(Math.min(90, Math.max(24, (w * h) / 16000)) * density);
-      nodes = Array.from({ length: count }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: (Math.random() - 0.5) * 0.25,
-        r: Math.random() * 1.6 + 1,
-        hub: Math.random() < 0.08,
-      }));
+      links = new Map();
+      nodes = Array.from({ length: Math.round((W * H) / (touch ? AREA * 1.6 : AREA)) }, () => {
+        const x = Math.random() * W, y = Math.random() * H;
+        return { hx: x, hy: y, x, y, vx: 0, vy: 0, r: Math.random() * 1.3 + 0.25, p: Math.random() * 6.28, s: Math.random() * 0.02 + 0.004, v: 0, solvable: Math.random() < 0.45 };
+      });
     };
 
-    const LINK = 130; // distancia normal de conexión entre nodos
-    const FIELD = 220; // radio de influencia del cursor
-    const LINK_NEAR = 230; // cerca del cursor los nodos se conectan desde más lejos
-    // Cercanía al cursor (0 = lejos, 1 = encima); se suaviza para que la red "se encienda" gradualmente.
-    const near = (n: { x: number; y: number }) => {
-      if (!interactive) return 0;
-      const d = Math.hypot(n.x - mouse.x, n.y - mouse.y);
-      return d >= FIELD ? 0 : 1 - d / FIELD;
+    // Conexiones cerca del cursor: cada nodo con sus 2 vecinos más próximos; aparecen y se desvanecen gradualmente.
+    const updateLinks = () => {
+      const active = new Set<number>();
+      if (pointer) {
+        const near: number[] = [];
+        nodes.forEach((n, i) => {
+          if (Math.hypot(n.x - pointer!.x, n.y - pointer!.y) < 230) near.push(i);
+        });
+        for (const i of near) {
+          const a = nodes[i];
+          near
+            .filter((j) => j !== i)
+            .map((j) => ({ j, d: Math.hypot(nodes[j].x - a.x, nodes[j].y - a.y) }))
+            .filter((o) => o.d < 120)
+            .sort((m, n) => m.d - n.d)
+            .slice(0, 2)
+            .forEach((o) => active.add(key(i, o.j)));
+        }
+      }
+      for (const k of active) links.set(k, Math.min((links.get(k) ?? -0.25) + 0.007, 1));
+      for (const [k, v] of links) {
+        if (active.has(k)) continue;
+        const nv = v - 0.0035;
+        if (nv <= 0) links.delete(k);
+        else links.set(k, nv);
+      }
+      const solid = new Set<number>();
+      for (const [k, v] of links) {
+        if (v < 0.85) continue;
+        solid.add(Math.floor(k / 1e5));
+        solid.add(k % 1e5);
+      }
+      nodes.forEach((n, i) => {
+        if (n.solvable && solid.has(i)) n.v = Math.min(1, n.v + 0.012);
+        else if (n.v > 0) n.v = Math.max(0, n.v - 0.00028);
+      });
     };
-    const glow: number[] = [];
 
-    const draw = (t: number) => {
-      ctx.clearRect(0, 0, w, h);
-      for (let i = 0; i < nodes.length; i++) {
-        const n = nodes[i];
-        const k = near(n);
-        glow[i] = (glow[i] ?? 0) + (k - (glow[i] ?? 0)) * 0.12;
-        if (!reduce) {
-          // atracción suave hacia el cursor: los nodos se agrupan y se interconectan
-          // (sin amontonarse: a menos de 70 px se apartan un poco y forman un anillo alrededor del cursor)
-          if (k > 0) {
-            const d = Math.hypot(mouse.x - n.x, mouse.y - n.y) || 1;
-            const pull = d > 70 ? 0.006 * k : -0.02 * (1 - d / 70);
-            n.x += (mouse.x - n.x) * pull;
-            n.y += (mouse.y - n.y) * pull;
-          }
-          n.x += n.vx;
-          n.y += n.vy;
-          if (n.x < -20) n.x = w + 20;
-          if (n.x > w + 20) n.x = -20;
-          if (n.y < -20) n.y = h + 20;
-          if (n.y > h + 20) n.y = -20;
-        }
-      }
-      // líneas entre nodos: cerca del cursor se conectan más, más lejos y más brillantes
-      for (let i = 0; i < nodes.length; i++) {
-        const a = nodes[i];
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
-          const g = Math.min(glow[i], glow[j]);
-          const range = LINK + (LINK_NEAR - LINK) * g;
-          const dx = a.x - b.x, dy = a.y - b.y;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < range * range) {
-            const f = 1 - Math.sqrt(d2) / range;
-            ctx.lineWidth = 1 + g * 0.8;
-            ctx.strokeStyle = rgba(f * (0.22 + 0.5 * g));
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.stroke();
-          }
-        }
-        // hilo fino hacia el cursor
-        if (glow[i] > 0.05) {
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = rgba(0.35 * glow[i]);
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(mouse.x, mouse.y);
-          ctx.stroke();
-        }
-      }
-      // nodos: los "hub" laten y todos se agrandan/brillan al acercar el cursor
-      for (let i = 0; i < nodes.length; i++) {
-        const n = nodes[i];
-        const g = glow[i];
-        const pulse = n.hub && !reduce ? 1 + 0.35 * Math.sin(t / 600 + n.x) : 1;
-        if (n.hub || g > 0.05) {
-          ctx.fillStyle = rgba(0.12 + 0.18 * g);
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r * (n.hub ? 5 : 3.5) * pulse * (1 + g * 0.6), 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.fillStyle = rgba(Math.min(1, (n.hub ? 0.85 : 0.5) + 0.5 * g));
+    const drawLinks = () => {
+      ctx.lineWidth = 0.6;
+      for (const [k, v] of links) {
+        if (v <= 0) continue;
+        const a = nodes[Math.floor(k / 1e5)], b = nodes[k % 1e5];
+        if (!a || !b) continue;
+        const lit = Math.max(a.v, b.v);
+        ctx.strokeStyle = `rgba(${lit > 0.01 ? mix(lit) : star},${(v * v * (0.3 + lit * 0.25)).toFixed(3)})`;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r * (n.hub ? 1.8 : 1) * (1 + g * 0.8), 0, Math.PI * 2);
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    };
+
+    const drawStill = () => {
+      ctx.clearRect(0, 0, W, H);
+      for (const n of nodes) {
+        ctx.fillStyle = `rgba(${star},${(0.35 + 0.45 * (0.5 + 0.5 * Math.sin(n.p))).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, 6.2832);
         ctx.fill();
       }
     };
 
-    const loop = (t: number) => {
+    const frame = () => {
+      if (still) {
+        // Sin cursor: solo titilan (y en "reducir movimiento" quedan quietas).
+        if (!reduce) for (const n of nodes) n.p += n.s;
+        drawStill();
+        return;
+      }
+      ctx.clearRect(0, 0, W, H);
+      updateLinks();
+      drawLinks();
+      for (const n of nodes) {
+        if (pointer) {
+          const dx = n.x - pointer.x, dy = n.y - pointer.y, d = Math.hypot(dx, dy);
+          if (d < 160 && d > 0.01) {
+            const f = (1 - d / 160) ** 2 * 6;
+            n.vx += (dx / d) * f;
+            n.vy += (dy / d) * f;
+          }
+        }
+        n.vx = (n.vx + (n.hx - n.x) * SPRING) * DAMP;
+        n.vy = (n.vy + (n.hy - n.y) * SPRING) * DAMP;
+        n.x += n.vx;
+        n.y += n.vy;
+        n.p += n.s;
+        const drift = Math.min(Math.hypot(n.x - n.hx, n.y - n.hy) / 60, 0.35);
+        const alpha = 0.22 + 0.5 * (0.5 + 0.5 * Math.sin(n.p)) + drift;
+        if (n.v > 0.01) {
+          const c = mix(n.v);
+          ctx.fillStyle = `rgba(${c},${(0.18 * n.v).toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r + 3.5 * n.v, 0, 6.2832);
+          ctx.fill();
+          ctx.fillStyle = `rgba(${c},${Math.min(1, alpha + 0.35 * n.v).toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r + 0.6 * n.v, 0, 6.2832);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = `rgba(${star},${alpha.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r, 0, 6.2832);
+          ctx.fill();
+        }
+      }
+    };
+
+    const loop = () => {
       if (!running) return;
-      draw(t);
+      frame();
+      raf = requestAnimationFrame(loop);
+    };
+    const start = () => {
+      if (reduce || running || document.hidden) return;
+      running = true;
       raf = requestAnimationFrame(loop);
     };
 
-    readColor();
+    readColors();
     resize();
-    if (reduce) draw(0);
-    else raf = requestAnimationFrame(loop);
+    frame();
+    start();
 
-    const onMove = (e: PointerEvent) => {
+    // El cursor se mide relativo al canvas (sirve para el fondo, la barra lateral y la portada).
+    const onPointer = (e: PointerEvent) => {
       const r = canvas.getBoundingClientRect();
-      mouse.x = e.clientX - r.left;
-      mouse.y = e.clientY - r.top;
+      pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
     };
-    const onLeave = () => {
-      mouse.x = mouse.y = -9999;
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType === "touch") pointer = null;
+    };
+    const onOut = (e: MouseEvent) => {
+      if (!e.relatedTarget) pointer = null;
+    };
+    const onBlur = () => {
+      pointer = null;
     };
     const onVis = () => {
-      running = document.visibilityState === "visible";
-      if (running && !reduce) raf = requestAnimationFrame(loop);
-      else cancelAnimationFrame(raf);
+      if (document.hidden) {
+        running = false;
+        cancelAnimationFrame(raf);
+      } else start();
     };
-    const mo = new MutationObserver(readColor);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    mq.addEventListener("change", readColor);
-    window.addEventListener("resize", resize);
-    if (interactive) {
-      window.addEventListener("pointermove", onMove, { passive: true });
-      window.addEventListener("pointerleave", onLeave);
+    if (!still) {
+      window.addEventListener("pointermove", onPointer, { passive: true });
+      window.addEventListener("pointerdown", onPointer, { passive: true });
+      window.addEventListener("pointerup", onUp);
+      document.addEventListener("mouseout", onOut);
+      window.addEventListener("blur", onBlur);
     }
     document.addEventListener("visibilitychange", onVis);
+    let lastW = canvas.clientWidth, lastH = canvas.clientHeight;
+    const ro = new ResizeObserver(() => {
+      if (canvas.clientWidth !== lastW || canvas.clientHeight !== lastH) {
+        lastW = canvas.clientWidth;
+        lastH = canvas.clientHeight;
+        resize();
+        frame();
+      }
+    });
+    ro.observe(canvas);
+    const mo = new MutationObserver(() => {
+      readColors();
+      frame();
+    });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onScheme = () => {
+      readColors();
+      frame();
+    };
+    mq.addEventListener("change", onScheme);
+
     return () => {
       running = false;
       cancelAnimationFrame(raf);
-      mo.disconnect();
-      mq.removeEventListener("change", readColor);
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerleave", onLeave);
+      window.removeEventListener("pointermove", onPointer);
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("pointerup", onUp);
+      document.removeEventListener("mouseout", onOut);
+      window.removeEventListener("blur", onBlur);
       document.removeEventListener("visibilitychange", onVis);
+      ro.disconnect();
+      mo.disconnect();
+      mq.removeEventListener("change", onScheme);
     };
   }, [density, interactive]);
 

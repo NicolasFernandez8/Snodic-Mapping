@@ -392,3 +392,18 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .area-fill { animation: fadeIn 1s ease both; }
 .area-line { stroke-dasharray: 1; stroke-dashoffset: 0; animation: drawLine 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 @keyframes drawLine { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* Colores de los nodos (misma animación que la web oficial, con la paleta de Mapping) */
+:root { --star: 74, 31, 74; --done: #c2337f; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --star: 243, 232, 242; --done: #f0508f; } }
+:root[data-theme="dark"] { --star: 243, 232, 242; --done: #f0508f; }
+.node-bg { opacity: 1; }
+
+/* Botón de WhatsApp: verde más sobrio, sin brillo, con buen contraste de texto */
+.btn.btn-wa:not(.secondary):not(.danger) { background: #1a7f4b; color: #fff; border: 1px solid #23a062; box-shadow: none; font-weight: 600; text-shadow: none; }
+.btn.btn-wa:not(.secondary):not(.danger):hover { background: #1e9055; filter: none; box-shadow: none; }
+:root[data-theme="dark"] .btn.btn-wa { background: #17663f; border-color: #1f8a54; color: #eafff2; }
+:root[data-theme="dark"] .btn.btn-wa:hover { background: #1b7748; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .btn.btn-wa { background: #17663f; border-color: #1f8a54; color: #eafff2; }
+}

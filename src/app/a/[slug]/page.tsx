@@ -54,7 +54,7 @@ export default async function Audit({ params }: { params: Promise<{ slug: string
           <h2 style={{ marginTop: 0 }}>La primera etapa es gratuita</h2>
           <p>Analizamos vuestro caso en detalle y, si podemos aportar valor, os proponemos una prueba sin compromiso.</p>
           {waLink && (
-            <a className="btn" style={{ background: "#25d366" }} href={waLink}>
+            <a className="btn btn-wa" href={waLink}>
               Hablar por WhatsApp
             </a>
           )}

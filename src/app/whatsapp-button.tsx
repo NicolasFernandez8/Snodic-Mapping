@@ -25,8 +25,7 @@ export function WhatsAppButton(props: {
   return (
     <button
       type="button"
-      className="btn sm"
-      style={{ background: "#25d366" }}
+      className="btn sm btn-wa"
       disabled={pending}
       onClick={() => {
         if (props.alreadyBy && !confirm(t("Ya lo contactó {name}. ¿Abrir WhatsApp igual?", { name: props.alreadyBy }))) return;
