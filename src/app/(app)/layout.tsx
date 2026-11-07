@@ -26,6 +26,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span>{t("Mapping")}</span>
           </div>
         </div>
+        {/* En el celular el menú se pliega: se abre con este botón (sin JS) y se cierra solo al cambiar de página. */}
+        <input type="checkbox" id="menu-toggle" className="menu-toggle" aria-label={t("Menú")} />
+        <label htmlFor="menu-toggle" className="menu-btn" aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          {t("Menú")}
+        </label>
         <Nav isAdmin={user.role === "admin"} />
         <div className="foot">
           <div style={{ marginBottom: 10 }}>

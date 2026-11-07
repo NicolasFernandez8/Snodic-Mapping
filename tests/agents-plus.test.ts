@@ -23,6 +23,8 @@ describe("agentes 6–17 (lógica pura)", () => {
   it("mejor horario: alojamientos fuera de check-in/out, y aprende de respuestas", () => {
     expect(bestContactTime({ business_hours: null, category: "hotel" })).toMatch(/11:00/);
     expect(bestContactTime({ business_hours: null, category: "hotel" }, [17, 17, 17, 10, 17])).toMatch(/17:00 y 18:00/);
+    // Respuestas de madrugada no cuentan.
+    expect(bestContactTime({ business_hours: null, category: "hotel" }, [5, 5, 5, 5, 5, 5])).not.toMatch(/05:00/);
   });
   it("canal alternativo con línea de baja", () => {
     const m = emailLink("info@hotel.es", "Hola");
@@ -149,5 +151,18 @@ Llegadas sin esperas.`;
     for (const l of SCHEME_LABELS) expect(EN[l], l).toBeTruthy();
     expect(schemesFromReport(null)).toEqual([]);
     expect(schemesFromReport("texto sin ideas")).toEqual([]);
+  });
+});
+
+describe("períodos de métricas", () => {
+  it("solo acepta valores conocidos y arma ventanas y series fijas", async () => {
+    const { parsePeriod, windowInterval, bucket } = await import("../src/lib/periods");
+    expect(parsePeriod("month")).toBe("month");
+    expect(parsePeriod("'; DROP TABLE x;--")).toBe("all");
+    expect(parsePeriod("all", "week", false)).toBe("week");
+    expect(windowInterval("all")).toBeNull();
+    expect(windowInterval("day")).toBe("1 day");
+    expect(bucket("day")).toMatchObject({ unit: "day", n: 14 });
+    expect(bucket("year")).toMatchObject({ unit: "year", n: 5 });
   });
 });

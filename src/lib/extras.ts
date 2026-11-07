@@ -40,9 +40,11 @@ const fmt = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:$
  * y si hay historial de respuestas, prioriza la hora en que más respondieron.
  */
 export function bestContactTime(p: { business_hours: string | null; category: string | null }, replyHours: number[] = []): string {
-  if (replyHours.length >= 5) {
+  // Solo cuentan respuestas en horario razonable para escribir (8 a 21 h): nunca recomendar la madrugada.
+  const usable = replyHours.filter((h) => h >= 8 && h <= 20);
+  if (usable.length >= 5) {
     const counts = new Map<number, number>();
-    for (const h of replyHours) counts.set(h, (counts.get(h) ?? 0) + 1);
+    for (const h of usable) counts.set(h, (counts.get(h) ?? 0) + 1);
     const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
     return `Entre ${fmt(best * 60)} y ${fmt((best + 1) * 60)} (hora de España): es cuando más respondieron prospectos parecidos.`;
   }

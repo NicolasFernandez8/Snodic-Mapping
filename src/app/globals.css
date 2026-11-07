@@ -127,8 +127,15 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outl
   .shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 16px; }
   .brand { padding: 0 8px 0 0; }
-  .nav { display: flex; flex-wrap: wrap; gap: 2px; }
-  .sidebar .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; margin-top: 6px; padding: 8px 0 0; border-top: 1px solid var(--side-line); }
+  .nav { display: none; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; margin-top: 8px; }
+  .menu-btn { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px;
+    color: var(--side-text); border: 1px solid var(--side-line); background: color-mix(in srgb, var(--side-line) 35%, transparent); user-select: none; }
+  .menu-toggle:checked + .menu-btn { background: var(--blue); border-color: transparent; color: #fff; }
+  .menu-toggle:checked ~ .nav { display: grid; }
+  .menu-toggle:focus-visible + .menu-btn { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .sidebar .foot { display: none; }
+  .menu-toggle:checked ~ .foot { display: flex; }
+  .sidebar .foot { flex-wrap: wrap; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; margin-top: 6px; padding: 8px 0 0; border-top: 1px solid var(--side-line); }
   .sidebar .foot > div:first-child { margin: 0 !important; }
   main { padding: 20px 16px 40px; }
   .dl { grid-template-columns: 1fr; }
@@ -645,3 +652,16 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 }
 .migrate-notice { border-color: var(--warn); }
 .migrate-notice code { display: block; margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: var(--bg); font-size: 12.5px; width: fit-content; max-width: 100%; overflow-x: auto; }
+/* Métricas: cabecera de gráfico con filtro de período, y grilla pareja (misma altura por fila) */
+.chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.chart-head h2, .chart-head h3 { margin: 0; }
+.period { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border-radius: 9px; border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 60%, var(--surface)); transition: opacity .2s; }
+.period.is-pending { opacity: .6; }
+.period button { font: inherit; font-size: 11.5px; font-weight: 600; padding: 4px 7px; border-radius: 7px; border: 0; background: none; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.period button:hover { color: var(--text); }
+.period button.on { background: var(--blue); color: #fff; box-shadow: 0 2px 8px -3px var(--blue); }
+.metrics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-bottom: 12px; }
+.metrics-grid > .card { display: flex; flex-direction: column; margin: 0; min-width: 0; animation: fadeUp 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@media (max-width: 900px) { .metrics-grid { grid-template-columns: 1fr; } }
+.menu-toggle { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+@media (min-width: 861px) { .menu-btn { display: none; } }

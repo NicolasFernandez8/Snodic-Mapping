@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { useT } from "@/lib/i18n/client";
 
 /** Íconos de línea propios: todos del mismo grosor y del color del texto (currentColor). */
@@ -118,6 +119,11 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
   void isAdmin; // todos ven "Usuarios": los miembros solo pueden cambiar su contraseña
   const path = usePathname();
   const t = useT();
+  useEffect(() => {
+    // Cierra el menú del celular al navegar.
+    const box = document.getElementById("menu-toggle") as HTMLInputElement | null;
+    if (box) box.checked = false;
+  }, [path]);
   return (
     <nav className="nav">
       {LINKS.map((l) => {

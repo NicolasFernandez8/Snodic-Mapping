@@ -31,10 +31,19 @@ function useTip() {
   return { box, show, hide, node };
 }
 
+function ChartHead({ title, actions }: { title: string; actions?: React.ReactNode }) {
+  return (
+    <div className="chart-head">
+      <h3>{title}</h3>
+      {actions}
+    </div>
+  );
+}
+
 const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)} %` : "-");
 
 // ---------- Dona: prospectos por etapa ----------
-export function Donut({ data, title }: { data: { key: string; label: string; value: number; color: string }[]; title: string }) {
+export function Donut({ data, title, actions }: { data: { key: string; label: string; value: number; color: string }[]; title: string; actions?: React.ReactNode }) {
   const t = useT();
   const { box, show, hide, node } = useTip();
   const total = data.reduce((a, d) => a + d.value, 0);
@@ -43,7 +52,7 @@ export function Donut({ data, title }: { data: { key: string; label: string; val
   let acc = 0;
   return (
     <div className="chart-card" ref={box}>
-      <h3>{title}</h3>
+      <ChartHead title={title} actions={actions} />
       <div className="donut-wrap">
         <svg viewBox="0 0 180 180" className="donut" role="img" aria-label={title}>
           <circle cx="90" cy="90" r={R} fill="none" stroke="var(--border)" strokeWidth={W} />
@@ -92,13 +101,13 @@ export function Donut({ data, title }: { data: { key: string; label: string; val
 }
 
 // ---------- Escalera: embudo de conversión ----------
-export function Staircase({ steps, title }: { steps: { label: string; value: number }[]; title: string }) {
+export function Staircase({ steps, title, actions }: { steps: { label: string; value: number }[]; title: string; actions?: React.ReactNode }) {
   const t = useT();
   const { box, show, hide, node } = useTip();
   const max = Math.max(1, ...steps.map((s) => s.value));
   return (
     <div className="chart-card" ref={box}>
-      <h3>{title}</h3>
+      <ChartHead title={title} actions={actions} />
       <div className="stairs">
         {steps.map((s, i) => {
           const prev = i > 0 ? steps[i - 1].value : null;
@@ -123,13 +132,13 @@ export function Staircase({ steps, title }: { steps: { label: string; value: num
 }
 
 // ---------- Barras verticales: por categoría ----------
-export function Bars({ data, title }: { data: { label: string; value: number; extra?: string }[]; title: string }) {
+export function Bars({ data, title, actions }: { data: { label: string; value: number; extra?: string }[]; title: string; actions?: React.ReactNode }) {
   const { box, show, hide, node } = useTip();
   const max = Math.max(1, ...data.map((d) => d.value));
   const H = 150;
   return (
     <div className="chart-card" ref={box}>
-      <h3>{title}</h3>
+      <ChartHead title={title} actions={actions} />
       {data.length === 0 ? (
         <div className="empty">-</div>
       ) : (
@@ -153,10 +162,12 @@ export function Activity({
   weeks,
   series,
   title,
+  actions,
 }: {
   weeks: string[];
   series: { name: string; color: string; values: number[] }[];
   title: string;
+  actions?: React.ReactNode;
 }) {
   const { box, show, hide, node } = useTip();
   const [hover, setHover] = useState<number | null>(null);
@@ -169,7 +180,7 @@ export function Activity({
   const ticks = useMemo(() => Array.from({ length: Math.round(max / step) + 1 }, (_, i) => i * step), [max, step]);
   return (
     <div className="chart-card" ref={box}>
-      <h3>{title}</h3>
+      <ChartHead title={title} actions={actions} />
       <ul className="legend-inline">
         {series.map((s) => (
           <li key={s.name}><i style={{ background: s.color }} />{s.name}</li>
@@ -190,9 +201,11 @@ export function Activity({
             <text x={P.l - 6} y={y(tk) + 3} textAnchor="end" className="axis-text">{tk}</text>
           </g>
         ))}
-        {weeks.map((w, i) => (
-          <text key={w} x={x(i)} y={H - 6} textAnchor="middle" className="axis-text">{w}</text>
-        ))}
+        {weeks.map((w, i) =>
+          weeks.length > 10 && i % 2 === 1 && i !== weeks.length - 1 ? null : (
+            <text key={w} x={x(i)} y={H - 6} textAnchor="middle" className="axis-text">{w}</text>
+          ),
+        )}
         {series.map((s, si) => {
           const pts = s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
           const area = `M${x(0)},${y(0)} L${pts.replaceAll(" ", " L")} L${x(s.values.length - 1)},${y(0)} Z`;
