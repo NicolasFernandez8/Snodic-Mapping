@@ -29,7 +29,7 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
         const active = l.href === "/" ? path === "/" : path.startsWith(l.href);
         return (
           <Link key={l.href} href={l.href} className={active ? "active" : ""}>
-            <span aria-hidden>{l.icon}</span>
+            <span aria-hidden className="nav-ico">{l.icon}</span>
             {t(l.label)}
           </Link>
         );
