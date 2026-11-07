@@ -79,3 +79,29 @@ describe("Notion: lectura de propiedades", () => {
     expect(propText(undefined)).toBeNull();
   });
 });
+
+describe("arquitectura", () => {
+  it("cada agente y proceso apunta a una página que existe y tiene traducción", async () => {
+    const fs = await import("node:fs");
+    const { ARCH, ARCH_FLOW } = await import("../src/lib/architecture");
+    const { EN } = await import("../src/lib/i18n/en");
+    const exists = (href: string) => {
+      const path = href.split(/[?#]/)[0];
+      return fs.existsSync(`src/app/(app)${path === "/" ? "" : path}/page.tsx`);
+    };
+    const keys = new Set(ARCH.map((a) => a.key));
+    for (const a of ARCH) {
+      expect(exists(a.href), a.href).toBe(true);
+      expect(EN[a.label] ?? (a.label === "Notion" ? "ok" : undefined), a.label).toBeTruthy();
+      for (const p of a.processes) {
+        expect(exists(p.href), p.href).toBe(true);
+        expect(EN[p.label], p.label).toBeTruthy();
+        expect(EN[p.desc], p.desc).toBeTruthy();
+      }
+    }
+    for (const [a, b] of ARCH_FLOW) expect(keys.has(a) && keys.has(b)).toBe(true);
+    // Las anclas de Agentes existen para cada agente numerado.
+    const agentes = fs.readFileSync("src/app/(app)/agentes/page.tsx", "utf8");
+    expect(agentes).toContain("id={`agente-${f.n}`}");
+  });
+});

@@ -125,3 +125,9 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 
 ## 2026-11-07 · Cierre
 - Filtro del mapa plegable en el celular. Verificación final: 55/55 tests, typecheck y build OK.
+
+## 2026-11-07 · Arquitectura
+- Menú › Arquitectura (`/arquitectura`): árbol radial con la app al centro, 14 ramas (agentes 1–12, Captación y Notion), cada una con su color, y sus procesos.
+- Partículas animadas por las ramas y flujo del pipeline diario entre agentes (respeta "reducir movimiento").
+- Zoom con rueda, pellizco y botones; arrastrar para moverse; leyenda que enfoca cada agente; clic en un agente o proceso lleva a su página (anclas `/agentes#agente-N`, `/ajustes#variantes`).
+- Datos en `src/lib/architecture.ts`; test que valida que cada link apunte a una página existente y tenga traducción.

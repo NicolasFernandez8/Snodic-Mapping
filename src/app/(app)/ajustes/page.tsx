@@ -166,7 +166,7 @@ export default async function Ajustes() {
           <button className="btn">{t("Guardar")}</button>
         </form>
 
-        <div className="card">
+        <div className="card" id="variantes">
           <h2>Variantes del mensaje (A/B)</h2>
           <p className="help" style={{ marginTop: 0 }}>
             {t("Se reparten en partes iguales entre los prospectos nuevos. La indicación se suma al prompt del Agente 3 sin cambiar sus reglas. Compará resultados en Métricas.")}

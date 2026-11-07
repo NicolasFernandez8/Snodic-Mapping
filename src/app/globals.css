@@ -476,3 +476,58 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .notion-stats > div { display: grid; gap: 2px; }
 .stat-n { font-size: 28px; font-weight: 700; }
 .btn:disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; filter: saturate(.6); }
+.folder, #region, #variantes, #reactivar { scroll-margin-top: 16px; }
+/* Arquitectura */
+:root { --arch-l: 44%; --arch-s: 68%; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --arch-l: 64%; --arch-s: 72%; } }
+:root[data-theme="dark"] { --arch-l: 64%; --arch-s: 72%; }
+.arch { display: grid; grid-template-columns: 1fr 240px; gap: 16px; }
+.arch-stage { position: relative; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; height: calc(100vh - 150px); min-height: 460px; }
+.arch-svg { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; }
+.arch-svg:active { cursor: grabbing; }
+.arch-tools { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; align-items: center; z-index: 1; }
+.arch-info { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; padding: 8px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--border); font-size: 13px; pointer-events: none; }
+.arch-go { margin-left: auto; color: var(--blue); font-size: 12px; }
+.arch-ring { fill: none; stroke: var(--border); stroke-dasharray: 2 6; }
+.arch-branch { --c: hsl(var(--h) var(--arch-s) var(--arch-l)); transition: opacity .25s; }
+.arch-branch.neutral, .arch-legend-item.neutral { --c: var(--muted); }
+.arch-branch.dim { opacity: .14; }
+.arch-link { fill: none; stroke: var(--c); stroke-width: 1.6; opacity: .55; }
+.arch-link.main { stroke-width: 3; opacity: .7; }
+.arch-dot { fill: var(--c); }
+.arch-branch.on .arch-link { opacity: .9; }
+.arch-agent, .arch-leaf, .arch-root { cursor: pointer; outline: none; }
+.arch-agent-dot { fill: var(--c); stroke: var(--surface); stroke-width: 3; transition: r .2s; }
+.arch-agent:hover .arch-agent-dot, .arch-agent:focus-visible .arch-agent-dot { r: 27; }
+.arch-agent-n { fill: #fff; font-size: 14px; font-weight: 800; pointer-events: none; }
+.arch-leaf-dot { fill: var(--surface); stroke: var(--c); stroke-width: 2.5; transition: r .2s, fill .2s; }
+.arch-leaf:hover .arch-leaf-dot, .arch-leaf:focus-visible .arch-leaf-dot { fill: var(--c); r: 10; }
+.arch-label { fill: var(--text); font-size: 13px; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.arch-label.strong { font-weight: 700; font-size: 13.5px; fill: var(--c); }
+.arch-leaf:hover .arch-label, .arch-leaf:focus-visible .arch-label { fill: var(--c); font-weight: 700; }
+.arch-root-dot { fill: var(--blue); stroke: color-mix(in srgb, var(--blue) 35%, transparent); stroke-width: 10; }
+.arch-root-t { fill: #fff; font-weight: 800; font-size: 17px; pointer-events: none; }
+.arch-root-s { fill: #fff; opacity: .85; font-size: 11px; pointer-events: none; }
+.arch-flow-path { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 5 6; opacity: .7; animation: arch-flow 1.6s linear infinite; }
+.arch-arrow { fill: var(--muted); }
+.arch-svg.has-focus .arch-flow { opacity: .25; }
+@keyframes arch-flow { to { stroke-dashoffset: -22; } }
+@media (prefers-reduced-motion: reduce) { .arch-flow-path { animation: none; } }
+.arch-legend { display: flex; flex-direction: column; gap: 4px; }
+.arch-legend > strong { margin-bottom: 4px; }
+.arch-legend-item { --c: hsl(var(--h, 0) var(--arch-s) var(--arch-l)); display: flex; align-items: center; gap: 8px; text-align: left; font: inherit; font-size: 13px;
+  padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; background: none; color: var(--text); cursor: pointer; }
+.arch-legend-item:hover { background: color-mix(in srgb, var(--c) 10%, transparent); }
+.arch-legend-item.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.arch-swatch { width: 12px; height: 12px; border-radius: 99px; background: var(--c); flex: none; }
+.arch-swatch.all { background: conic-gradient(hsl(330 70% 60%), hsl(205 70% 60%), hsl(145 70% 50%), hsl(35 80% 55%), hsl(265 70% 65%), hsl(330 70% 60%)); }
+.arch-legend-n { font-weight: 800; color: var(--c); min-width: 26px; }
+@media (max-width: 900px) {
+  .arch { grid-template-columns: 1fr; }
+  .arch-stage { height: 70vh; }
+  .arch-legend { flex-direction: row; flex-wrap: wrap; }
+  .arch-legend > strong, .arch-legend > p { width: 100%; }
+  .arch-go { display: none; }
+}
+.arch-svg:not(.has-focus):has(.arch-agent:hover, .arch-leaf:hover) .arch-branch:not(:has(.arch-agent:hover, .arch-leaf:hover)) { opacity: .3; }

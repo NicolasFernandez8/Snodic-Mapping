@@ -214,7 +214,7 @@ export default async function Agentes() {
 
       <div className="folders">
         {FOLDERS.map((f) => (
-          <details key={f.n} className="folder card" open>
+          <details key={f.n} id={`agente-${f.n}`} className="folder card" open>
             <summary>
               <span className="folder-ico" aria-hidden>▸</span>
               <strong className="folder-title">{t("Agente")} {f.n}</strong>
