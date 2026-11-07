@@ -98,6 +98,7 @@ export function MapFilter({
   const t = useT();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<Set<number>>(new Set());
+  const [mobileOpen, setMobileOpen] = useState(false);
   const regions = useMemo(() => {
     const m = new Map<number, { id: number; name: string; items: Feature[] }>();
     for (const f of features) {
@@ -119,11 +120,11 @@ export function MapFilter({
     });
 
   return (
-    <aside className="map-filter" aria-label={t("Filtros del mapa")}>
-      <div className="mf-head">
-        <strong>{t("Qué ver")}</strong>
+    <aside className={`map-filter ${mobileOpen ? "" : "mf-collapsed"}`} aria-label={t("Filtros del mapa")}>
+      <button type="button" className="mf-head" onClick={() => setMobileOpen((v) => !v)} aria-expanded={mobileOpen}>
+        <strong>{t("Qué ver")} <span className="mf-toggle">{mobileOpen ? "▴" : "▾"}</span></strong>
         <span className="help" style={{ margin: 0 }}>{t("{a} zonas · {b} prospectos", { a: shownCount, b: pointCount })}</span>
-      </div>
+      </button>
       <input type="search" placeholder={t("Buscar localidad…")} value={query} onChange={(e) => setQuery(e.target.value)} />
       <div className="row" style={{ gap: 6 }}>
         <button type="button" className="btn secondary sm" onClick={() => filter.setMany(ids(features), true)}>{t("Todas")}</button>

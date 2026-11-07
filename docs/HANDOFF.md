@@ -1,10 +1,10 @@
 # Handoff
 
 **Objetivo:** automatizar la captación de prospectos de Snodic (Alicante → otras zonas) con 4 agentes y un módulo de captación (CRM liviano), todo a costo cero.
-**Fase:** agentes 6–17 listos (2026-11-07, migración `009_agents_plus`, pendiente de aplicar en la PC). Instalada y funcionando en la PC de Snodic (2026-11-07): imagen Docker OK, migraciones 001–007 aplicadas con el usuario `snodic_mapping`, web y worker arriba.
+**Fase:** funcional y completa (2026-11-07). En la PC corre con Docker (usuario de base `snodic_mapping`). Falta aplicar en la PC las migraciones 008 y 009 si no se corrieron.
 
 ## Estado (2026-11-07)
-- `main` al día. 53 tests (unit + integración con PostgreSQL), typecheck y build OK.
+- `main` al día. 55 tests (unit + integración con PostgreSQL), typecheck y build OK.
 - Migraciones: `001_init` … `009_agents_plus`.
 - Agentes 6–12 + mejoras 13–17 (WhatsApp móvil/fijo, Hoy contactá, aperturas, email/IG, asistente de respuestas, reactivar, temporada, Wikidata/Nominatim, mejor horario, resumen de reunión, borrador de caso).
 - Pantallas: Panel, Mapa, Prospectos (filtros, CSV, acciones masivas), Revisión rápida, Prompts en lote, Pipeline, Seguimientos, Métricas, Casos de éxito, Agentes, Ajustes, Usuarios, mini-auditoría pública `/a/<código>`.
@@ -17,16 +17,12 @@
 - Se sacó Notion de Ajustes y de Agentes. Con Notion apagado nada se encola ni se llama a la API.
 
 ## No verificado en la nube
-- Llamadas reales a Overpass/Notion (red del entorno bloqueada) → probadas con respuestas simuladas.
-- `docker build` (Docker Hub limitó las descargas) → probar en la PC.
+- Llamadas reales a Notion, Wikidata, Nominatim y Nager.Date (red del entorno bloqueada) → probadas con respuestas simuladas. Overpass y `docker build` ya se verificaron en la PC.
 
 ## Próximos pasos (usuario, en la PC)
-1. `git pull` en `C:\Users\Nico_\Snodic\mapping`, `.env` desde `.env.example`.
-2. pgAdmin: `GRANT CREATE ON DATABASE snodic TO snodic_app;` (una vez).
-3. `docker compose build` → `docker compose --profile tools run --rm migrate` → `docker compose up -d web worker`.
-4. Crear admins: `docker compose run --rm -it web npm run user -- create <usuario> admin`.
-5. `tailscale serve --bg --https=8445 http://127.0.0.1:3000` y compartir la máquina con el socio.
-6. Ajustes → Agregar región "Alicante" (6 → 8) → Panel → Ejecutar pipeline.
+1. `git pull` → `docker compose build` → `docker compose --profile tools run --rm migrate` (aplica 008/009 si faltan) → `docker compose up -d --force-recreate web worker` → Ctrl+F5.
+2. Probar con red real: Agentes › "Datos abiertos" (Wikidata/Nominatim) y "Feriados y temporada" (Nager.Date).
+3. Notion: cuando se quiera, cargar `NOTION_TOKEN` y `NOTION_DATABASE_ID` en `.env` y activarlo en Menú › Notion.
 
 ## Comandos clave
 `npm run dev` · `npm run worker` · `npm run migrate` · `npm run user -- list` · `npm test` · `docker compose up -d web worker`

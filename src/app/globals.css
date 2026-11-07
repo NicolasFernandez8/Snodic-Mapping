@@ -442,7 +442,8 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .map-layout { display: grid; grid-template-columns: 290px 1fr; height: 100%; }
 .map-canvas { min-width: 0; height: 100%; }
 .map-filter { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-right: 1px solid var(--border); background: var(--surface); overflow: hidden; min-height: 0; }
-.mf-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.mf-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; background: none; border: 0; padding: 0; font: inherit; color: var(--text); text-align: left; cursor: default; }
+.mf-toggle { display: none; color: var(--muted); }
 .mf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .mf-chip { display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 12px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; opacity: .55; }
 .mf-chip.on { opacity: 1; color: var(--text); border-color: color-mix(in srgb, var(--blue) 50%, var(--border)); }
@@ -462,7 +463,10 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .mf-off { opacity: .45; }
 @media (max-width: 800px) {
   .map-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .map-filter { border-right: 0; border-bottom: 1px solid var(--border); max-height: 42vh; }
+  .map-filter { border-right: 0; border-bottom: 1px solid var(--border); max-height: 46vh; }
+  .mf-head { cursor: pointer; }
+  .mf-toggle { display: inline; }
+  .map-filter.mf-collapsed > :not(.mf-head) { display: none; }
 }
 .mf-check { margin: 0; font-size: 13px; color: var(--text); cursor: pointer; font-weight: 400; }
 /* Notion */

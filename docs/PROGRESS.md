@@ -122,3 +122,6 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Ítem "Notion" en el menú con todo lo de Notion (enviar, traer, interruptor, estado, columnas, historial). Notion sigue desactivado.
 - Job nuevo `notion_pull` (`src/lib/agents/notion-pull.ts`); `NotionClient.queryPages` y `propText`.
 - KML: excluye duplicados como el mapa. Tests: 55/55.
+
+## 2026-11-07 · Cierre
+- Filtro del mapa plegable en el celular. Verificación final: 55/55 tests, typecheck y build OK.
