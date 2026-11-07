@@ -134,3 +134,7 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 
 ## 2026-11-07 · Ficha: cajas con scroll
 - Mensaje (Agente 3) e Informe (Agente 4) con caja de alto fijo (380 px; 300 px en celular) y scroll interno, igual que Reseñas. Las dos tarjetas quedan parejas.
+
+## 2026-11-07 · Esquemas de solución
+- En la ficha, debajo de Mensaje e Informe: un esquema animado por cada IDEA del Agente 4, con el mismo lenguaje visual que "Qué hacemos" de snodic-consulting (nodos de vidrio, insignia de Snodic con destellos en lo que integramos, cables que se dibujan y pulsos).
+- `src/lib/schemes.ts` (puro, sin IA): detecta canal de entrada, sistema principal, pasos y resultado por palabras clave del informe. `solution-schemes.tsx`: carrusel con autoplay, pausa, flechas, teclado, tocar o deslizar; en pantallas angostas el esquema se dibuja en vertical.

@@ -15,6 +15,8 @@ import {
 import { CopyButton } from "@/app/copy-button";
 import { Badge, fmtDate, V } from "@/app/ui";
 import { CrmPanel } from "./crm-panel";
+import { SolutionSchemes } from "./solution-schemes";
+import { schemesFromReport } from "@/lib/schemes";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +63,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
     promptInput(id),
   ]);
   const manual = config().LLM_PROVIDER === "manual";
+  const schemes = schemesFromReport(report?.content);
   const notionUrl = p.notion_page_id ? `https://www.notion.so/${p.notion_page_id.replace(/-/g, "")}` : null;
 
   return (
@@ -179,6 +182,18 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
           prompt={reportPrompt(input)}
           manual={manual}
         />
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }} id="esquemas">
+        <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>{t("Esquemas de solución")}</h2>
+          <span className="help" style={{ margin: 0 }}>{t("Cómo nos integramos en su sistema para resolver cada problema del informe")}</span>
+        </div>
+        {schemes.length ? (
+          <SolutionSchemes schemes={schemes} />
+        ) : (
+          <div className="empty">{t("Aparecen cuando el informe del Agente 4 tiene sus 2 ideas (IDEA 1, IDEA 2).")}</div>
+        )}
       </div>
     </>
   );

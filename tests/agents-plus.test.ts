@@ -105,3 +105,49 @@ describe("arquitectura", () => {
     expect(agentes).toContain("id={`agente-${f.n}`}");
   });
 });
+
+describe("esquemas de solución", () => {
+  const report = `IDEA 1
+Problema:
+Varios huéspedes dicen que nadie contesta el teléfono para cambiar la reserva.
+Solución:
+Respuestas rápidas por WhatsApp con un formulario de cambios que avisa al móvil del dueño.
+Impacto:
+Menos reservas perdidas y mejores reseñas.
+Clave:
+Usa el WhatsApp que ya tienen.
+Implementación:
+Configurar WhatsApp Business con respuestas rápidas y Google Forms.
+
+IDEA 2
+Problema:
+La habitación no está lista cuando llegan.
+Solución:
+Un mensaje automático 24 h antes pide la hora de llegada, más un checklist en el móvil.
+Impacto:
+Llegadas sin esperas.`;
+  it("arma un esquema por idea con canal, sistema de Snodic, pasos y resultado", async () => {
+    const { schemesFromReport, SCHEME_LABELS } = await import("../src/lib/schemes");
+    const { EN } = await import("../src/lib/i18n/en");
+    const s = schemesFromReport(report);
+    expect(s).toHaveLength(2);
+    const labels = (k: number) => s[k].nodes.map((n) => n.label);
+    expect(labels(0)[0]).toBe("WhatsApp");
+    expect(labels(0)).toContain("Respuestas rápidas");
+    expect(labels(0)).toContain("Formulario");
+    expect(labels(0)).toContain("Aviso al equipo");
+    expect(labels(0).at(-1)).toBe("Mejores reseñas");
+    expect(labels(1)).toContain("Mensaje automático");
+    expect(labels(1)).toContain("Checklist");
+    expect(labels(1).at(-1)).toBe("Menos esperas");
+    // Cada nodo intermedio conecta entrada y salida.
+    for (const sc of s) {
+      const ids = new Set(sc.nodes.map((n) => n.id));
+      for (const [a, b] of sc.edges) expect(ids.has(a) && ids.has(b)).toBe(true);
+      expect(sc.nodes.filter((n) => n.sol).length).toBe(3);
+    }
+    for (const l of SCHEME_LABELS) expect(EN[l], l).toBeTruthy();
+    expect(schemesFromReport(null)).toEqual([]);
+    expect(schemesFromReport("texto sin ideas")).toEqual([]);
+  });
+});

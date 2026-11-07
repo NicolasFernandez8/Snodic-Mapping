@@ -536,3 +536,83 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .scroll-box:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .output-box { height: 380px; max-height: none; }
 @media (max-width: 700px) { .output-box { height: 300px; } }
+/* Esquemas de solución (estilo "Qué hacemos" de snodic-consulting) */
+.schemes { --spark: var(--done, #8b5cf6); display: grid; gap: 14px; }
+.sch-scene { position: relative; aspect-ratio: 5 / 2; border-radius: 16px; isolation: isolate; cursor: pointer; user-select: none; outline: none;
+  background: radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--ex) 12%, transparent), transparent 60%), color-mix(in oklab, var(--bg) 70%, var(--surface)); overflow: hidden; touch-action: pan-y; }
+.sch-scene:focus-visible { box-shadow: 0 0 0 2px var(--blue); }
+.sch-grid { position: absolute; inset: 0; border-radius: inherit; opacity: .6;
+  background-image: linear-gradient(color-mix(in oklab, var(--ex) 24%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--ex) 24%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px; background-position: 50%; -webkit-mask: radial-gradient(75% 80%, #000 40%, #0000); mask: radial-gradient(75% 80%, #000 40%, #0000); transition: background-image .4s; }
+.sch-ex { position: absolute; inset: 0; }
+.sch-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sch-wires path { fill: none; stroke-linecap: round; }
+.sch-edges path { stroke: color-mix(in oklab, var(--ex) 60%, transparent); stroke-width: .8px; stroke-dasharray: 100; stroke-dashoffset: 100; animation: sch-draw .9s cubic-bezier(.2,.7,.2,1) .15s forwards; }
+.sch-pulses path { stroke: var(--ex); stroke-width: 1px; stroke-dasharray: 7 93; opacity: 0; filter: drop-shadow(0 0 1.5px var(--ex));
+  animation: sch-flow 2.4s linear infinite, sch-show .4s 1s forwards; }
+@keyframes sch-draw { to { stroke-dashoffset: 0; } }
+@keyframes sch-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+@keyframes sch-show { to { opacity: 1; } }
+.sch-n { position: absolute; transform: translate(-50%, -50%) scale(.85); opacity: 0; z-index: 2; display: flex; align-items: center; gap: 9px; white-space: nowrap;
+  padding: 9px 13px 9px 9px; border-radius: 14px; font-size: 13px; font-weight: 600; color: var(--text);
+  background: color-mix(in oklab, var(--surface) 82%, transparent); backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 14%, transparent), 0 1px 2px rgba(0,0,0,.2), 0 18px 40px -18px rgba(0,0,0,.55);
+  border: 1px solid color-mix(in oklab, var(--text) 10%, transparent);
+  animation: sch-node .55s cubic-bezier(.2,.7,.2,1) forwards; animation-delay: calc(var(--n) * 70ms); }
+@keyframes sch-node { to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.sch-ic { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex: none;
+  background: linear-gradient(145deg, color-mix(in oklab, var(--ex) 65%, white), var(--ex)); box-shadow: 0 8px 18px -10px var(--ex); }
+.sch-n.is-sol { border-color: transparent; box-shadow: 0 0 0 2.5px var(--spark), 0 0 26px -4px color-mix(in oklab, var(--spark) 60%, transparent); }
+.sch-n.is-sol .sch-ic { background: linear-gradient(145deg, color-mix(in oklab, var(--blue) 60%, white), var(--blue)); }
+.sch-badge { position: absolute; top: -16px; right: -16px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--bg);
+  box-shadow: 0 0 0 2px var(--spark), 0 6px 18px -5px var(--spark); }
+.sch-badge img { width: 22px; height: 22px; border-radius: 6px; object-fit: contain; }
+.sch-sparks { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.sch-sparks i { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; background: var(--spark); opacity: 0;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); filter: drop-shadow(0 0 3px var(--spark)); animation: sch-twinkle 2.2s ease-in-out infinite; }
+.sch-sparks i:nth-child(odd) { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
+@keyframes sch-twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 45% { opacity: 1; transform: scale(1) rotate(45deg); } 70% { opacity: .15; transform: scale(.7) rotate(70deg); } }
+.sch-hint { position: absolute; left: 12px; bottom: 10px; font-size: 11px; color: var(--muted); opacity: 0; transition: opacity .3s; }
+.sch-scene:hover .sch-hint { opacity: 1; }
+.sch-caption { justify-self: center; display: flex; align-items: center; gap: 12px; max-width: 100%; padding: 5px 16px 5px 5px; border-radius: 999px;
+  background: color-mix(in oklab, var(--ex) 14%, var(--bg)); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ex) 45%, transparent); }
+.sch-caption strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sch-cap-ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none;
+  background: linear-gradient(140deg, color-mix(in oklab, var(--ex) 65%, white), var(--ex)); box-shadow: 0 6px 16px -6px var(--ex); }
+.sch-dots { display: flex; gap: 4px; flex: none; }
+.sch-dots i { width: 5px; height: 5px; border-radius: 99px; background: var(--muted); opacity: .5; transition: width .3s, opacity .3s; }
+.sch-dots i.on { width: 16px; opacity: 1; background: var(--ex); }
+.sch-nav { display: flex; align-items: center; gap: 12px; }
+.sch-btn { width: 44px; height: 44px; border-radius: 50%; flex: none; display: grid; place-items: center; font: inherit; font-size: 15px; cursor: pointer;
+  color: var(--text); background: color-mix(in oklab, var(--surface) 85%, var(--bg)); border: 1px solid var(--border); }
+.sch-btn.primary { color: #fff; background: var(--blue); border-color: transparent; box-shadow: 0 8px 20px -8px var(--blue); }
+.sch-btn:disabled { opacity: .4; cursor: default; }
+.sch-progress { flex: 1; display: flex; gap: 8px; min-width: 0; }
+.sch-progress button { flex: 1; height: 14px; padding: 5px 0; border: 0; background: none; cursor: pointer; }
+.sch-progress i { display: block; height: 4px; border-radius: 99px; background: color-mix(in oklab, var(--text) 14%, transparent); position: relative; overflow: hidden; }
+.sch-progress i::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--blue); transform-origin: left; transform: scaleX(0); }
+.sch-progress .done i::after { transform: scaleX(1); }
+.sch-progress .run i::after { animation: sch-bar linear forwards; animation-duration: inherit; }
+@keyframes sch-bar { to { transform: scaleX(1); } }
+.sch-text { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.sch-text > div { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; max-height: 170px; overflow-y: auto; scrollbar-width: thin; }
+.sch-text p { margin: 4px 0 0; font-size: 13px; white-space: pre-wrap; }
+.sch-k { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--ex); }
+@media (prefers-reduced-motion: reduce) {
+  .sch-edges path { animation: none; stroke-dashoffset: 0; }
+  .sch-pulses path, .sch-sparks i { display: none; }
+  .sch-n { animation: none; opacity: 1; transform: translate(-50%, -50%); }
+}
+.schemes { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.sch-caption { min-width: 0; }
+.sch-scene.vertical { aspect-ratio: 4 / 5; }
+.sch-scene.vertical .sch-n { white-space: normal; max-width: 31%; padding: 7px 9px 7px 7px; gap: 6px; font-size: 11.5px; line-height: 1.2; border-radius: 11px; }
+.sch-scene.vertical .sch-n .sch-ic { width: 20px; height: 20px; border-radius: 6px; }
+.sch-scene.vertical .sch-badge { width: 24px; height: 24px; top: -12px; right: -12px; }
+.sch-scene.vertical .sch-badge img { width: 16px; height: 16px; }
+.sch-scene.vertical .sch-hint { display: none; }
+@media (max-width: 760px) {
+  .sch-text { grid-template-columns: 1fr; }
+  .sch-nav { gap: 8px; }
+  .sch-btn { width: 40px; height: 40px; }
+}
