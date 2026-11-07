@@ -5,12 +5,14 @@ import { Nav } from "@/app/nav";
 import { NodeNetwork } from "@/app/node-network";
 import { Preferences } from "@/app/preferences";
 import { getTheme } from "@/lib/i18n/server";
+import { pendingMigrations } from "@/lib/migration-status";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const t = await getT();
   const user = await requireUser();
+  const pending = await pendingMigrations();
   return (
     <div className="shell">
       <NodeNetwork />
@@ -38,7 +40,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </div>
       </aside>
-      <main>{children}</main>
+      <main>
+        {pending.length > 0 && (
+          <div className="notice migrate-notice">
+            <strong>{t("Falta actualizar la base de datos")}</strong> ({pending.join(", ")}).{" "}
+            {t("Algunas secciones pueden mostrarse incompletas. En la PC corré:")}
+            <code>docker compose --profile tools run --rm migrate</code>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

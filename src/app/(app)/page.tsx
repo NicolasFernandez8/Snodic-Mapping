@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSetting, one, q } from "@/lib/db";
 import { workerAgeSeconds } from "@/lib/status";
 import { dailyDigest, seasonInfo } from "@/lib/agents/agents-plus";
+import { orFallback } from "@/lib/migration-status";
 import { whatsappLink } from "@/lib/crm";
 import { WhatsAppButton } from "@/app/whatsapp-button";
 import { runAgent } from "@/app/actions";
@@ -41,7 +42,7 @@ export default async function Panel() {
   ]);
   const s = stats ?? {};
   const workerAge = await workerAgeSeconds();
-  const [digest, season] = await Promise.all([dailyDigest(), seasonInfo()]);
+  const [digest, season] = await Promise.all([orFallback(dailyDigest(), []), orFallback(seasonInfo(), { dates: [], advice: null })]);
   const kpis = [
     { label: t("Localidades mapeadas"), value: `${s.loc_mapped ?? 0}/${s.loc_total ?? 0}`, hint: t("{n} por día", { n: quota }) },
     { label: t("Prospectos"), value: s.prospects ?? 0, hint: t("+{n} en 24 h", { n: s.prospects_today ?? 0 }) },

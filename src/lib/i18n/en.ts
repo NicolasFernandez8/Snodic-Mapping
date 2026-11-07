@@ -818,4 +818,11 @@ export const EN: Record<string, string> = {
   "Menos esperas": "Less waiting",
   "Respuesta al instante": "Instant reply",
   "Huésped satisfecho": "Happy guest",
+  // Migraciones pendientes
+  "No se pudo cargar esta sección": "This section couldn't load",
+  "Si acabás de actualizar la app, lo más probable es que falte aplicar las migraciones de la base. En la PC corré:": "If you just updated the app, the database migrations probably haven't been applied. On the PC run:",
+  "Después recargá con Ctrl+F5. Si sigue fallando, mirá el detalle con:": "Then reload with Ctrl+F5. If it still fails, see the details with:",
+  "Código del error:": "Error code:",
+  "Falta actualizar la base de datos": "The database needs updating",
+  "Algunas secciones pueden mostrarse incompletas. En la PC corré:": "Some sections may look incomplete. On the PC run:",
 };

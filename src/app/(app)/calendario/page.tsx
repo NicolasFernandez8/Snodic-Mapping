@@ -10,6 +10,7 @@ import {
   toggleScheduleAction,
 } from "@/app/feature-actions";
 import { MapAmount } from "@/app/map-amount";
+import { orFallback } from "@/lib/migration-status";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +57,12 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   for (const s of schedules)
     for (const at of occurrences(s, new Date(Math.max(start.getTime(), Date.now())), end))
       push(dayKey(at), { time: fmtTime(at), label: `${s.name} · ${s.quota}`, kind: "planned" });
-  const season = await q<{ day: string; name: string }>(
-    "SELECT to_char(day, 'YYYY-MM-DD') AS day, name FROM season_dates WHERE day >= $1::date AND day < $2::date ORDER BY day",
-    [start, end],
+  const season = await orFallback(
+    q<{ day: string; name: string }>(
+      "SELECT to_char(day, 'YYYY-MM-DD') AS day, name FROM season_dates WHERE day >= $1::date AND day < $2::date ORDER BY day",
+      [start, end],
+    ),
+    [],
   );
   for (const s of season) push(s.day, { time: "", label: s.name, kind: "season" });
   // cron diario del worker

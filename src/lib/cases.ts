@@ -14,10 +14,15 @@ export type CaseStudy = {
 
 /** Los borradores (Agente 5, al cerrar un cliente) no se sugieren hasta publicarlos. */
 export async function listCases(includeDrafts = false): Promise<CaseStudy[]> {
-  return q<CaseStudy>(
-    `SELECT id, title, tags, summary, result, link, draft, prospect_id FROM case_studies
-     ${includeDrafts ? "" : "WHERE NOT draft"} ORDER BY draft DESC, created_at DESC`,
-  );
+  try {
+    return await q<CaseStudy>(
+      `SELECT id, title, tags, summary, result, link, draft, prospect_id FROM case_studies
+       ${includeDrafts ? "" : "WHERE NOT draft"} ORDER BY draft DESC, created_at DESC`,
+    );
+  } catch {
+    // Base sin la migración 009 (sin borradores): lista simple.
+    return q<CaseStudy>("SELECT id, title, tags, summary, result, link FROM case_studies ORDER BY created_at DESC");
+  }
 }
 
 /** Casos cuyas etiquetas coinciden con los problemas detectados en las reseñas (más coincidencias primero). */

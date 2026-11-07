@@ -138,3 +138,6 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 ## 2026-11-07 · Esquemas de solución
 - En la ficha, debajo de Mensaje e Informe: un esquema animado por cada IDEA del Agente 4, con el mismo lenguaje visual que "Qué hacemos" de snodic-consulting (nodos de vidrio, insignia de Snodic con destellos en lo que integramos, cables que se dibujan y pulsos).
 - `src/lib/schemes.ts` (puro, sin IA): detecta canal de entrada, sistema principal, pasos y resultado por palabras clave del informe. `solution-schemes.tsx`: carrusel con autoplay, pausa, flechas, teclado, tocar o deslizar; en pantallas angostas el esquema se dibuja en vertical.
+
+## 2026-11-07 · Migraciones pendientes
+- Si falta aplicar una migración, la app muestra un aviso con el comando en vez de romperse; Panel, Calendario, Casos, Seguimientos y la ficha cargan igual (`src/lib/migration-status.ts`). Pantalla de error amigable en `(app)/error.tsx`.

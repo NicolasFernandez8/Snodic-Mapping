@@ -7,6 +7,7 @@ import { caseLine, listCases, matchCases } from "@/lib/cases";
 import { reactivateAction, setStageAction } from "@/app/crm-actions";
 import { reactivationCandidates } from "@/lib/agents/agents-plus";
 import { reactivationMessage } from "@/lib/extras";
+import { orFallback } from "@/lib/migration-status";
 import { WhatsAppButton } from "@/app/whatsapp-button";
 import { CopyButton } from "@/app/copy-button";
 import { fmtDate, V } from "@/app/ui";
@@ -23,7 +24,7 @@ export default async function Seguimientos({ searchParams }: { searchParams: Pro
     getSetting<number>("follow_up_max", 2),
     listCases(),
     baseUrl(),
-    reactivationCandidates(),
+    orFallback(reactivationCandidates(), []),
     getSetting<number>("reactivate_after_days", 75),
   ]);
   const reviews = rows.length

@@ -616,3 +616,5 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
   .sch-nav { gap: 8px; }
   .sch-btn { width: 40px; height: 40px; }
 }
+.migrate-notice { border-color: var(--warn); }
+.migrate-notice code { display: block; margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: var(--bg); font-size: 12.5px; width: fit-content; max-width: 100%; overflow-x: auto; }

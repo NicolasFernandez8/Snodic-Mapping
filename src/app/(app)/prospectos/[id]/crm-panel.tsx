@@ -5,6 +5,7 @@ import { activities, STAGES, STAGE_LABEL, whatsappLink, type Stage } from "@/lib
 import { caseLine, listCases, matchCases } from "@/lib/cases";
 import { bestContactTime, emailLink, instagramProfile, UNSUBSCRIBE_LINE } from "@/lib/extras";
 import { ReplyAssistant } from "./reply-assistant";
+import { hasAgentsPlus } from "@/lib/migration-status";
 import type { ScoreItem } from "@/lib/scoring";
 import {
   addNoteAction,
@@ -60,7 +61,8 @@ export async function CrmPanel({ id }: { id: number }) {
   }>(
     `SELECT p.name, p.phone, p.stage, p.assigned_to, u.username AS assigned, p.contacted_at, p.next_follow_up_at,
             p.follow_ups_sent, p.score, p.score_breakdown, p.message_variant, p.audit_slug, p.audit_views, p.audit_last_viewed_at,
-            p.do_not_contact, p.duplicate_of, p.phone_type, p.email, p.instagram, p.business_hours, p.category, p.is_new_opening
+            p.do_not_contact, p.duplicate_of, ${await hasAgentsPlus() ? "p.phone_type, p.is_new_opening" : "NULL::text AS phone_type, false AS is_new_opening"},
+            p.email, p.instagram, p.business_hours, p.category
      FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to WHERE p.id = $1`,
     [id],
   ))!;
