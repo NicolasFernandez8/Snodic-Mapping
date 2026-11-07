@@ -291,3 +291,18 @@ tr:hover td { transition: background 0.15s ease; }
   .nav a { padding: 4px 12px; font-size: 13px; }
   .brand { padding-bottom: 8px; }
 }
+
+/* Agentes en carpetas */
+.folders { display: grid; gap: 14px; margin-bottom: 20px; }
+.folder { padding: 0; overflow: hidden; }
+.folder > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 14px 18px; user-select: none; }
+.folder > summary::-webkit-details-marker { display: none; }
+.folder > summary:hover { background: color-mix(in srgb, var(--blue) 6%, transparent); }
+.folder-ico { display: inline-block; color: var(--blue); transition: transform 0.2s ease; }
+.folder[open] > summary .folder-ico { transform: rotate(90deg); }
+.folder-title { font-size: 16px; }
+.folder-tasks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 0 18px 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+.task { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: color-mix(in srgb, var(--surface) 70%, var(--bg)); transition: border-color 0.2s ease, transform 0.2s ease; }
+.task:hover { border-color: color-mix(in srgb, var(--blue) 40%, var(--border)); transform: translateY(-2px); }
+.task .quota { min-width: 0; }
+.task .quota-row input[type="number"] { width: 62px; }

@@ -9,43 +9,81 @@ import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 
 export const dynamic = "force-dynamic";
 
-const AGENTS = [
+type Task = { title: string; type: string; desc: string; link?: string };
+type Folder = { n: number; role: string; tasks: Task[] };
+
+/** Carpetas por agente: cada agente agrupa las tareas que él ejecuta. */
+const FOLDERS: Folder[] = [
   {
     n: 1,
-    title: "Mapeo automático",
-    type: "map_localities",
-    desc: "Recorre las próximas localidades pendientes (de la más cercana al centro hacia afuera) y descubre prospectos del rubro dentro de cada polígono.",
+    role: "Mapeo de zonas",
+    tasks: [
+      {
+        title: "Mapeo automático",
+        type: "map_localities",
+        desc: "Recorre las próximas localidades pendientes (de la más cercana al centro hacia afuera) y descubre prospectos del rubro dentro de cada polígono.",
+      },
+      {
+        title: "Importar región",
+        type: "import_region",
+        desc: "Divide una provincia o ciudad en localidades (OpenStreetMap) o importa sectores propios desde un KML de My Maps.",
+        link: "/ajustes#region",
+      },
+    ],
   },
   {
     n: 2,
-    title: "Recopilación de datos",
-    type: "collect_data",
-    desc: "Completa teléfono, web, enlace de reseñas y reseñas por API oficial. Lo que no encuentra queda como “-”.",
+    role: "Datos y Notion",
+    tasks: [
+      {
+        title: "Recopilación de datos",
+        type: "collect_data",
+        desc: "Completa teléfono, web, link de Google Maps y puntaje con datos abiertos. Lo que no encuentra queda como “-”.",
+      },
+      {
+        title: "Sincronizar Notion",
+        type: "sync_notion",
+        desc: "Crea/actualiza la ficha de cada prospecto y escribe mensaje + informe en el cuerpo.",
+      },
+    ],
   },
-  {
-    n: 0,
-    title: "Buscar duplicados",
-    type: "dedupe",
-    desc: "Marca como duplicados los prospectos repetidos (mismo teléfono, o mismo nombre a menos de 150 m). Se queda el más completo.",
-  },
-  {
-    n: 0,
-    title: "Recalcular puntajes",
-    type: "rescore",
-    desc: "Vuelve a calcular el puntaje de todos los prospectos (en bloques).",
-  },
-  { n: 2, title: "Sincronizar Notion", type: "sync_notion", desc: "Crea/actualiza la ficha de cada prospecto y escribe mensaje + informe en el cuerpo." },
   {
     n: 3,
-    title: "Mensaje de WhatsApp",
-    type: "generate_messages",
-    desc: "Analiza reseñas y redacta el mensaje personalizado (máx. 4 oraciones, español de España).",
+    role: "Mensajes de WhatsApp",
+    tasks: [
+      {
+        title: "Mensaje de WhatsApp",
+        type: "generate_messages",
+        desc: "Analiza reseñas y redacta el mensaje personalizado (máx. 4 oraciones, español de España).",
+      },
+    ],
   },
   {
     n: 4,
-    title: "Informe de oportunidades",
-    type: "generate_reports",
-    desc: "Genera EXACTAMENTE 2 ideas vendibles con el framework de 7 pasos.",
+    role: "Informes de oportunidades",
+    tasks: [
+      {
+        title: "Informe de oportunidades",
+        type: "generate_reports",
+        desc: "Genera EXACTAMENTE 2 ideas vendibles con el framework de 7 pasos.",
+      },
+    ],
+  },
+  {
+    n: 5,
+    role: "Mantenimiento",
+    tasks: [
+      {
+        title: "Buscar duplicados",
+        type: "dedupe",
+        desc: "Marca como duplicados los prospectos repetidos (mismo teléfono, o mismo nombre a menos de 150 m). Se queda el más completo.",
+      },
+      {
+        title: "Recalcular puntajes",
+        type: "rescore",
+        desc: "Vuelve a calcular el puntaje de todos los prospectos (en bloques).",
+      },
+    ],
   },
 ];
 
@@ -53,6 +91,10 @@ export default async function Agentes() {
   const t = await getT();
   const cfg = config();
   const quota = await getSetting<number>("daily_locality_quota", 3);
+  const lastRuns = await q<{ type: string; status: string; created_at: string }>(
+    "SELECT DISTINCT ON (type) type, status, created_at FROM jobs ORDER BY type, id DESC",
+  );
+  const lastByType = new Map(lastRuns.map((r) => [r.type, r]));
   const jobs = await q<{
     id: number;
     type: string;
@@ -91,16 +133,41 @@ export default async function Agentes() {
         </div>
       </div>
 
-      <div className="grid kpis" style={{ marginBottom: 20 }}>
-        {AGENTS.map((a) => (
-          <form key={a.type} action={runAgent} className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span className="badge" style={{ alignSelf: "flex-start" }}>{a.n ? `${t("Agente")} ${a.n}` : t("Mantenimiento")}</span>
-            <strong>{t(a.title)}</strong>
-            <span className="sub" style={{ margin: 0, flex: 1 }}>{t(a.desc)}</span>
-            <input type="hidden" name="type" value={a.type} />
-            {a.type === "map_localities" && <QuotaSlider defaultValue={quota} />}
-            <button className="btn sm">{t("Ejecutar")}</button>
-          </form>
+      <div className="folders">
+        {FOLDERS.map((f) => (
+          <details key={f.n} className="folder card" open>
+            <summary>
+              <span className="folder-ico" aria-hidden>▸</span>
+              <strong className="folder-title">{t("Agente")} {f.n}</strong>
+              <span className="help">{t(f.role)}</span>
+              <span className="badge muted" style={{ marginLeft: "auto" }}>
+                {f.tasks.length === 1 ? t("1 tarea") : t("{n} tareas", { n: f.tasks.length })}
+              </span>
+            </summary>
+            <div className="folder-tasks">
+              {f.tasks.map((a) => {
+                const last = lastByType.get(a.type);
+                return (
+                  <form key={a.type} action={runAgent} className="task">
+                    <strong>{t(a.title)}</strong>
+                    <span className="sub" style={{ margin: 0, flex: 1 }}>{t(a.desc)}</span>
+                    {last && (
+                      <span className="help">
+                        {t("Última ejecución:")} <Badge status={last.status} /> {fmtDate(last.created_at)}
+                      </span>
+                    )}
+                    <input type="hidden" name="type" value={a.type} />
+                    {a.type === "map_localities" && <QuotaSlider defaultValue={quota} />}
+                    {a.link ? (
+                      <a className="btn secondary sm" href={a.link}>{t("Ir a Ajustes")}</a>
+                    ) : (
+                      <button className="btn sm">{t("Ejecutar")}</button>
+                    )}
+                  </form>
+                );
+              })}
+            </div>
+          </details>
         ))}
       </div>
 

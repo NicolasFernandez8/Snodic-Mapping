@@ -554,4 +554,20 @@ export const EN: Record<string, string> = {
   "Elegí al menos un día": "Pick at least one day",
   "Fecha inválida": "Invalid date",
   "Hora inválida": "Invalid time",
+
+  // Carpetas de agentes
+  "Mapeo de zonas": "Area mapping",
+  "Datos y Notion": "Data and Notion",
+  "Mensajes de WhatsApp": "WhatsApp messages",
+  "Informes de oportunidades": "Opportunity reports",
+  "{n} tareas": "{n} tasks",
+  "1 tarea": "1 task",
+  "Última ejecución:": "Last run:",
+  "Ir a Ajustes": "Go to Settings",
+  "Divide una provincia o ciudad en localidades (OpenStreetMap) o importa sectores propios desde un KML de My Maps.":
+    "Splits a province or city into localities (OpenStreetMap) or imports your own sectors from a My Maps KML.",
+  "Completa teléfono, web, link de Google Maps y puntaje con datos abiertos. Lo que no encuentra queda como “-”.":
+    "Fills in phone, website, Google Maps link and score from open data. Anything not found stays as “-”.",
+  "Agente 5 · Recalcular puntajes": "Agent 5 · Recalculate scores",
+  "Agente 5 · Buscar duplicados": "Agent 5 · Find duplicates",
 };
