@@ -306,3 +306,5 @@ tr:hover td { transition: background 0.15s ease; }
 .task:hover { border-color: color-mix(in srgb, var(--blue) 40%, var(--border)); transform: translateY(-2px); }
 .task .quota { min-width: 0; }
 .task .quota-row input[type="number"] { width: 62px; }
+svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
+.nav a.active svg.nav-ico, .nav a:hover svg.nav-ico { opacity: 1; }

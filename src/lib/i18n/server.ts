@@ -9,7 +9,8 @@ export const getLang = cache(async (): Promise<Lang> => {
 
 export const getTheme = cache(async (): Promise<Theme> => {
   const v = (await cookies()).get(THEME_COOKIE)?.value;
-  return isTheme(v) ? v : "system";
+  // Sin elección guardada, la app arranca en tema oscuro.
+  return isTheme(v) ? v : "dark";
 });
 
 /** Para server components: const t = await getT(); */
