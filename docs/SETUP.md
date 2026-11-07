@@ -1,6 +1,6 @@
 # Instalación en la PC de Snodic
 
-Requisitos ya presentes: Docker Desktop, contenedor `snodic-postgres` (PostgreSQL 17, base `snodic`, usuario `snodic_app`), red `snodic-postgres_default`, Tailscale.
+Requisitos ya presentes: Docker Desktop, contenedor `snodic-postgres` (PostgreSQL 17, base `snodic`), red `snodic-postgres_default`, Tailscale.
 
 > Nada de esto modifica los contenedores existentes. La app crea su propio esquema `mapping` dentro de la base `snodic`, que **queda incluido automáticamente en el backup diario** (`pg_dump` de toda la base).
 
@@ -13,12 +13,24 @@ copy .env.example .env
 ```
 Editá `.env` (nunca lo subas a Git).
 
-## 2. Permiso para crear el esquema (una sola vez)
-`snodic_app` no es superusuario. Para que la migración pueda crear el esquema `mapping`, desde pgAdmin (como `postgres`):
-```sql
-GRANT CREATE ON DATABASE snodic TO snodic_app;
+## 2. Usuario de base de datos propio (una sola vez)
+La app usa su propio usuario, `snodic_mapping`, para no depender de la contraseña de `snodic_app` (que usa n8n) ni tocarla.
+
+```powershell
+docker exec -it snodic-postgres psql -U postgres -d snodic
 ```
-Después de migrar podés revocarlo (`REVOKE CREATE ON DATABASE snodic FROM snodic_app;`); el esquema queda con dueño `snodic_app`.
+Dentro de `psql`:
+```sql
+CREATE ROLE snodic_mapping LOGIN;
+\password snodic_mapping
+GRANT CREATE ON DATABASE snodic TO snodic_mapping;
+\q
+```
+`\password` pide la contraseña dos veces sin mostrarla. Conviene una sin símbolos (letras y números, 24 caracteres) para no tener que codificarla en la URL; generala con
+`-join ((48..57)+(65..90)+(97..122) | Get-Random -Count 24 | % {[char]$_})` y guardala en el gestor de contraseñas.
+En `.env`, las tres líneas `DATABASE_URL*` usan `snodic_mapping:<contraseña>`.
+
+El esquema `mapping` queda con dueño `snodic_mapping`. Después de migrar se puede revocar el permiso de crear (`REVOKE CREATE ON DATABASE snodic FROM snodic_mapping;`); las migraciones nuevas lo vuelven a necesitar.
 
 ## 3. Construir y migrar
 ```powershell
