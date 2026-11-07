@@ -1,7 +1,7 @@
 # Handoff
 
 **Objetivo:** automatizar la captación de prospectos de Snodic (Alicante → otras zonas) con 4 agentes y un módulo de captación (CRM liviano), todo a costo cero.
-**Fase:** funcionalidad completa y probada en la nube con datos demo; falta la puesta en marcha en la PC de Snodic.
+**Fase:** instalada y funcionando en la PC de Snodic (2026-11-07): imagen Docker OK, migraciones 001–007 aplicadas con el usuario `snodic_mapping`, web y worker arriba.
 
 ## Estado (2026-11-05)
 - `main` al día. 39 tests (unit + integración con PostgreSQL), typecheck y build OK.

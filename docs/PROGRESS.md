@@ -92,3 +92,9 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Barra deslizante + número editable (1–50) en Panel ("Solo mapear" / "Pipeline completo"), Agentes y Ajustes.
 - `/calendario`: mes con mapeos programados (azul), ejecutados (verde) y con error (rojo); programar una vez o semanal (días + hora), con cantidad y tipo; pausar, reanudar, borrar. Zona horaria Argentina o Madrid.
 - El worker revisa cada minuto los programados vencidos (migración `007_schedules`). Tests: 44/44.
+
+## 2026-11-07 · Puesta en marcha en la PC
+- `docker compose build` OK en Windows.
+- Usuario de base propio `snodic_mapping` (no se tocó `snodic_app` ni n8n).
+- Fix: registro de migraciones en `mapping.schema_migrations` (PostgreSQL 15+ no deja crear en `public`).
+- Migraciones 001–007 aplicadas; web y worker corriendo.
