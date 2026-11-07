@@ -12,6 +12,7 @@ import { parseKmlSectors } from "../geo/kml-import";
 import type { Job } from "../jobs";
 import { importRegion, importSectors, mapNextLocalities, mapNextProspects, sourceFromSettings } from "./agent1-mapper";
 import { collectData, syncProspectsToNotion } from "./agent2-collector";
+import { pullFromNotion } from "./notion-pull";
 import { runWriterAgent, syncBodiesToNotion } from "./agent34-writer";
 import type { AgentLog } from "./types";
 
@@ -41,7 +42,15 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
         log("Sincronización con Notion desactivada en Ajustes: no se envió nada");
         return { skipped: true };
       }
+      if (p.part === "props") return { props: await syncProspectsToNotion(500, log) };
+      if (p.part === "bodies") return { bodies: await syncBodiesToNotion(500, log) };
       return { props: await syncProspectsToNotion(200, log), bodies: await syncBodiesToNotion(200, log) };
+    case "notion_pull":
+      if (!(await getSetting<boolean>("notion_enabled", false))) {
+        log("Notion desactivado en Ajustes: no se trajo nada");
+        return { skipped: true };
+      }
+      return pullFromNotion(log);
     case "generate_messages":
       return runWriterAgent("message", llmFromConfig(), Number(p.limit ?? 30), log);
     case "generate_reports":

@@ -465,3 +465,10 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
   .map-filter { border-right: 0; border-bottom: 1px solid var(--border); max-height: 42vh; }
 }
 .mf-check { margin: 0; font-size: 13px; color: var(--text); cursor: pointer; font-weight: 400; }
+/* Notion */
+.notion-action { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+.notion-action:first-of-type { border-top: 0; }
+.notion-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+.notion-stats > div { display: grid; gap: 2px; }
+.stat-n { font-size: 28px; font-weight: 700; }
+.btn:disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; filter: saturate(.6); }

@@ -68,3 +68,14 @@ describe("APIs abiertas (con fetch falso)", () => {
     expect(h.map((x) => x.name)).toEqual(["Año Nuevo", "San José"]);
   });
 });
+
+describe("Notion: lectura de propiedades", () => {
+  it("propText lee título, texto, url, select y trata '-' como vacío", async () => {
+    const { propText } = await import("../src/lib/notion");
+    expect(propText({ type: "title", title: [{ plain_text: "Hotel " }, { plain_text: "Sol" }] })).toBe("Hotel Sol");
+    expect(propText({ type: "url", url: "https://h.es" })).toBe("https://h.es");
+    expect(propText({ type: "select", select: { name: "Hotel" } })).toBe("Hotel");
+    expect(propText({ type: "rich_text", rich_text: [{ plain_text: "-" }] })).toBeNull();
+    expect(propText(undefined)).toBeNull();
+  });
+});

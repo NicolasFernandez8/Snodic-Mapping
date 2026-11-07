@@ -330,4 +330,32 @@ d("pipeline de agentes (integración)", () => {
     expect((await cases.listCases()).some((c) => c.prospect_id === mob)).toBe(false);
     expect((await cases.listCases(true)).some((c) => c.prospect_id === mob)).toBe(true);
   });
+  it("Notion: traer datos vincula por nombre, completa vacíos y respeta el apagado", async () => {
+    const { db } = mod;
+    const { pullFromNotion } = await import("../src/lib/agents/notion-pull");
+    const { runJob } = await import("../src/lib/agents/orchestrator");
+    const p = (await db.one<{ id: number }>(
+      "INSERT INTO prospects (source, source_id, name, website, status, niche_key) VALUES ('manual','N1','Hostal Brisa','https://app.es','enriched','hospitality') RETURNING id",
+    ))!.id;
+    const page = (name: string, phone: string, web: string) => ({
+      id: "abc-123",
+      properties: {
+        Name: { type: "title", title: [{ plain_text: name }] },
+        Phone: { type: "phone_number", phone_number: phone },
+        Webpage: { type: "url", url: web },
+      },
+    });
+    const fakeNotion = {
+      schema: async () => ({ Name: "title", Phone: "phone_number", Webpage: "url" }),
+      queryPages: async () => [page("hostal brisa", "+34 611 222 333", "https://notion.es"), page("Otro", "1", "x")],
+    } as never;
+    const r = await pullFromNotion(() => {}, fakeNotion);
+    expect(r).toMatchObject({ pages: 2, linked: 1, filled: 1 });
+    const row = await db.one<{ notion_page_id: string; phone: string; website: string }>("SELECT notion_page_id, phone, website FROM prospects WHERE id = $1", [p]);
+    expect(row).toEqual({ notion_page_id: "abc-123", phone: "+34 611 222 333", website: "https://app.es" });
+    // Con Notion apagado el trabajo no hace nada.
+    await db.setSetting("notion_enabled", false);
+    expect(await runJob({ type: "notion_pull", payload: {} }, () => {})).toEqual({ skipped: true });
+    expect(await runJob({ type: "sync_notion", payload: { part: "props" } }, () => {})).toEqual({ skipped: true });
+  });
 });

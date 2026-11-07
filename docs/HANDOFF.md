@@ -12,8 +12,9 @@
 - Notion apagado por defecto. Sin servicios pagos (OSM + modo manual de IA).
 - No se tocó la infraestructura existente.
 
-## Pendiente (siguiente tarea pedida por Nico)
-- **Sección exclusiva "Notion" en el menú** (Notion sigue DESACTIVADO): mover ahí todo lo de Notion (botones de enviar/sincronizar, traer de Notion, estado, ajustes `notion_enabled`), y sacarlo de Agentes/Ajustes/ficha/Panel. Ver prompt de traspaso en el chat del 2026-11-07.
+## Sección Notion (hecha 2026-11-07)
+- Menú › Notion (`/notion`): interruptor `notion_enabled` (solo admin; sigue APAGADO), estado de credenciales, contadores, Enviar todo / Solo datos / Solo mensaje e informe (`sync_notion` con `part`), Traer datos (`notion_pull`, solo lectura en Notion: vincula por nombre y completa vacíos), columnas e historial.
+- Se sacó Notion de Ajustes y de Agentes. Con Notion apagado nada se encola ni se llama a la API.
 
 ## No verificado en la nube
 - Llamadas reales a Overpass/Notion (red del entorno bloqueada) → probadas con respuestas simuladas.

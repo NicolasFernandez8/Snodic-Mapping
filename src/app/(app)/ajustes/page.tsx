@@ -59,12 +59,8 @@ export default async function Ajustes() {
             <input id="auto" name="auto_generate_outputs" type="checkbox" defaultChecked={auto} style={{ width: "auto" }} />
             <label htmlFor="auto" style={{ margin: 0 }}>El pipeline diario también genera mensajes e informes (agentes 3 y 4)</label>
           </div>
-          <div className="field row">
-            <input id="notion" name="notion_enabled" type="checkbox" defaultChecked={notion} style={{ width: "auto" }} />
-            <label htmlFor="notion" style={{ margin: 0 }}>{t("Enviar a Notion")}</label>
-          </div>
-          <p className="help" style={{ marginTop: -6 }}>
-            {t("Apagado: todo queda solo en la app (prospectos, mensajes e informes). Encendelo cuando quieras volcar a Notion; se envían también los acumulados.")}
+          <p className="help">
+            {t("Notion:")} <strong>{notion ? t("activado") : t("desactivado")}</strong> · <a href="/notion">{t("Se maneja en la sección Notion")}</a>
           </p>
           <button className="btn">{t("Guardar")}</button>
         </form>

@@ -67,6 +67,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M12 3v4M9 12h.01M15 12h.01M9.5 16h5M2 12v3M22 12v3" />
     </>
   ),
+  notion: (
+    <>
+      <rect x="4" y="3" width="16" height="18" rx="2.5" />
+      <path d="M9 16V8l6 8V8" />
+    </>
+  ),
   usuarios: (
     <>
       <circle cx="12" cy="8" r="4" />
@@ -93,6 +99,7 @@ const LINKS = [
   { href: "/casos", label: "Casos de éxito", icon: "casos" },
   { href: "/calendario", label: "Calendario", icon: "calendario" },
   { href: "/agentes", label: "Agentes", icon: "agentes" },
+  { href: "/notion", label: "Notion", icon: "notion" },
   { href: "/usuarios", label: "Usuarios", icon: "usuarios" },
   { href: "/ajustes", label: "Ajustes", icon: "ajustes" },
 ];

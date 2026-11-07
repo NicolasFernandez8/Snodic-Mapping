@@ -7,6 +7,7 @@ export type JobType =
   | "generate_messages"
   | "generate_reports"
   | "sync_notion"
+  | "notion_pull"
   | "daily_pipeline"
   | "rescore"
   | "watch_openings"

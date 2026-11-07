@@ -15,6 +15,7 @@ const JOB_TYPES: JobType[] = [
   "generate_messages",
   "generate_reports",
   "sync_notion",
+  "notion_pull",
   "daily_pipeline",
   "rescore",
   "watch_openings",
@@ -65,7 +66,6 @@ export async function saveSettings(formData: FormData) {
   await setSetting("daily_locality_quota", Math.max(1, Math.min(50, Number(formData.get("daily_locality_quota") || 3))));
   await setSetting("prospect_source", String(formData.get("prospect_source")) === "google_places" ? "google_places" : "osm");
   await setSetting("auto_generate_outputs", formData.get("auto_generate_outputs") === "on");
-  await setSetting("notion_enabled", formData.get("notion_enabled") === "on");
   revalidatePath("/ajustes");
   revalidatePath("/");
 }

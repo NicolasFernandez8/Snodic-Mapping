@@ -132,6 +132,20 @@ export function paragraphs(content: string): unknown[] {
   }));
 }
 
+export type NotionPage = { id: string; properties: Record<string, Record<string, unknown> & { type: string }> };
+
+/** Valor de texto de una propiedad de Notion (título, texto, url, teléfono, email, número, select, estado). "-" cuenta como vacío. */
+export function propText(prop: (Record<string, unknown> & { type: string }) | undefined): string | null {
+  if (!prop) return null;
+  const v = prop[prop.type];
+  let s: string | null = null;
+  if (Array.isArray(v)) s = v.map((x: { plain_text?: string; name?: string }) => x.plain_text ?? x.name ?? "").join(prop.type === "multi_select" ? ", " : "");
+  else if (v && typeof v === "object" && "name" in (v as object)) s = String((v as { name: string }).name);
+  else if (typeof v === "string" || typeof v === "number") s = String(v);
+  s = s?.trim() ?? null;
+  return s && s !== EMPTY ? s : null;
+}
+
 export class NotionClient {
   private schemaCache: Record<string, PropType> | null = null;
   constructor(
@@ -199,6 +213,22 @@ export class NotionClient {
       ids.push(...res.results.map((r) => r.id));
     }
     return ids;
+  }
+
+  /** Lee las páginas de la base (paginado, solo lectura). */
+  async queryPages(max = 1000): Promise<NotionPage[]> {
+    const out: NotionPage[] = [];
+    let cursor: string | undefined;
+    do {
+      const res = await this.call<{ results: NotionPage[]; has_more: boolean; next_cursor: string | null }>(
+        `/databases/${this.databaseId}/query`,
+        "POST",
+        { page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) },
+      );
+      out.push(...res.results);
+      cursor = res.has_more && res.next_cursor ? res.next_cursor : undefined;
+    } while (cursor && out.length < max);
+    return out;
   }
 
   async deleteBlocks(ids: string[]) {

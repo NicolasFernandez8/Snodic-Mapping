@@ -117,3 +117,8 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Panel "Qué ver" en `/mapa` (`src/app/(app)/mapa/map-filter.tsx`): regiones → localidades con casillas (región con estado intermedio), Todas/Ninguna, búsqueda sin acentos, chips por estado, "Solo con prospectos", ⌖ para encuadrar, clic en el nombre = ver solo esa.
 - Filtra en el navegador (sin pedir datos de nuevo) y recuerda la selección en el dispositivo (localStorage; se guardan las ocultas, lo nuevo aparece visible).
 - `/api/geo` agrega región por localidad y `locality_id` por prospecto; `/api/export/kml?ids=1,2` exporta solo lo visible.
+
+## 2026-11-07 · Sección Notion
+- Ítem "Notion" en el menú con todo lo de Notion (enviar, traer, interruptor, estado, columnas, historial). Notion sigue desactivado.
+- Job nuevo `notion_pull` (`src/lib/agents/notion-pull.ts`); `NotionClient.queryPages` y `propText`.
+- KML: excluye duplicados como el mapa. Tests: 55/55.

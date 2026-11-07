@@ -33,7 +33,7 @@ const FOLDERS: Folder[] = [
   },
   {
     n: 2,
-    role: "Datos y Notion",
+    role: "Recopilación de datos",
     tasks: [
       {
         title: "Recopilación de datos",
@@ -44,11 +44,6 @@ const FOLDERS: Folder[] = [
         title: "Datos abiertos",
         type: "enrich_open",
         desc: "Completa web, redes y cadena con Wikidata, y direcciones faltantes con OpenStreetMap (APIs oficiales y gratuitas).",
-      },
-      {
-        title: "Sincronizar Notion",
-        type: "sync_notion",
-        desc: "Crea/actualiza la ficha de cada prospecto y escribe mensaje + informe en el cuerpo.",
       },
     ],
   },
@@ -193,7 +188,6 @@ export default async function Agentes() {
 
   const checks = [
     { ok: !!cfg.GOOGLE_MAPS_API_KEY, label: "Google Places API", hint: "GOOGLE_MAPS_API_KEY" },
-    { ok: !!(cfg.NOTION_TOKEN && cfg.NOTION_DATABASE_ID), label: "Notion", hint: "NOTION_TOKEN + NOTION_DATABASE_ID" },
     {
       ok: cfg.LLM_PROVIDER === "anthropic" && !!cfg.ANTHROPIC_API_KEY,
       label: cfg.LLM_PROVIDER === "anthropic" ? `IA: ${cfg.ANTHROPIC_MODEL}` : "IA en modo manual",

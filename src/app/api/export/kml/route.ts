@@ -35,7 +35,7 @@ export async function GET(req: Request) {
   }>(
     `SELECT p.name, l.name AS locality, p.lat, p.lng, p.phone, p.website, p.rating, p.google_maps_url, p.status
      FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id
-     WHERE p.lat IS NOT NULL AND p.status <> 'discarded' ${only === "mapped" ? "AND l.status = 'mapped'" : ""}
+     WHERE p.lat IS NOT NULL AND p.status <> 'discarded' AND p.duplicate_of IS NULL ${only === "mapped" ? "AND l.status = 'mapped'" : ""}
        ${ids.length ? "AND p.locality_id = ANY($1::int[])" : ""}`,
     params,
   );
