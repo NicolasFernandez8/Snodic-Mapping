@@ -50,12 +50,17 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   };
 
   // Eventos por día
-  type Ev = { time: string; label: string; kind: "planned" | "done" | "failed" | "queued" };
+  type Ev = { time: string; label: string; kind: "planned" | "done" | "failed" | "queued" | "season" };
   const byDay = new Map<string, Ev[]>();
   const push = (k: string, e: Ev) => byDay.set(k, [...(byDay.get(k) ?? []), e]);
   for (const s of schedules)
     for (const at of occurrences(s, new Date(Math.max(start.getTime(), Date.now())), end))
       push(dayKey(at), { time: fmtTime(at), label: `${s.name} · ${s.quota}`, kind: "planned" });
+  const season = await q<{ day: string; name: string }>(
+    "SELECT to_char(day, 'YYYY-MM-DD') AS day, name FROM season_dates WHERE day >= $1::date AND day < $2::date ORDER BY day",
+    [start, end],
+  );
+  for (const s of season) push(s.day, { time: "", label: s.name, kind: "season" });
   // cron diario del worker
   const cron = config().WORKER_CRON.match(/^(\d+) (\d+) \* \* \*$/);
   for (const j of past) {
@@ -122,7 +127,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
               >
                 <span className="cal-day">{d}</span>
                 {evs.slice(0, 4).map((e, j) => (
-                  <span key={j} className={`cal-ev ${e.kind}`}>{e.time} {e.label}</span>
+                  <span key={j} className={`cal-ev ${e.kind}`} title={e.label}>{e.time ? `${e.time} ` : "📅 "}{e.label}</span>
                 ))}
                 {evs.length > 4 && <span className="help">+{evs.length - 4}</span>}
               </Link>
@@ -133,6 +138,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
           <span><i style={{ background: "var(--blue)" }} />{t("Programado")}</span>
           <span><i style={{ background: "var(--ok)" }} />{t("Ejecutado")}</span>
           <span><i style={{ background: "var(--err)" }} />{t("Con error")}</span>
+          <span><i style={{ background: "var(--series-3)" }} />{t("Feriado o temporada")}</span>
           {cron && (
             <span>
               {t("Además, el pipeline diario automático corre a las {h} ({tz}).", {

@@ -41,6 +41,11 @@ const FOLDERS: Folder[] = [
         desc: "Completa teléfono, web, link de Google Maps y puntaje con datos abiertos. Lo que no encuentra queda como “-”.",
       },
       {
+        title: "Datos abiertos",
+        type: "enrich_open",
+        desc: "Completa web, redes y cadena con Wikidata, y direcciones faltantes con OpenStreetMap (APIs oficiales y gratuitas).",
+      },
+      {
         title: "Sincronizar Notion",
         type: "sync_notion",
         desc: "Crea/actualiza la ficha de cada prospecto y escribe mensaje + informe en el cuerpo.",
@@ -82,6 +87,86 @@ const FOLDERS: Folder[] = [
         title: "Recalcular puntajes",
         type: "rescore",
         desc: "Vuelve a calcular el puntaje de todos los prospectos (en bloques).",
+      },
+    ],
+  },
+  {
+    n: 6,
+    role: "Detector de WhatsApp",
+    tasks: [
+      {
+        title: "Detectar WhatsApp",
+        type: "classify_phones",
+        desc: "Marca cada teléfono como móvil (6/7: probable WhatsApp) o fijo (8/9: sin WhatsApp). Los móviles se priorizan en Pipeline, Revisión rápida y el puntaje.",
+      },
+    ],
+  },
+  {
+    n: 7,
+    role: "Priorizador diario",
+    tasks: [
+      {
+        title: "Prospectos del día",
+        type: "daily_digest",
+        desc: "Arma la lista 'Hoy contactá' (seguimientos que vencen, aperturas nuevas y mejores puntajes con WhatsApp) y la envía a n8n.",
+      },
+    ],
+  },
+  {
+    n: 8,
+    role: "Vigilante de aperturas",
+    tasks: [
+      {
+        title: "Vigilar aperturas",
+        type: "watch_openings",
+        desc: "Vuelve a revisar las localidades mapeadas hace más de 30 días y marca los alojamientos nuevos con puntaje extra.",
+      },
+    ],
+  },
+  {
+    n: 9,
+    role: "Canal alternativo",
+    tasks: [
+      {
+        title: "Email e Instagram",
+        type: "alt_channel",
+        desc: "En la ficha, si no hay móvil, ofrece enviar el mensaje por email (con línea de baja) o por mensaje directo de Instagram.",
+        link: "/prospectos",
+      },
+    ],
+  },
+  {
+    n: 10,
+    role: "Asistente de respuestas",
+    tasks: [
+      {
+        title: "Responder a prospectos",
+        type: "reply_assistant",
+        desc: "En la ficha, pegás lo que te respondieron y te arma el prompt para tu app de Claude, más respuestas listas a las objeciones típicas.",
+        link: "/prospectos",
+      },
+    ],
+  },
+  {
+    n: 11,
+    role: "Reactivador",
+    tasks: [
+      {
+        title: "Reactivar prospectos",
+        type: "reactivate",
+        desc: "A los 75 días sin respuesta propone un nuevo intento con otro enfoque (respeta la lista de no contactar).",
+        link: "/seguimientos#reactivar",
+      },
+    ],
+  },
+  {
+    n: 12,
+    role: "Calendario de temporada",
+    tasks: [
+      {
+        title: "Feriados y temporada",
+        type: "season",
+        desc: "Carga feriados oficiales (Nager.Date) y fechas fuertes de Alicante, y avisa cuándo conviene contactar antes de la temporada alta.",
       },
     ],
   },
@@ -159,7 +244,7 @@ export default async function Agentes() {
                     <input type="hidden" name="type" value={a.type} />
                     {a.type === "map_localities" && <MapAmount defaultLocalities={quota} compact />}
                     {a.link ? (
-                      <a className="btn secondary sm" href={a.link}>{t("Ir a Ajustes")}</a>
+                      <a className="btn secondary sm" href={a.link}>{a.link.startsWith("/ajustes") ? t("Ir a Ajustes") : t("Abrir")}</a>
                     ) : (
                       <button className="btn sm">{t("Ejecutar")}</button>
                     )}

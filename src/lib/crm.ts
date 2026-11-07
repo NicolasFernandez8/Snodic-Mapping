@@ -65,8 +65,10 @@ export async function setStage(prospectId: number, stage: Stage, userId: number 
   );
   if (cur.stage !== stage) await logActivity(prospectId, userId, "stage", { from: cur.stage, to: stage, body: note });
   else if (note) await logActivity(prospectId, userId, "note", { body: note });
-  if (stage === "client" && cur.stage !== "client")
-    void import("./agents/agents-plus").then((m) => m.draftCaseStudy(prospectId)).catch(() => {});
+  if (stage === "client" && cur.stage !== "client") {
+    // Agente 5: borrador del caso de éxito (si falla no bloquea el cambio de etapa).
+    await import("./agents/agents-plus").then((m) => m.draftCaseStudy(prospectId)).catch(() => {});
+  }
   if (stage === "replied" || stage === "meeting" || stage === "client")
     void notify("stage_changed", { prospect: cur.name, from: STAGE_LABEL[cur.stage], to: STAGE_LABEL[stage] });
 }

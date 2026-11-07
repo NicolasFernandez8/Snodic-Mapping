@@ -1,11 +1,12 @@
 # Handoff
 
 **Objetivo:** automatizar la captación de prospectos de Snodic (Alicante → otras zonas) con 4 agentes y un módulo de captación (CRM liviano), todo a costo cero.
-**Fase:** instalada y funcionando en la PC de Snodic (2026-11-07): imagen Docker OK, migraciones 001–007 aplicadas con el usuario `snodic_mapping`, web y worker arriba.
+**Fase:** agentes 6–17 listos (2026-11-07, migración `009_agents_plus`, pendiente de aplicar en la PC). Instalada y funcionando en la PC de Snodic (2026-11-07): imagen Docker OK, migraciones 001–007 aplicadas con el usuario `snodic_mapping`, web y worker arriba.
 
-## Estado (2026-11-05)
-- `main` al día. 39 tests (unit + integración con PostgreSQL), typecheck y build OK.
-- Migraciones: `001_init` … `005_perf_quality`.
+## Estado (2026-11-07)
+- `main` al día. 53 tests (unit + integración con PostgreSQL), typecheck y build OK.
+- Migraciones: `001_init` … `009_agents_plus`.
+- Agentes 6–12 + mejoras 13–17 (WhatsApp móvil/fijo, Hoy contactá, aperturas, email/IG, asistente de respuestas, reactivar, temporada, Wikidata/Nominatim, mejor horario, resumen de reunión, borrador de caso).
 - Pantallas: Panel, Mapa, Prospectos (filtros, CSV, acciones masivas), Revisión rápida, Prompts en lote, Pipeline, Seguimientos, Métricas, Casos de éxito, Agentes, Ajustes, Usuarios, mini-auditoría pública `/a/<código>`.
 - Idioma ES/EN y tema auto/claro/oscuro. App instalable en el celular.
 - Notion apagado por defecto. Sin servicios pagos (OSM + modo manual de IA).

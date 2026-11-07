@@ -117,6 +117,7 @@ export async function FilterBar({
               {(
                 [
                   ["phone", "Teléfono"],
+                  ["mobile", "Con WhatsApp (móvil)"],
                   ["website", "Web"],
                   ["email", "Email"],
                   ["social", "Instagram o Facebook"],

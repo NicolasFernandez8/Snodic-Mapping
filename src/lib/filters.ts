@@ -14,7 +14,7 @@ export type Filters = {
   minStars?: number;
   maxStars?: number;
   chain?: "independent" | "chain";
-  has?: ("phone" | "website" | "email" | "social")[];
+  has?: ("phone" | "mobile" | "website" | "email" | "social")[];
   pain?: string[];
   minRating?: number;
   maxRating?: number;
@@ -58,8 +58,8 @@ export function parseFilters(input: URLSearchParams | Record<string, string | st
   f.maxStars = num(sp.get("maxStars"));
   const chain = sp.get("chain");
   if (chain === "independent" || chain === "chain") f.chain = chain;
-  const has = list(sp, "has").filter((h): h is "phone" | "website" | "email" | "social" =>
-    ["phone", "website", "email", "social"].includes(h),
+  const has = list(sp, "has").filter((h): h is "phone" | "mobile" | "website" | "email" | "social" =>
+    ["phone", "mobile", "website", "email", "social"].includes(h),
   );
   if (has.length) f.has = has;
   const pain = list(sp, "pain");
@@ -115,6 +115,7 @@ export function filterSql(f: Filters, params: unknown[], meId?: number): string[
   if (f.chain === "chain") w.push(`p.brand IS NOT NULL`);
   for (const h of f.has ?? []) {
     if (h === "phone") w.push(`p.phone IS NOT NULL`);
+    if (h === "mobile") w.push(`p.phone_type = 'mobile'`);
     if (h === "website") w.push(`p.website IS NOT NULL`);
     if (h === "email") w.push(`p.email IS NOT NULL`);
     if (h === "social") w.push(`(p.instagram IS NOT NULL OR p.facebook IS NOT NULL)`);

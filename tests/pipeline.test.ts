@@ -291,4 +291,43 @@ d("pipeline de agentes (integración)", () => {
     ]);
     expect(row).toEqual({ status: "queued", last_error: "boom" });
   });
+  it("agentes 6–12: WhatsApp, prioridades, reactivar y borrador de caso", async () => {
+    const { db } = mod;
+    const plus = await import("../src/lib/agents/agents-plus");
+    const crm = await import("../src/lib/crm");
+    const cases = await import("../src/lib/cases");
+    const u = (await db.one<{ id: number }>("SELECT id FROM users ORDER BY id LIMIT 1"))!;
+    const mk = async (sid: string, phone: string) =>
+      (await db.one<{ id: number }>(
+        "INSERT INTO prospects (source, source_id, name, phone, status, niche_key, score, pain_tags) VALUES ('manual',$1,$1,$2,'message_ready','hospitality',80,'{reservas}') RETURNING id",
+        [sid, phone],
+      ))!.id;
+    const mob = await mk("Hotel Móvil", "+34 612 000 111");
+    const fix = await mk("Hotel Fijo", "+34 965 000 222");
+    await db.q("INSERT INTO outputs (prospect_id, kind, status, content, prompt) VALUES ($1,'message','ready','Hola','p'), ($2,'message','ready','Hola','p')", [mob, fix]);
+    await plus.classifyPhones();
+    const types = await db.q<{ id: number; phone_type: string }>("SELECT id, phone_type FROM prospects WHERE id = ANY($1)", [[mob, fix]]);
+    expect(Object.fromEntries(types.map((t) => [t.id, t.phone_type]))).toEqual({ [mob]: "mobile", [fix]: "landline" });
+
+    const digest = await plus.dailyDigest(10);
+    const ids = digest.map((d) => d.id);
+    expect(ids).toContain(mob);
+    if (ids.includes(fix)) expect(ids.indexOf(mob)).toBeLessThan(ids.indexOf(fix));
+
+    // Reactivar: contactado hace 100 días, sin respuesta ni seguimiento pendiente.
+    await db.q("UPDATE prospects SET stage = 'lost', contacted_at = now() - interval '100 days' WHERE id = $1", [fix]);
+    expect((await plus.reactivationCandidates()).map((r) => r.id)).toContain(fix);
+    await plus.reactivate(fix, u.id);
+    const re = await db.one<{ stage: string; reactivated_at: string | null }>("SELECT stage, reactivated_at FROM prospects WHERE id = $1", [fix]);
+    expect(re?.stage).toBe("to_contact");
+    expect(re?.reactivated_at).not.toBeNull();
+    expect((await plus.reactivationCandidates()).map((r) => r.id)).not.toContain(fix);
+
+    // Cliente → borrador de caso (no se sugiere hasta publicarlo).
+    await crm.setStage(mob, "client", u.id);
+    const draft = await db.one<{ draft: boolean; title: string }>("SELECT draft, title FROM case_studies WHERE prospect_id = $1", [mob]);
+    expect(draft?.draft).toBe(true);
+    expect((await cases.listCases()).some((c) => c.prospect_id === mob)).toBe(false);
+    expect((await cases.listCases(true)).some((c) => c.prospect_id === mob)).toBe(true);
+  });
 });

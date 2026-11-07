@@ -418,3 +418,23 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .seg.seg-light button { color: var(--text); padding: 5px 10px; }
 .seg.seg-light button + button { border-left-color: var(--border); }
 .run-now .map-amount { flex: 1 1 420px; }
+
+/* Hoy contactá */
+.digest { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+.digest-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 70%, var(--bg)); }
+.digest-item strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-badge { font-size: 11px; }
+.cal-ev.season { background: color-mix(in srgb, var(--series-3) 16%, transparent); color: var(--series-3); }
+/* Asistente de respuestas */
+.objections { display: grid; gap: 8px; margin-top: 10px; }
+.objection { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+.objection .help { margin: 6px 0 0; }
+/* Resumen de reunión (imprimible) */
+.brief h2 { margin-top: 18px; }
+.brief ol, .brief ul { padding-left: 20px; }
+@media print {
+  .sidebar, .nav, .no-print, .node-bg, canvas { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .card { border: none !important; box-shadow: none !important; }
+}

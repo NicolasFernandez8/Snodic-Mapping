@@ -2,7 +2,9 @@ import { getT } from "@/lib/i18n/server";
 import { one, q } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { activities, STAGES, STAGE_LABEL, whatsappLink, type Stage } from "@/lib/crm";
-import { listCases, matchCases } from "@/lib/cases";
+import { caseLine, listCases, matchCases } from "@/lib/cases";
+import { bestContactTime, emailLink, instagramProfile, UNSUBSCRIBE_LINE } from "@/lib/extras";
+import { ReplyAssistant } from "./reply-assistant";
 import type { ScoreItem } from "@/lib/scoring";
 import {
   addNoteAction,
@@ -49,14 +51,20 @@ export async function CrmPanel({ id }: { id: number }) {
     audit_last_viewed_at: string | null;
     do_not_contact: boolean;
     duplicate_of: number | null;
+    phone_type: "mobile" | "landline" | "unknown" | null;
+    email: string | null;
+    instagram: string | null;
+    business_hours: string | null;
+    category: string | null;
+    is_new_opening: boolean;
   }>(
     `SELECT p.name, p.phone, p.stage, p.assigned_to, u.username AS assigned, p.contacted_at, p.next_follow_up_at,
             p.follow_ups_sent, p.score, p.score_breakdown, p.message_variant, p.audit_slug, p.audit_views, p.audit_last_viewed_at,
-            p.do_not_contact, p.duplicate_of
+            p.do_not_contact, p.duplicate_of, p.phone_type, p.email, p.instagram, p.business_hours, p.category, p.is_new_opening
      FROM prospects p LEFT JOIN users u ON u.id = p.assigned_to WHERE p.id = $1`,
     [id],
   ))!;
-  const [users, history, message, report, reviews, cases, base] = await Promise.all([
+  const [users, history, message, report, reviews, cases, base, replyHours] = await Promise.all([
     q<{ id: number; username: string }>("SELECT id, username FROM users ORDER BY username"),
     activities(id),
     one<{ content: string }>(
@@ -70,11 +78,22 @@ export async function CrmPanel({ id }: { id: number }) {
     q<{ rating: number | null; text: string }>("SELECT rating, text FROM reviews WHERE prospect_id = $1", [id]),
     listCases(),
     baseUrl(),
+    q<{ h: number }>(
+      `SELECT extract(hour FROM created_at AT TIME ZONE 'Europe/Madrid')::int AS h FROM activities
+       WHERE kind = 'stage' AND to_stage = 'replied' ORDER BY created_at DESC LIMIT 200`,
+    ),
   ]);
   const suggested = matchCases(cases, reviews, report?.content ?? "").slice(0, 2);
   const wa = message && !p.do_not_contact ? whatsappLink(p.phone, message.content) : null;
   const contactedBy = history.find((h) => h.kind === "message_sent")?.username ?? null;
   const auditUrl = p.audit_slug ? `${base}/a/${p.audit_slug}` : null;
+  const altText = message ? `${message.content}\n\n${UNSUBSCRIBE_LINE}` : null;
+  const mail = message && !p.do_not_contact ? emailLink(p.email, message.content) : null;
+  const ig = instagramProfile(p.instagram);
+  const showAlt = !!message && !p.do_not_contact && p.phone_type !== "mobile" && (mail || ig);
+  const bestTime = bestContactTime(p, replyHours.map((r) => r.h));
+  const stageIdx = STAGES.findIndex((s) => s.key === p.stage);
+  const testimonial = `¡Hola! Nos alegra mucho que estéis contentos con el trabajo. ¿Nos dejaríais una reseña breve o un par de frases sobre cómo os ayudó? Nos sirve muchísimo para que otros alojamientos nos conozcan. ¡Gracias!`;
 
   return (
     <div className="grid two" style={{ marginBottom: 16 }}>
@@ -112,7 +131,28 @@ export async function CrmPanel({ id }: { id: number }) {
             <span className="help">{t("Falta el mensaje del Agente 3 para habilitar WhatsApp.")}</span>
           )}
           {p.message_variant && <span className="badge muted">{t("Variante")}{" "}{p.message_variant}</span>}
+          {p.phone_type === "mobile" && <span className="badge ok phone-badge">{t("Móvil · probable WhatsApp")}</span>}
+          {p.phone_type === "landline" && <span className="badge warn phone-badge">{t("Fijo · sin WhatsApp")}</span>}
+          {p.is_new_opening && <span className="badge phone-badge">{t("Nuevo en la zona")}</span>}
         </div>
+        {p.phone_type === "landline" && !p.do_not_contact && (
+          <div className="notice">{t("El teléfono es fijo: WhatsApp probablemente no funcione. Probá por email o Instagram.")}</div>
+        )}
+        {showAlt && (
+          <div className="row" style={{ marginBottom: 12 }}>
+            <span className="help" style={{ margin: 0 }}>{t("Canal alternativo:")}</span>
+            {mail && <a className="btn secondary sm" href={mail}>{t("✉ Enviar por email")}</a>}
+            {ig && altText && (
+              <>
+                <CopyButton text={altText} label={t("Copiar para Instagram")} />
+                <a className="btn secondary sm" href={ig} target="_blank" rel="noreferrer">{t("Abrir Instagram ↗")}</a>
+              </>
+            )}
+          </div>
+        )}
+        {!p.do_not_contact && stageIdx <= 2 && (
+          <p className="help" style={{ marginTop: 0 }}>🕒 {t("Mejor horario para escribir:")} {bestTime}</p>
+        )}
         <form action={setStageAction} className="row" style={{ marginBottom: 10 }}>
           <input type="hidden" name="id" value={id} />
           <select name="stage" defaultValue={p.stage} style={{ width: "auto" }}>
@@ -134,6 +174,19 @@ export async function CrmPanel({ id }: { id: number }) {
           </select>
           <button className="btn secondary sm">{t("Asignar")}</button>
         </form>
+        {(p.stage === "meeting" || p.stage === "replied") && (
+          <p style={{ margin: "0 0 10px" }}>
+            <Link className="btn secondary sm" href={`/prospectos/${id}/reunion`}>{t("📋 Resumen para la reunión")}</Link>
+          </p>
+        )}
+        {p.stage === "client" && (
+          <div className="notice">
+            <strong>{t("Pedir testimonio")}</strong>
+            <div className="help" style={{ margin: "4px 0 6px" }}>{testimonial}</div>
+            <CopyButton text={testimonial} />{" "}
+            <Link href="/casos">{t("Ver borrador del caso")}</Link>
+          </div>
+        )}
         {p.stage === "meeting" && (
           <form action={`/api/prospectos/${id}/ics`} method="get" className="row" style={{ marginBottom: 10 }}>
             <label style={{ margin: 0 }}>{t("Agendar reunión")}</label>
@@ -158,6 +211,16 @@ export async function CrmPanel({ id }: { id: number }) {
             <input name="reason" placeholder={t("Motivo (opcional)")} style={{ flex: 1, minWidth: 140 }} />
             <button className="btn danger sm">{t("No contactar")}</button>
           </form>
+        )}
+
+        {(p.stage === "contacted" || p.stage === "replied") && (
+          <ReplyAssistant
+            id={id}
+            name={p.name}
+            ourMessage={message?.content ?? null}
+            report={report?.content ?? null}
+            caseLine={suggested[0] ? caseLine(suggested[0]) : null}
+          />
         )}
 
         <h2 style={{ marginTop: 18 }}>{t("Mini-auditoría pública")}</h2>

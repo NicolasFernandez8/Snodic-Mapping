@@ -2,6 +2,9 @@ import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { getSetting, one, q } from "@/lib/db";
 import { workerAgeSeconds } from "@/lib/status";
+import { dailyDigest, seasonInfo } from "@/lib/agents/agents-plus";
+import { whatsappLink } from "@/lib/crm";
+import { WhatsAppButton } from "@/app/whatsapp-button";
 import { runAgent } from "@/app/actions";
 import { AutoRefresh } from "@/app/auto-refresh";
 import { MapAmount } from "@/app/map-amount";
@@ -38,6 +41,7 @@ export default async function Panel() {
   ]);
   const s = stats ?? {};
   const workerAge = await workerAgeSeconds();
+  const [digest, season] = await Promise.all([dailyDigest(), seasonInfo()]);
   const kpis = [
     { label: t("Localidades mapeadas"), value: `${s.loc_mapped ?? 0}/${s.loc_total ?? 0}`, hint: t("{n} por día", { n: quota }) },
     { label: t("Prospectos"), value: s.prospects ?? 0, hint: t("+{n} en 24 h", { n: s.prospects_today ?? 0 }) },
@@ -82,6 +86,41 @@ export default async function Panel() {
             <div className="hint">{k.hint}</div>
           </div>
         ))}
+      </div>
+
+      {season.advice?.contactNow && (
+        <div className="notice" style={{ borderColor: "var(--ok)" }}>
+          📅 {t("Faltan {d} días para «{name}»: buen momento para contactar. Podés activar la variante «Antes de temporada alta» en Ajustes.", { d: season.advice.days, name: season.advice.name })}
+        </div>
+      )}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="row" style={{ justifyContent: "space-between", marginBottom: 8 }}>
+          <h2 style={{ margin: 0 }}>{t("Hoy contactá")}</h2>
+          <span className="help">{t("Agente 7 · seguimientos, aperturas nuevas y mejores puntajes con WhatsApp")}</span>
+        </div>
+        {digest.length === 0 ? (
+          <div className="empty">{t("No hay prospectos con mensaje listo. Cargá reseñas y generá mensajes (Prompts en lote).")}</div>
+        ) : (
+          <div className="digest">
+            {digest.map((d) => (
+              <div key={d.id} className="digest-item">
+                <div style={{ minWidth: 0 }}>
+                  <Link href={`/prospectos/${d.id}`}><strong>{d.name}</strong></Link>
+                  <div className="help">
+                    {d.locality ?? "-"} · {d.score ?? "-"} ·{" "}
+                    {d.reason === "follow_up" ? t("Seguimiento") : d.reason === "new_opening" ? t("Nuevo en la zona") : t("Listo para contactar")}
+                    {d.phone_type === "landline" && <> · {t("Fijo")}</>}
+                  </div>
+                </div>
+                {d.reason !== "follow_up" && d.message ? (
+                  <WhatsAppButton prospectId={d.id} href={whatsappLink(d.phone, d.message)} kind="first" label={t("WhatsApp")} />
+                ) : (
+                  <Link className="btn secondary sm" href={d.reason === "follow_up" ? "/seguimientos" : `/prospectos/${d.id}`}>{t("Abrir")}</Link>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid two">

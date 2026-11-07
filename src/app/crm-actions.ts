@@ -81,9 +81,17 @@ export async function saveCaseAction(f: FormData) {
   ];
   if (!vals[0] || !vals[2]) throw new Error("Faltan título y resumen");
   if (caseId)
-    await q("UPDATE case_studies SET title=$2, tags=$3, summary=$4, result=$5, link=$6 WHERE id=$1", [caseId, ...vals]);
+    await q("UPDATE case_studies SET title=$2, tags=$3, summary=$4, result=$5, link=$6, draft=false WHERE id=$1", [caseId, ...vals]);
   else await q("INSERT INTO case_studies (title, tags, summary, result, link) VALUES ($1,$2,$3,$4,$5)", vals);
   revalidatePath("/casos");
+}
+
+// --- Agente 11 · Reactivar ---
+export async function reactivateAction(f: FormData) {
+  const me = await requireUser();
+  const { reactivate } = await import("@/lib/agents/agents-plus");
+  await reactivate(id(f), me.id);
+  refresh(id(f));
 }
 
 export async function deleteCaseAction(f: FormData) {

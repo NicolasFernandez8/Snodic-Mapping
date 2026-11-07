@@ -4,7 +4,9 @@ import { requireUser } from "@/lib/auth/session";
 import { dueFollowUps, followUpMessage, whatsappLink } from "@/lib/crm";
 import { getSetting, q } from "@/lib/db";
 import { caseLine, listCases, matchCases } from "@/lib/cases";
-import { setStageAction } from "@/app/crm-actions";
+import { reactivateAction, setStageAction } from "@/app/crm-actions";
+import { reactivationCandidates } from "@/lib/agents/agents-plus";
+import { reactivationMessage } from "@/lib/extras";
 import { WhatsAppButton } from "@/app/whatsapp-button";
 import { CopyButton } from "@/app/copy-button";
 import { fmtDate, V } from "@/app/ui";
@@ -16,11 +18,13 @@ export default async function Seguimientos({ searchParams }: { searchParams: Pro
   const t = await getT();
   const me = await requireUser();
   const mine = (await searchParams).mine === "1";
-  const [rows, max, cases, base] = await Promise.all([
+  const [rows, max, cases, base, stale, afterDays] = await Promise.all([
     dueFollowUps(mine ? me.id : undefined),
     getSetting<number>("follow_up_max", 2),
     listCases(),
     baseUrl(),
+    reactivationCandidates(),
+    getSetting<number>("reactivate_after_days", 75),
   ]);
   const reviews = rows.length
     ? await q<{ prospect_id: number; rating: number | null; text: string }>(
@@ -72,6 +76,39 @@ export default async function Seguimientos({ searchParams }: { searchParams: Pro
                     <input type="hidden" name="id" value={r.id} />
                     <input type="hidden" name="stage" value="lost" />
                     <button className="btn danger sm">{t("Descartar")}</button>
+                  </form>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="page-head" id="reactivar" style={{ marginTop: 28 }}>
+        <div>
+          <h1 style={{ fontSize: 20 }}>{t("Reactivar")}</h1>
+          <p className="sub">{t("Agente 11 · sin respuesta hace más de {n} días. Nuevo intento con otro enfoque (respeta la lista de no contactar).", { n: afterDays })}</p>
+        </div>
+      </div>
+      {stale.length === 0 ? (
+        <div className="card empty">{t("Nadie para reactivar por ahora.")}</div>
+      ) : (
+        <div className="grid two">
+          {stale.map((r) => {
+            const msg = reactivationMessage(r.pains?.[0] ?? null);
+            return (
+              <div key={r.id} className="card">
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <Link href={`/prospectos/${r.id}`}><strong>{r.name}</strong></Link>
+                  <span className="badge muted">{fmtDate(r.last)}</span>
+                </div>
+                <p className="help"><V v={r.locality} />{r.pains?.length ? ` · ${r.pains.join(", ")}` : ""}</p>
+                <div className="pre">{msg}</div>
+                <div className="row" style={{ marginTop: 10 }}>
+                  <CopyButton text={msg} />
+                  <form action={reactivateAction}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button className="btn sm">{t("Reactivar")}</button>
                   </form>
                 </div>
               </div>

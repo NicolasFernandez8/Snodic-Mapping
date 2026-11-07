@@ -103,3 +103,12 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Selector "Localidades enteras / Prospectos" en Panel, Agentes (Agente 1) y Calendario.
 - Por prospectos: guarda N nuevos (primero los con más datos de contacto); la localidad que queda a medias pasa a "Parcial" y la próxima corrida sigue desde ahí.
 - Migración `008_map_by_prospects` (estado `partial`, `schedules.unit`). Tests: 44/44.
+
+## 2026-11-07 · Agentes 6 a 17 (gratis)
+- 6 Detector de WhatsApp (móvil/fijo, suma al puntaje; filtro "Con WhatsApp (móvil)").
+- 7 Priorizador diario: tarjeta "Hoy contactá" en el Panel + envío a n8n.
+- 8 Vigilante de aperturas (semanal) · 12 Calendario de temporada (Nager.Date + fechas de Alicante; aviso en Panel y fechas en Calendario).
+- 9 Canal alternativo (email con línea de baja / Instagram) · 10 Asistente de respuestas (prompt para la app de Claude + objeciones).
+- 11 Reactivar (Seguimientos › Reactivar, a los 75 días) · Wikidata + Nominatim (Agente 2 "Datos abiertos").
+- Mejor horario para escribir, Resumen para la reunión (`/prospectos/<id>/reunion`, imprimible), borrador de caso al pasar a Cliente (Casos › Borrador → publicar).
+- Fix: el borrador del caso ahora se crea de forma síncrona al cambiar de etapa. Tests: 53/53.
