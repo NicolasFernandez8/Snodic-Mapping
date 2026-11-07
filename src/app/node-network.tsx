@@ -42,7 +42,8 @@ export function NodeNetwork({
     const mix = (t: number) => star.split(",").map(Number).map((c, i) => Math.round(c + (done[i] - c) * t)).join(",");
 
     const readColors = () => {
-      const cs = getComputedStyle(document.documentElement);
+      // Se leen del propio canvas: así una sección puede tener sus propios colores (p. ej. Arquitectura).
+      const cs = getComputedStyle(canvas);
       star = cs.getPropertyValue("--star").trim().replace(/\s+/g, "") || star;
       const d = cs.getPropertyValue("--done").trim().replace("#", "");
       if (d.length === 6) done = [0, 2, 4].map((i) => parseInt(d.slice(i, i + 2), 16));

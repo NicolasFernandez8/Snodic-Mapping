@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { ARCH, ARCH_FLOW, ARCH_ROOT, type ArchAgent } from "@/lib/architecture";
+import { NodeNetwork } from "@/app/node-network";
 
 /**
  * Árbol radial de la arquitectura: centro = app, primer anillo = agentes, anillo exterior = procesos.
@@ -165,6 +166,7 @@ export function ArchTree() {
   return (
     <div className="arch">
       <div className="arch-stage">
+        <NodeNetwork className="arch-space" density={1.15} />
         <div className="arch-tools">
           <button type="button" className="btn secondary sm" onClick={() => zoomAt(1.3)} aria-label={t("Acercar")}>＋</button>
           <button type="button" className="btn secondary sm" onClick={() => zoomAt(1 / 1.3)} aria-label={t("Alejar")}>－</button>
@@ -270,6 +272,7 @@ export function ArchTree() {
                     onMouseEnter={() => setHover({ title: `${/^\d+$/.test(ag.n) ? `${t("Agente")} ${ag.n} · ` : ""}${t(ag.label)}`, desc: t("{n} procesos", { n: ag.processes.length }), href: ag.href })}
                     onMouseLeave={() => setHover(null)}
                   >
+                    <circle cx={ax} cy={ay} r={30} className="arch-agent-halo" />
                     <circle cx={ax} cy={ay} r={23} className="arch-agent-dot" />
                     <text x={ax} y={ay} dy="0.36em" textAnchor="middle" className="arch-agent-n">{ag.n}</text>
                     {showLabels && (
@@ -284,12 +287,17 @@ export function ArchTree() {
 
             {/* Raíz */}
             <g className="arch-root" tabIndex={0} role="link" aria-label={ARCH_ROOT.label} onClick={() => go(ARCH_ROOT.href)} onKeyDown={(e) => keyNav(e, ARCH_ROOT.href)}>
-              <circle r={46} className="arch-root-dot" />
-              <text dy="-0.15em" textAnchor="middle" className="arch-root-t">Snodic</text>
-              <text dy="1.2em" textAnchor="middle" className="arch-root-s">Mapping</text>
+              <circle r={62} className="arch-root-halo" />
+              <circle r={50} className="arch-root-dot" />
+              <image href="/icon-512.png" x={-44} y={-44} width={88} height={88} clipPath="url(#arch-root-clip)" preserveAspectRatio="xMidYMid slice" />
+              <circle r={50} className="arch-root-ring" />
+              <text y={72} textAnchor="middle" className="arch-root-s">Mapping</text>
             </g>
           </g>
           <defs>
+            <clipPath id="arch-root-clip">
+              <circle r={46} />
+            </clipPath>
             <marker id="arch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
               <path d="M0 0 10 5 0 10z" className="arch-arrow" />
             </marker>

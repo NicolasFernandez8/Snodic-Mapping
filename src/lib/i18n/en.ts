@@ -825,4 +825,6 @@ export const EN: Record<string, string> = {
   "Código del error:": "Error code:",
   "Falta actualizar la base de datos": "The database needs updating",
   "Algunas secciones pueden mostrarse incompletas. En la PC corré:": "Some sections may look incomplete. On the PC run:",
+  Tarea: "Task",
+  Tareas: "Tasks",
 };

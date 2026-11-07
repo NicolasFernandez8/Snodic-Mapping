@@ -1,3 +1,4 @@
+import { OpenFromHash } from "./open-from-hash";
 import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
 import { config } from "@/lib/config";
@@ -212,15 +213,16 @@ export default async function Agentes() {
         </div>
       </div>
 
+      <OpenFromHash />
       <div className="folders">
         {FOLDERS.map((f) => (
-          <details key={f.n} id={`agente-${f.n}`} className="folder card" open>
+          <details key={f.n} id={`agente-${f.n}`} className="folder card">
             <summary>
               <span className="folder-ico" aria-hidden>▸</span>
               <strong className="folder-title">{t("Agente")} {f.n}</strong>
               <span className="help">{t(f.role)}</span>
               <span className="badge muted" style={{ marginLeft: "auto" }}>
-                {f.tasks.length === 1 ? t("1 tarea") : t("{n} tareas", { n: f.tasks.length })}
+                {f.tasks.length} - {f.tasks.length === 1 ? t("Tarea") : t("Tareas")}
               </span>
             </summary>
             <div className="folder-tasks">

@@ -141,3 +141,7 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 
 ## 2026-11-07 · Migraciones pendientes
 - Si falta aplicar una migración, la app muestra un aviso con el comando en vez de romperse; Panel, Calendario, Casos, Seguimientos y la ficha cargan igual (`src/lib/migration-status.ts`). Pantalla de error amigable en `(app)/error.tsx`.
+
+## 2026-11-07 · Arquitectura espacial y carpetas de Agentes
+- Arquitectura: fondo oscuro tipo espacio con nodos interactivos (se conectan al pasar el mouse), agentes con contorno neón suave y halo animado, logo de Snodic en el centro.
+- Agentes: carpetas cerradas por defecto (se abre sola la que viene en el link #agente-N), distintivo "N - Tarea(s)" y tareas con borde neón animado y mejor contraste.
