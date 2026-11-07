@@ -1,3 +1,4 @@
+import { bestPhone, phoneType } from "./extras";
 /**
  * Puntaje de prioridad (0–100) para decidir a quién contactar primero.
  * Transparente: cada punto tiene un motivo visible en la ficha.
@@ -12,6 +13,7 @@ export type ScoreInput = {
   reviews_count: number | null;
   category: string | null;
   reviews: { rating: number | null; text: string }[];
+  is_new_opening?: boolean;
 };
 
 export type ScoreItem = { points: number; reason: string };
@@ -41,7 +43,13 @@ export function scoreProspect(p: ScoreInput): { score: number; items: ScoreItem[
   const items: ScoreItem[] = [];
   const add = (points: number, reason: string) => items.push({ points, reason });
 
-  if (p.phone) add(20, "Tiene teléfono (contacto directo por WhatsApp)");
+  if (p.phone) {
+    const t = phoneType(bestPhone(p.phone));
+    if (t === "mobile") add(22, "Móvil: probable WhatsApp (contacto directo)");
+    else if (t === "landline") add(8, "Solo teléfono fijo: probablemente sin WhatsApp");
+    else add(12, "Tiene teléfono");
+  }
+  if (p.is_new_opening) add(10, "Nuevo en la zona: recién abierto, todavía sin proveedores");
   if (p.website) add(10, "Tiene web: invierte en presencia digital");
   if (p.instagram || p.facebook) add(5, "Activo en redes");
   if (p.email) add(5, "Tiene email");

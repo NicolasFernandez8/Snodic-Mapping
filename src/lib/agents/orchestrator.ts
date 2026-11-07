@@ -2,7 +2,8 @@
  * Coordina los 4 agentes. Cada trabajo de la cola se resuelve acá.
  * El "daily_pipeline" corre todo en orden: mapear → recopilar → Notion → mensaje → informe → Notion.
  */
-import { getSetting, one } from "../db";
+import { getSetting, one, setSetting } from "../db";
+import { classifyPhones, enrichOpenData, refreshSeason, sendDigest, watchOpenings } from "./agents-plus";
 import { notify } from "../notify";
 import { rescoreAll } from "../score-store";
 import { dedupeAll } from "../quality";
@@ -51,6 +52,16 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
       return { rescored: await rescoreAll() };
     case "dedupe":
       return { duplicates: await dedupeAll() };
+    case "classify_phones":
+      return classifyPhones(log);
+    case "daily_digest":
+      return sendDigest(log);
+    case "watch_openings":
+      return watchOpenings(log);
+    case "enrich_open":
+      return enrichOpenData(log, Number(p.limit ?? 60));
+    case "season":
+      return refreshSeason(log);
     default:
       throw new Error(`Tipo de trabajo desconocido: ${job.type}`);
   }
@@ -72,6 +83,17 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prosp
     prospects ? mapNextProspects(prospects, await sourceFromSettings(), log) : mapNextLocalities(quota, await sourceFromSettings(), log),
   );
   await step("agente2_datos", () => collectData(500, log));
+  await step("agente2_datos_abiertos", () => enrichOpenData(log, 40));
+  // Mensual: vigilar aperturas y refrescar el calendario de temporada.
+  const daysSince = async (key: string) => {
+    const at = await getSetting<string | null>(key, null);
+    return at ? (Date.now() - new Date(at).getTime()) / 86400000 : Infinity;
+  };
+  if ((await daysSince("watch_openings_at")) >= 7) {
+    await step("agente8_aperturas", () => watchOpenings(log));
+    await setSetting("watch_openings_at", new Date().toISOString());
+  }
+  if ((await daysSince("season_refreshed_at")) >= 30) await step("agente12_temporada", () => refreshSeason(log));
   const notion = await getSetting<boolean>("notion_enabled", false);
   if (notion) await step("agente2_notion", () => syncProspectsToNotion(500, log));
   else log("Notion desactivado en Ajustes: los datos quedan solo en la app");
@@ -80,6 +102,7 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prosp
     await step("agente4_informes", () => runWriterAgent("report", llmFromConfig(), 200, log));
     if (notion) await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
   }
+  await step("agente7_prioridades", () => sendDigest(log));
   await step("resumen_n8n", async () => {
     const s = await one<Record<string, number>>(`SELECT
       (SELECT count(*)::int FROM prospects WHERE created_at > now() - interval '24 hours') AS nuevos,

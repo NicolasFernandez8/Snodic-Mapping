@@ -55,6 +55,11 @@ export const JOB_LABEL: Record<string, string> = {
   daily_pipeline: "Pipeline diario completo",
   rescore: "Agente 5 · Recalcular puntajes",
   dedupe: "Agente 5 · Buscar duplicados",
+  classify_phones: "Agente 6 · Detectar WhatsApp",
+  daily_digest: "Agente 7 · Prospectos del día",
+  watch_openings: "Agente 8 · Vigilar aperturas",
+  enrich_open: "Agente 2 · Datos abiertos",
+  season: "Agente 12 · Calendario de temporada",
 };
 
 export function fmtDate(d: string | Date | null) {

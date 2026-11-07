@@ -4,6 +4,7 @@
  */
 import { getSetting, one, q } from "./db";
 import { notify } from "./notify";
+import { bestPhone } from "./extras";
 
 export const STAGES = [
   { key: "to_contact", label: "Por contactar" },
@@ -64,6 +65,8 @@ export async function setStage(prospectId: number, stage: Stage, userId: number 
   );
   if (cur.stage !== stage) await logActivity(prospectId, userId, "stage", { from: cur.stage, to: stage, body: note });
   else if (note) await logActivity(prospectId, userId, "note", { body: note });
+  if (stage === "client" && cur.stage !== "client")
+    void import("./agents/agents-plus").then((m) => m.draftCaseStudy(prospectId)).catch(() => {});
   if (stage === "replied" || stage === "meeting" || stage === "client")
     void notify("stage_changed", { prospect: cur.name, from: STAGE_LABEL[cur.stage], to: STAGE_LABEL[stage] });
 }
@@ -149,7 +152,7 @@ export function followUpMessage(n: number, auditUrl?: string | null, caseLine?: 
 /** Link oficial de WhatsApp (wa.me) con el mensaje precargado. Gratis, sin API. */
 export function whatsappLink(phone: string | null | undefined, text: string): string | null {
   if (!phone) return null;
-  let digits = phone.split(/[;,/]/)[0].replace(/\D/g, "").replace(/^00/, "");
+  let digits = (bestPhone(phone) ?? "").replace(/\D/g, "").replace(/^00/, "");
   if (digits.length === 9) digits = `34${digits}`;
   if (digits.length < 10) return null;
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;

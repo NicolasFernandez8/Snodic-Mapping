@@ -9,6 +9,11 @@ export type JobType =
   | "sync_notion"
   | "daily_pipeline"
   | "rescore"
+  | "watch_openings"
+  | "daily_digest"
+  | "enrich_open"
+  | "season"
+  | "classify_phones"
   | "dedupe";
 
 export type Job = {

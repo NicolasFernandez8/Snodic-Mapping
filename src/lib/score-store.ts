@@ -1,5 +1,6 @@
 import { one, q } from "./db";
 import { detectPains, scoreProspect } from "./scoring";
+import { bestPhone, phoneType } from "./extras";
 import { learnedBonus, loadLift, type Lift } from "./insights";
 
 type Row = {
@@ -13,10 +14,11 @@ type Row = {
   reviews_count: number | null;
   category: string | null;
   brand: string | null;
+  is_new_opening: boolean;
   reviews: { rating: number | null; text: string }[] | null;
 };
 
-const SELECT = `SELECT p.id, p.phone, p.website, p.email, p.instagram, p.facebook, p.rating, p.reviews_count, p.category, p.brand,
+const SELECT = `SELECT p.id, p.phone, p.website, p.email, p.instagram, p.facebook, p.rating, p.reviews_count, p.category, p.brand, p.is_new_opening,
   (SELECT json_agg(json_build_object('rating', r.rating, 'text', r.text)) FROM reviews r WHERE r.prospect_id = p.id) AS reviews
   FROM prospects p`;
 
@@ -35,11 +37,12 @@ export async function rescore(prospectId: number) {
   const r = await one<Row>(`${SELECT} WHERE p.id = $1`, [prospectId]);
   if (!r) return null;
   const { score, items, pains } = compute(r, await loadLift());
-  await q("UPDATE prospects SET score = $2, score_breakdown = $3::jsonb, pain_tags = $4 WHERE id = $1", [
+  await q("UPDATE prospects SET score = $2, score_breakdown = $3::jsonb, pain_tags = $4, phone_type = $5 WHERE id = $1", [
     prospectId,
     score,
     JSON.stringify(items),
     pains,
+    phoneType(bestPhone(r.phone)),
   ]);
   return score;
 }
@@ -55,14 +58,16 @@ export async function rescoreAll(batch = 500) {
     const scored = rows.map((r) => ({ id: r.id, ...compute(r, lift) }));
     await q(
       `UPDATE prospects p SET score = v.score, score_breakdown = v.items,
-         pain_tags = COALESCE(ARRAY(SELECT jsonb_array_elements_text(v.pains)), '{}')
-       FROM (SELECT unnest($1::int[]) AS id, unnest($2::int[]) AS score, unnest($3::jsonb[]) AS items, unnest($4::jsonb[]) AS pains) v
+         pain_tags = COALESCE(ARRAY(SELECT jsonb_array_elements_text(v.pains)), '{}'), phone_type = v.pt
+       FROM (SELECT unnest($1::int[]) AS id, unnest($2::int[]) AS score, unnest($3::jsonb[]) AS items, unnest($4::jsonb[]) AS pains,
+                    unnest($5::text[]) AS pt) v
        WHERE p.id = v.id`,
       [
         scored.map((s) => s.id),
         scored.map((s) => s.score),
         scored.map((s) => JSON.stringify(s.items)),
         scored.map((s) => JSON.stringify(s.pains)),
+        rows.map((r) => phoneType(bestPhone(r.phone))),
       ],
     );
     total += rows.length;
