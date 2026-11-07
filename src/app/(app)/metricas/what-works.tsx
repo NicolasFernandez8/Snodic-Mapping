@@ -11,7 +11,9 @@ const pct = (r: number) => `${Math.round(r * 100)} %`;
 export async function WhatWorks() {
   const t = await getT();
   const ins = await cached("insights-ui", 60, computeInsights);
-  const dims = [...new Set(ins.segments.map((s) => s.dim))];
+  // Orden lógico: primero qué es el negocio, después cómo se contacta, calidad y por último el mensaje.
+  const ORDER = ["Categoría", "Tipo", "Estrellas", "Problema", "Contacto", "Redes", "Rating", "Puntaje", "Distancia", "Variante"];
+  const dims = [...new Set(ins.segments.map((s) => s.dim))].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
   const sug = ins.enough ? suggestFilters(ins) : null;
   const sq = sug ? filtersToQuery(sug.filters) : "";
 
@@ -55,31 +57,33 @@ export async function WhatWorks() {
       )}
 
       {ins.total > 0 && (
-        <div className="grid two" style={{ marginTop: 12 }}>
-          {dims.map((d) => (
-            <div key={d}>
-              <h3 className="dim-title">{t(d)}</h3>
-              <table>
-                <tbody>
-                  {ins.segments
-                    .filter((s) => s.dim === d)
-                    .map((s) => {
-                      const reliable = s.contacted >= MIN_GROUP;
-                      const better = reliable && s.rate >= ins.rate * 1.25;
-                      return (
-                        <tr key={s.value} style={{ opacity: reliable ? 1 : 0.55 }}>
-                          <td style={{ width: "40%" }}>{t(s.value)}</td>
-                          <td style={{ width: "35%" }}>
-                            <div className="progress"><div style={{ width: `${Math.round(s.rate * 100)}%`, background: better ? "var(--ok)" : undefined }} /></div>
-                          </td>
-                          <td><strong>{pct(s.rate)}</strong> <span className="help">({s.replied}/{s.contacted})</span></td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          ))}
+        <div className="ww-grid">
+          {dims.map((d) => {
+            const rows = ins.segments.filter((s) => s.dim === d);
+            return (
+              <section key={d} className="ww-dim">
+                <header className="ww-head">
+                  <span>{t(d)}</span>
+                  <span className="help">{rows.reduce((a, r) => a + r.contacted, 0)}</span>
+                </header>
+                {rows.map((s) => {
+                  const reliable = s.contacted >= MIN_GROUP;
+                  const better = reliable && s.rate >= ins.rate * 1.25;
+                  return (
+                    <div key={s.value} className={`ww-row ${reliable ? "" : "weak"}`}>
+                      <span className="ww-label" title={t(s.value)}>{t(s.value)}</span>
+                      <div className="ww-bar">
+                        <div style={{ width: `${Math.max(2, Math.round(s.rate * 100))}%`, background: better ? "var(--ok)" : undefined }} />
+                      </div>
+                      <span className="ww-num">
+                        <strong>{pct(s.rate)}</strong> <span className="help">{s.replied}/{s.contacted}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </section>
+            );
+          })}
         </div>
       )}
       {ins.total > 0 && <p className="help">{t("En gris: grupos con menos de {n} contactados (poco confiables).", { n: MIN_GROUP })}</p>}

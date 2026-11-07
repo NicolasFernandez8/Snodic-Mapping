@@ -577,4 +577,13 @@ export const EN: Record<string, string> = {
   "No se pudo mover: {e}": "Couldn’t move it: {e}",
   "{name} → {stage}": "{name} → {stage}",
   "Soltá aquí": "Drop here",
+
+  // Dashboard de gráficos
+  "Prospectos por etapa": "Prospects by stage",
+  "Embudo de conversión": "Conversion funnel",
+  Respondieron: "Replied",
+  "Actividad de las últimas 8 semanas": "Activity over the last 8 weeks",
+  "Prospectos por categoría": "Prospects by category",
+  prospectos: "prospects",
+  "{p} del paso anterior": "{p} of the previous step",
 };
