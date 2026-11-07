@@ -1,3 +1,4 @@
+import { ConfirmButton } from "@/app/confirm-button";
 import Link from "next/link";
 import { getT, getLang } from "@/lib/i18n/server";
 import { getSetting, q } from "@/lib/db";
@@ -221,7 +222,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
                       </form>
                       <form action={deleteScheduleAction}>
                         <input type="hidden" name="id" value={s.id} />
-                        <button className="btn danger sm">{t("Borrar")}</button>
+                        <ConfirmButton label="Borrar" message="¿Borrar este mapeo programado?" />
                       </form>
                     </div>
                   </td>

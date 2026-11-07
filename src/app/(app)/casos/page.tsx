@@ -1,3 +1,4 @@
+import { ConfirmButton } from "@/app/confirm-button";
 import { getT } from "@/lib/i18n/server";
 import { listCases } from "@/lib/cases";
 import { PAIN_KEYWORDS } from "@/lib/scoring";
@@ -43,7 +44,7 @@ export default async function Casos() {
               <strong>{c.title}</strong>
               <form action={deleteCaseAction}>
                 <input type="hidden" name="case_id" value={c.id} />
-                <button className="btn danger sm">{t("Borrar")}</button>
+                <ConfirmButton label="Borrar" message="¿Borrar este caso de éxito? No se puede deshacer." />
               </form>
             </div>
             <p style={{ margin: "8px 0" }}>{c.summary}</p>

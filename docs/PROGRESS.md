@@ -145,3 +145,9 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 ## 2026-11-07 · Arquitectura espacial y carpetas de Agentes
 - Arquitectura: fondo oscuro tipo espacio con nodos interactivos (se conectan al pasar el mouse), agentes con contorno neón suave y halo animado, logo de Snodic en el centro.
 - Agentes: carpetas cerradas por defecto (se abre sola la que viene en el link #agente-N), distintivo "N - Tarea(s)" y tareas con borde neón animado y mejor contraste.
+
+## 2026-11-07 · Pruebas de punta a punta
+- Visual: 17 páginas + mini-auditoría pública en PC (claro/oscuro) y Android (Pixel 7): sin scroll horizontal, sin elementos fuera de pantalla ni texto cortado. Menú plegable en el celular.
+- Funcional: 37 recorridos (login, panel, agentes + worker, prospectos, CSV, acciones masivas, ficha completa, mini-auditoría, pipeline, seguimientos, reactivar, casos/borradores, calendario, métricas por período, mapa/KML, ajustes, región KML, Notion apagado, usuarios, idioma/tema, arquitectura).
+- Arreglos: Importar CSV quedaba tapado por la tarjeta de filtros; confirmación al borrar usuario/caso/mapeo; mejor horario sin madrugada.
+- Rendimiento: servidor < 60 ms por página, carga < 160 ms, JS por página ≤ 129 KB (103 KB compartidos).

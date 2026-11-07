@@ -844,4 +844,7 @@ export const EN: Record<string, string> = {
   "Bajo (<35)": "Low (<35)",
   "Sin puntaje": "No score",
   Menú: "Menu",
+  "¿Borrar este caso de éxito? No se puede deshacer.": "Delete this case study? This cannot be undone.",
+  "¿Borrar este mapeo programado?": "Delete this scheduled mapping?",
+  "¿Borrar este usuario? Ya no va a poder entrar.": "Delete this user? They will no longer be able to log in.",
 };

@@ -665,3 +665,7 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 @media (max-width: 900px) { .metrics-grid { grid-template-columns: 1fr; } }
 .menu-toggle { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
 @media (min-width: 861px) { .menu-btn { display: none; } }
+/* Menús que se despliegan desde la cabecera (p. ej. Importar CSV) van por encima de las tarjetas animadas */
+.page-head { position: relative; z-index: 20; }
+.import-csv { position: relative; }
+.import-csv > form { box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .45); }

@@ -1,3 +1,4 @@
+import { ConfirmButton } from "@/app/confirm-button";
 import { getT } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import { listUsers } from "@/lib/auth/users";
@@ -48,7 +49,7 @@ export default async function Usuarios() {
                     {u.id !== me.id && (
                       <form action={deleteUserAction}>
                         <input type="hidden" name="username" value={u.username} />
-                        <button className="btn danger sm">{t("Borrar")}</button>
+                        <ConfirmButton label="Borrar" message="¿Borrar este usuario? Ya no va a poder entrar." />
                       </form>
                     )}
                   </td>
