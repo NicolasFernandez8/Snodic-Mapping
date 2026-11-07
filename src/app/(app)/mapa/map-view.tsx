@@ -8,6 +8,7 @@ import { useT } from "@/lib/i18n/client";
 const STATUS_COLOR: Record<string, string> = {
   mapped: "#c2337f",
   mapping: "#d98a00",
+  partial: "#e58fb8",
   pending: "#8a9ab3",
   failed: "#d93a3a",
   skipped: "#c0c7d2",
@@ -19,6 +20,7 @@ const STATUS_TEXT: Record<string, string> = {
   pending: "Pendiente",
   failed: "Error",
   skipped: "Omitida",
+  partial: "Parcial",
 };
 
 type Data = {

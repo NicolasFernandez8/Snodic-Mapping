@@ -11,6 +11,7 @@ export const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
   pending: { label: "Pendiente", tone: "muted" },
   mapping: { label: "Mapeando", tone: "warn" },
   mapped: { label: "Mapeada", tone: "ok" },
+  partial: { label: "Parcial", tone: "warn" },
   failed: { label: "Error", tone: "err" },
   skipped: { label: "Omitida", tone: "muted" },
   // trabajos / salidas

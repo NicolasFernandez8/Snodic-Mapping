@@ -25,8 +25,12 @@ export async function runAgent(formData: FormData) {
   const type = String(formData.get("type")) as JobType;
   if (!JOB_TYPES.includes(type)) throw new Error("Trabajo inválido");
   const payload: Record<string, unknown> = {};
-  const quota = Number(formData.get("quota"));
-  if (Number.isFinite(quota) && quota > 0) payload.quota = Math.max(1, Math.min(50, Math.round(quota)));
+  // Cantidad a mapear: localidades enteras (1–50) o prospectos (1–500).
+  const amount = Number(formData.get("amount") ?? formData.get("quota"));
+  if (Number.isFinite(amount) && amount > 0) {
+    if (formData.get("unit") === "prospects") payload.prospects = Math.max(1, Math.min(500, Math.round(amount)));
+    else payload.quota = Math.max(1, Math.min(50, Math.round(amount)));
+  }
   await enqueue(type, payload);
   revalidatePath("/agentes");
   redirect("/agentes");

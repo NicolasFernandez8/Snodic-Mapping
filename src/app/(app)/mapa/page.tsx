@@ -18,6 +18,7 @@ export default async function Mapa() {
           <div className="legend" style={{ marginTop: 6 }}>
             <span><i style={{ background: "#c2337f" }} />{t("Mapeada")}</span>
             <span><i style={{ background: "#d98a00" }} />{t("Mapeando")}</span>
+            <span><i style={{ background: "#e58fb8" }} />{t("Parcial")}</span>
             <span><i style={{ background: "#8a9ab3" }} />{t("Pendiente")}</span>
             <span><i style={{ background: "#d93a3a" }} />{t("Error")}</span>
             <span><i style={{ background: "#12a150", borderRadius: 99 }} />{t("Prospecto en Notion")}</span>

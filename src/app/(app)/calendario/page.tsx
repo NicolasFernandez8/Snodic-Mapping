@@ -9,7 +9,7 @@ import {
   setCalendarTzAction,
   toggleScheduleAction,
 } from "@/app/feature-actions";
-import { QuotaSlider } from "@/app/quota-slider";
+import { MapAmount } from "@/app/map-amount";
 
 export const dynamic = "force-dynamic";
 
@@ -155,7 +155,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
             <div className="field" style={{ flex: 1 }}><label htmlFor="h1">{t("Hora")}</label><input id="h1" type="time" name="time" defaultValue="09:00" required /></div>
           </div>
           <JobTypeSelect t={t} />
-          <QuotaSlider defaultValue={dailyQuota} />
+          <MapAmount defaultLocalities={dailyQuota} compact />
           <button className="btn" style={{ marginTop: 12 }}>{t("Programar")}</button>
         </form>
 
@@ -176,7 +176,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
           </div>
           <div className="field"><label htmlFor="h2">{t("Hora")}</label><input id="h2" type="time" name="time" defaultValue="09:00" required style={{ width: 140 }} /></div>
           <JobTypeSelect t={t} />
-          <QuotaSlider defaultValue={dailyQuota} />
+          <MapAmount defaultLocalities={dailyQuota} compact />
           <button className="btn" style={{ marginTop: 12 }}>{t("Programar")}</button>
         </form>
       </div>
@@ -199,7 +199,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
                       : `${s.weekdays.slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => wd[d]).join(", ")} · ${s.time_of_day}`}
                     <div className="help">{s.tz}</div>
                   </td>
-                  <td>{s.job_type === "daily_pipeline" ? t("Pipeline completo") : t("Solo mapear")} · {t("{n} localidades", { n: s.quota })}</td>
+                  <td>{s.job_type === "daily_pipeline" ? t("Pipeline completo") : t("Solo mapear")} · {s.unit === "prospects" ? t("{n} prospectos", { n: s.quota }) : t("{n} localidades", { n: s.quota })}</td>
                   <td>{s.next_run_at ? `${dayKey(new Date(s.next_run_at))} ${fmtTime(new Date(s.next_run_at))}` : "-"}</td>
                   <td>{s.last_run_at ? `${dayKey(new Date(s.last_run_at))} ${fmtTime(new Date(s.last_run_at))}` : "-"}</td>
                   <td>

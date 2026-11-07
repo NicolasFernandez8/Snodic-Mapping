@@ -9,7 +9,7 @@ import { dedupeAll } from "../quality";
 import { llmFromConfig } from "../ai/llm";
 import { parseKmlSectors } from "../geo/kml-import";
 import type { Job } from "../jobs";
-import { importRegion, importSectors, mapNextLocalities, sourceFromSettings } from "./agent1-mapper";
+import { importRegion, importSectors, mapNextLocalities, mapNextProspects, sourceFromSettings } from "./agent1-mapper";
 import { collectData, syncProspectsToNotion } from "./agent2-collector";
 import { runWriterAgent, syncBodiesToNotion } from "./agent34-writer";
 import type { AgentLog } from "./types";
@@ -29,6 +29,7 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
         log,
       );
     case "map_localities": {
+      if (p.prospects) return mapNextProspects(Number(p.prospects), await sourceFromSettings(), log);
       const quota = Number(p.quota ?? (await getSetting<number>("daily_locality_quota", 3)));
       return mapNextLocalities(quota, await sourceFromSettings(), log);
     }
@@ -45,7 +46,7 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
     case "generate_reports":
       return runWriterAgent("report", llmFromConfig(), Number(p.limit ?? 30), log);
     case "daily_pipeline":
-      return dailyPipeline(log, p.quota ? Number(p.quota) : undefined);
+      return dailyPipeline(log, p.quota ? Number(p.quota) : undefined, p.prospects ? Number(p.prospects) : undefined);
     case "rescore":
       return { rescored: await rescoreAll() };
     case "dedupe":
@@ -55,7 +56,7 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
   }
 }
 
-export async function dailyPipeline(log: AgentLog, quotaOverride?: number) {
+export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prospects?: number) {
   const steps: Record<string, unknown> = {};
   const step = async (name: string, fn: () => Promise<unknown>) => {
     try {
@@ -67,7 +68,9 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number) {
   };
   const quota = quotaOverride ?? (await getSetting<number>("daily_locality_quota", 3));
   const auto = await getSetting<boolean>("auto_generate_outputs", true);
-  await step("agente1_mapeo", async () => mapNextLocalities(quota, await sourceFromSettings(), log));
+  await step("agente1_mapeo", async () =>
+    prospects ? mapNextProspects(prospects, await sourceFromSettings(), log) : mapNextLocalities(quota, await sourceFromSettings(), log),
+  );
   await step("agente2_datos", () => collectData(500, log));
   const notion = await getSetting<boolean>("notion_enabled", false);
   if (notion) await step("agente2_notion", () => syncProspectsToNotion(500, log));

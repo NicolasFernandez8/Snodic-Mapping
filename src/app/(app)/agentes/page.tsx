@@ -2,7 +2,7 @@ import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
 import { config } from "@/lib/config";
 import { runAgent } from "@/app/actions";
-import { QuotaSlider } from "@/app/quota-slider";
+import { MapAmount } from "@/app/map-amount";
 import { getSetting } from "@/lib/db";
 import { AutoRefresh } from "@/app/auto-refresh";
 import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
@@ -157,7 +157,7 @@ export default async function Agentes() {
                       </span>
                     )}
                     <input type="hidden" name="type" value={a.type} />
-                    {a.type === "map_localities" && <QuotaSlider defaultValue={quota} />}
+                    {a.type === "map_localities" && <MapAmount defaultLocalities={quota} compact />}
                     {a.link ? (
                       <a className="btn secondary sm" href={a.link}>{t("Ir a Ajustes")}</a>
                     ) : (

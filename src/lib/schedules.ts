@@ -11,6 +11,7 @@ export type Schedule = {
   kind: "once" | "weekly";
   job_type: "map_localities" | "daily_pipeline";
   quota: number;
+  unit: "localities" | "prospects";
   run_at: string | null;
   weekdays: number[];
   time_of_day: string | null;
@@ -102,6 +103,7 @@ export type NewSchedule = {
   kind: "once" | "weekly";
   jobType: "map_localities" | "daily_pipeline";
   quota: number;
+  unit?: "localities" | "prospects";
   date?: string; // YYYY-MM-DD (once)
   time: string; // HH:MM
   weekdays?: number[];
@@ -110,7 +112,8 @@ export type NewSchedule = {
 
 export async function createSchedule(input: NewSchedule, userId: number) {
   if (!/^\d{2}:\d{2}$/.test(input.time)) throw new Error("Hora inválida");
-  const quota = Math.max(1, Math.min(50, Math.round(input.quota)));
+  const unit = input.unit === "prospects" ? "prospects" : "localities";
+  const quota = Math.max(1, Math.min(unit === "prospects" ? 500 : 50, Math.round(input.quota)));
   let runAt: Date | null = null;
   const weekdays = (input.weekdays ?? []).filter((d) => d >= 0 && d <= 6);
   if (input.kind === "once") {
@@ -123,8 +126,8 @@ export async function createSchedule(input: NewSchedule, userId: number) {
   const draft = { kind: input.kind, run_at: runAt?.toISOString() ?? null, weekdays, time_of_day: input.time, tz: input.tz };
   const next = nextRun(draft);
   return one<{ id: number }>(
-    `INSERT INTO schedules (name, kind, job_type, quota, run_at, weekdays, time_of_day, tz, next_run_at, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+    `INSERT INTO schedules (name, kind, job_type, quota, run_at, weekdays, time_of_day, tz, next_run_at, created_by, unit)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
     [
       input.name.trim().slice(0, 80) || "Mapeo programado",
       input.kind,
@@ -136,6 +139,7 @@ export async function createSchedule(input: NewSchedule, userId: number) {
       input.tz,
       next,
       userId,
+      unit,
     ],
   );
 }
@@ -159,7 +163,7 @@ export async function runDueSchedules(now = new Date(), log: (m: string) => void
     [now],
   );
   for (const s of due) {
-    const job = await enqueue(s.job_type, { quota: s.quota, schedule_id: s.id });
+    const job = await enqueue(s.job_type, s.unit === "prospects" ? { prospects: s.quota, schedule_id: s.id } : { quota: s.quota, schedule_id: s.id });
     const next = nextRun(s, new Date(now.getTime() + 1000));
     await q("UPDATE schedules SET next_run_at = $2, last_job_id = $3, active = $4 WHERE id = $1", [
       s.id,
@@ -167,7 +171,7 @@ export async function runDueSchedules(now = new Date(), log: (m: string) => void
       job?.id ?? null,
       next !== null,
     ]);
-    log(`Programado "${s.name}": ${s.job_type} con ${s.quota} localidades (próximo: ${next?.toISOString() ?? "—"})`);
+    log(`Programado "${s.name}": ${s.job_type} con ${s.quota} ${s.unit === "prospects" ? "prospectos" : "localidades"} (próximo: ${next?.toISOString() ?? "—"})`);
   }
   return due.length;
 }

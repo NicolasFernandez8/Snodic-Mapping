@@ -237,6 +237,26 @@ d("pipeline de agentes (integración)", () => {
     const { rescoreAll } = await import("../src/lib/score-store");
     expect(await rescoreAll(2)).toBeGreaterThan(2);
 
+    // Mapear por cantidad de prospectos (localidad parcial y continuación).
+    const reg = await a1.importSectors("Prospectos test", [
+      { name: "Zona P", area: { type: "Polygon", coordinates: [sq(-0.40, 38.40, 0.05)] } },
+      { name: "Zona Q", area: { type: "Polygon", coordinates: [sq(-0.30, 38.40, 0.05)] } },
+    ]);
+    await db.q("UPDATE regions SET status = CASE WHEN id = $1 THEN 'active' ELSE 'done' END", [reg.regionId]);
+    const many = (prefix: string, x0: number, n: number) => Array.from({ length: n }, (_, k) => ({
+      source: "osm" as const, sourceId: `${prefix}${k}`, name: `${prefix} Hotel número ${k} ${"x".repeat(k)}`,
+      lat: 38.41 + k * 0.001, lng: x0 + k * 0.0012, phone: k % 2 ? `6${prefix === "P" ? 1 : 2}00000${String(k).padStart(2, "0")}` : undefined, raw: {},
+    }));
+    const src = { discover: async (l: { name: string }) => (l.name === "Zona P" ? many("P", -0.395, 10) : many("Q", -0.295, 4)) };
+    const r1 = await a1.mapNextProspects(6, src);
+    expect(r1).toEqual([expect.objectContaining({ locality: "Zona P", created: 6, partial: true })]);
+    const savedP = await db.q<{ phone: string | null }>("SELECT phone FROM prospects WHERE source_id LIKE 'P%'");
+    expect(savedP.filter((x) => x.phone).length).toBe(5); // primero los que tienen teléfono
+    expect((await db.one<{ status: string }>("SELECT status FROM localities WHERE name = 'Zona P'"))?.status).toBe("partial");
+    const r2 = await a1.mapNextProspects(6, src); // completa Zona P (4) y sigue con Zona Q (2)
+    expect(r2.map((x) => [x.locality, x.created, !!x.partial])).toEqual([["Zona P", 4, false], ["Zona Q", 2, true]]);
+    expect((await db.one<{ status: string }>("SELECT status FROM localities WHERE name = 'Zona P'"))?.status).toBe("mapped");
+
     // Mapeos programados.
     const sch = await import("../src/lib/schedules");
     const soon = new Date(Date.now() + 120000);

@@ -4,7 +4,7 @@ import { getSetting, one, q } from "@/lib/db";
 import { workerAgeSeconds } from "@/lib/status";
 import { runAgent } from "@/app/actions";
 import { AutoRefresh } from "@/app/auto-refresh";
-import { QuotaSlider } from "@/app/quota-slider";
+import { MapAmount } from "@/app/map-amount";
 import { CountUp } from "@/app/count-up";
 import { Badge, fmtDate, JOB_LABEL } from "@/app/ui";
 
@@ -67,7 +67,7 @@ export default async function Panel() {
         </div>
       )}
       <form action={runAgent} className="card run-now" style={{ marginBottom: 16 }}>
-        <QuotaSlider defaultValue={quota} label={t("¿Cuántas localidades mapear ahora?")} />
+        <MapAmount defaultLocalities={quota} />
         <div className="row">
           <button className="btn secondary" name="type" value="map_localities">{t("Solo mapear")}</button>
           <button className="btn" name="type" value="daily_pipeline">{t("▶ Ejecutar pipeline ahora")}</button>

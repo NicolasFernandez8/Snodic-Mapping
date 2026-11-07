@@ -20,6 +20,7 @@ const esc = (s: string) =>
 const STATUS_STYLE: Record<string, string> = {
   mapped: "7f7f33c2",
   mapping: "7f00a5ff",
+  partial: "7fb88fe5",
   pending: "40ffffff",
   failed: "7f0000ff",
   skipped: "40888888",

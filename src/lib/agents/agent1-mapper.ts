@@ -237,12 +237,31 @@ export async function sourceFromSettings(): Promise<ProspectSource> {
 
 /** Guarda prospectos descubiertos (deduplicados por fuente+id) y devuelve cuántos son nuevos. */
 export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: DiscoveredPlace[]) {
-  let created = 0;
+  return (await saveDiscoveredLimited(loc, niche, places, Infinity)).created;
+}
+
+/**
+ * Guarda hasta `limit` prospectos nuevos de la localidad (primero los que tienen más datos de contacto).
+ * `leftover` indica si quedaron prospectos nuevos sin guardar (la localidad queda "parcial").
+ */
+export async function saveDiscoveredLimited(loc: LocalityRow, niche: Niche, places: DiscoveredPlace[], limit: number) {
+  const candidates: DiscoveredPlace[] = [];
   for (const p of places) {
     if (loc.boundary && !pointInArea([p.lng, p.lat], loc.boundary)) continue;
+    // Ya guardado (misma fuente e id): no cuenta como nuevo.
+    if (await one("SELECT 1 FROM prospects WHERE source = $1 AND source_id = $2", [p.source, p.sourceId])) continue;
     // Mismo negocio ya guardado (otra fuente, otro id de OSM o localidad vecina): no se duplica.
-    const existing = await one("SELECT 1 FROM prospects WHERE source = $1 AND source_id = $2", [p.source, p.sourceId]);
-    if (!existing && (await findExisting({ name: p.name, phone: p.phone, lat: p.lat, lng: p.lng }))) continue;
+    if (await findExisting({ name: p.name, phone: p.phone, lat: p.lat, lng: p.lng })) continue;
+    candidates.push(p);
+  }
+  const richness = (p: DiscoveredPlace) =>
+    (p.phone ? 4 : 0) + (p.website ? 2 : 0) + (p.email ? 1 : 0) + (p.instagram || p.facebook ? 1 : 0);
+  candidates.sort((a, b) => richness(b) - richness(a));
+  let created = 0;
+  let processed = 0;
+  for (const p of candidates) {
+    if (created >= limit) break;
+    processed++;
     const blocked = await isBlocked({ name: p.name, phone: p.phone });
     const row = await one<{ inserted: boolean }>(
       `INSERT INTO prospects (locality_id, niche_key, source, source_id, name, category, address, phone, website, email,
@@ -285,7 +304,45 @@ export async function saveDiscovered(loc: LocalityRow, niche: Niche, places: Dis
       );
     if (row?.inserted && !blocked) created++;
   }
-  return created;
+  return { created, leftover: processed < candidates.length };
+}
+
+/**
+ * Mapea hasta `target` prospectos nuevos: recorre localidades en orden (primero la que quedó parcial)
+ * y deja "parcial" la última si no se guardaron todos sus prospectos; la próxima vez sigue desde ahí.
+ */
+export async function mapNextProspects(target: number, source: ProspectSource, log: AgentLog = () => {}) {
+  const niche = await activeNiche();
+  const results: { locality: string; found: number; created: number; partial?: boolean; error?: string }[] = [];
+  let remaining = target;
+  for (let guard = 0; remaining > 0 && guard < 200; guard++) {
+    const loc = await nextLocality();
+    if (!loc) {
+      log("No quedan localidades pendientes en ninguna región");
+      break;
+    }
+    await q("UPDATE localities SET status = 'mapping', niche_key = $2 WHERE id = $1", [loc.id, niche.key]);
+    try {
+      const places = await source.discover(loc, niche);
+      const { created, leftover } = await saveDiscoveredLimited(loc, niche, places, remaining);
+      remaining -= created;
+      const total = (await one<{ n: number }>("SELECT count(*)::int AS n FROM prospects WHERE locality_id = $1", [loc.id]))!.n;
+      await q(
+        `UPDATE localities SET status = $3, mapped_at = CASE WHEN $3 = 'mapped' THEN now() ELSE mapped_at END,
+           prospects_found = $2, last_error = NULL WHERE id = $1`,
+        [loc.id, total, leftover ? "partial" : "mapped"],
+      );
+      log(`${loc.name}: ${created} nuevos${leftover ? " (localidad parcial, sigue la próxima vez)" : ""}`);
+      results.push({ locality: loc.name, found: places.length, created, partial: leftover });
+    } catch (e) {
+      const msg = (e as Error).message;
+      await q("UPDATE localities SET status = 'failed', last_error = $2 WHERE id = $1", [loc.id, msg]);
+      log(`${loc.name}: error ${msg}`);
+      results.push({ locality: loc.name, found: 0, created: 0, error: msg });
+    }
+  }
+  log(`Prospectos nuevos: ${target - remaining} de ${target} pedidos`);
+  return results;
 }
 
 /** Recorre las próximas `quota` localidades pendientes de la región activa. */
@@ -332,8 +389,8 @@ export async function nextLocality(): Promise<LocalityRow | null> {
     }
     const loc = await one<LocalityRow>(
       `SELECT id, region_id, name, osm_id, boundary, bbox, centroid_lat, centroid_lng, status
-       FROM localities WHERE region_id = $1 AND status = 'pending'
-       ORDER BY distance_km NULLS LAST, id LIMIT 1`,
+       FROM localities WHERE region_id = $1 AND status IN ('partial', 'pending')
+       ORDER BY (status = 'partial') DESC, distance_km NULLS LAST, id LIMIT 1`,
       [region.id],
     );
     if (loc) return loc;

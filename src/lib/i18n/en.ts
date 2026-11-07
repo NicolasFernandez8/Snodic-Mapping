@@ -586,4 +586,14 @@ export const EN: Record<string, string> = {
   "Prospectos por categoría": "Prospects by category",
   prospectos: "prospects",
   "{p} del paso anterior": "{p} of the previous step",
+
+  // Mapear por prospectos
+  "Qué mapear": "What to map",
+  "Localidades enteras": "Whole localities",
+  "¿Cuántos prospectos mapear?": "How many prospects to map?",
+  "Prospectos a mapear": "Prospects to map",
+  "Mapea cada localidad completa, de la más cercana al centro hacia afuera.": "Maps each whole locality, from the center outwards.",
+  "Guarda esa cantidad de prospectos nuevos (primero los que tienen más datos de contacto). Si una localidad queda a medias, la próxima vez sigue desde ahí.":
+    "Saves that many new prospects (those with more contact details first). If a locality is left half-done, the next run continues from there.",
+  Parcial: "Partial",
 };

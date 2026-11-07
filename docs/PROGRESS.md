@@ -98,3 +98,8 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Usuario de base propio `snodic_mapping` (no se tocó `snodic_app` ni n8n).
 - Fix: registro de migraciones en `mapping.schema_migrations` (PostgreSQL 15+ no deja crear en `public`).
 - Migraciones 001–007 aplicadas; web y worker corriendo.
+
+## 2026-11-07 · Mapear por localidades o por prospectos
+- Selector "Localidades enteras / Prospectos" en Panel, Agentes (Agente 1) y Calendario.
+- Por prospectos: guarda N nuevos (primero los con más datos de contacto); la localidad que queda a medias pasa a "Parcial" y la próxima corrida sigue desde ahí.
+- Migración `008_map_by_prospects` (estado `partial`, `schedules.unit`). Tests: 44/44.

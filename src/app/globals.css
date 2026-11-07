@@ -407,3 +407,14 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .btn.btn-wa { background: #17663f; border-color: #1f8a54; color: #eafff2; }
 }
+
+/* Elegir qué mapear */
+.map-amount { display: grid; gap: 8px; flex: 1 1 420px; min-width: 0; }
+.map-amount-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.map-amount-label { margin: 0; }
+.map-amount.compact .map-amount-label { display: none; }
+.map-amount.compact .help { font-size: 11px; }
+.seg.seg-light { border-color: var(--border); }
+.seg.seg-light button { color: var(--text); padding: 5px 10px; }
+.seg.seg-light button + button { border-left-color: var(--border); }
+.run-now .map-amount { flex: 1 1 420px; }

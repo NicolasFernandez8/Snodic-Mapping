@@ -489,7 +489,7 @@ describe("mapeos programados", () => {
     const s = { kind: "weekly" as const, run_at: null, weekdays: [1, 3], time_of_day: "09:00", tz: "America/Argentina/Buenos_Aires" };
     expect(nextRun(s, from)?.toISOString()).toBe("2026-11-09T12:00:00.000Z"); // lunes 9 a las 09:00 ART
     const occ = occurrences(
-      { ...s, id: 1, name: "x", job_type: "map_localities", quota: 3, active: true, next_run_at: null, last_run_at: null, last_job_id: null, created_by: null },
+      { ...s, id: 1, name: "x", job_type: "map_localities", quota: 3, unit: "localities", active: true, next_run_at: null, last_run_at: null, last_job_id: null, created_by: null },
       new Date("2026-11-01T00:00:00Z"),
       new Date("2026-12-01T00:00:00Z"),
     );
