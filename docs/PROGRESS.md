@@ -112,3 +112,8 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - 11 Reactivar (Seguimientos › Reactivar, a los 75 días) · Wikidata + Nominatim (Agente 2 "Datos abiertos").
 - Mejor horario para escribir, Resumen para la reunión (`/prospectos/<id>/reunion`, imprimible), borrador de caso al pasar a Cliente (Casos › Borrador → publicar).
 - Fix: el borrador del caso ahora se crea de forma síncrona al cambiar de etapa. Tests: 53/53.
+
+## 2026-11-07 · Filtro visual del mapa
+- Panel "Qué ver" en `/mapa` (`src/app/(app)/mapa/map-filter.tsx`): regiones → localidades con casillas (región con estado intermedio), Todas/Ninguna, búsqueda sin acentos, chips por estado, "Solo con prospectos", ⌖ para encuadrar, clic en el nombre = ver solo esa.
+- Filtra en el navegador (sin pedir datos de nuevo) y recuerda la selección en el dispositivo (localStorage; se guardan las ocultas, lo nuevo aparece visible).
+- `/api/geo` agrega región por localidad y `locality_id` por prospecto; `/api/export/kml?ids=1,2` exporta solo lo visible.

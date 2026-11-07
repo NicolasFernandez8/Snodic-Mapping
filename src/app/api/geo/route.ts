@@ -21,12 +21,14 @@ export async function GET(req: Request) {
   const etag = `"${createHash("sha1").update(ver!.v).digest("hex").slice(0, 16)}"`;
   if (req.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers: { ETag: etag } });
   const [locs, pros] = await Promise.all([
-    q<{ id: number; name: string; status: string; prospects_found: number; boundary: unknown; last_error: string | null }>(
-      `SELECT l.id, l.name, l.status, l.prospects_found, COALESCE(l.boundary_simple, l.boundary) AS boundary, l.last_error FROM localities l ${filter}`,
+    q<{ id: number; name: string; status: string; prospects_found: number; boundary: unknown; last_error: string | null; region_id: number; region: string }>(
+      `SELECT l.id, l.name, l.status, l.prospects_found, COALESCE(l.boundary_simple, l.boundary) AS boundary, l.last_error,
+              l.region_id, r.name AS region
+       FROM localities l JOIN regions r ON r.id = l.region_id ${filter} ORDER BY r.name, l.distance_km NULLS LAST, l.name`,
       params,
     ),
-    q<{ id: number; name: string; status: string; lat: number; lng: number; locality: string | null; rating: string | null }>(
-      `SELECT p.id, p.name, p.status, p.lat, p.lng, l.name AS locality, p.rating FROM prospects p
+    q<{ id: number; name: string; status: string; lat: number; lng: number; locality: string | null; rating: string | null; locality_id: number | null }>(
+      `SELECT p.id, p.name, p.status, p.lat, p.lng, l.name AS locality, p.rating, p.locality_id FROM prospects p
        LEFT JOIN localities l ON l.id = p.locality_id
        ${filter ? filter + " AND" : "WHERE"} p.lat IS NOT NULL AND p.status <> 'discarded' AND p.duplicate_of IS NULL`,
       params,
@@ -40,7 +42,10 @@ export async function GET(req: Request) {
         .map((l) => ({
           type: "Feature",
           geometry: l.boundary,
-          properties: { id: l.id, name: l.name, status: l.status, prospects: l.prospects_found, error: l.last_error },
+          properties: {
+            id: l.id, name: l.name, status: l.status, prospects: l.prospects_found, error: l.last_error,
+            region_id: l.region_id, region: l.region,
+          },
         })),
     },
     prospects: pros,

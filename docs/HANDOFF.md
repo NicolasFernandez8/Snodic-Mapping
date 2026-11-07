@@ -12,6 +12,9 @@
 - Notion apagado por defecto. Sin servicios pagos (OSM + modo manual de IA).
 - No se tocó la infraestructura existente.
 
+## Pendiente (siguiente tarea pedida por Nico)
+- **Sección exclusiva "Notion" en el menú** (Notion sigue DESACTIVADO): mover ahí todo lo de Notion (botones de enviar/sincronizar, traer de Notion, estado, ajustes `notion_enabled`), y sacarlo de Agentes/Ajustes/ficha/Panel. Ver prompt de traspaso en el chat del 2026-11-07.
+
 ## No verificado en la nube
 - Llamadas reales a Overpass/Notion (red del entorno bloqueada) → probadas con respuestas simuladas.
 - `docker build` (Docker Hub limitó las descargas) → probar en la PC.

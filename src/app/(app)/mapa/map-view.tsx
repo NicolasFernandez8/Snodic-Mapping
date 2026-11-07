@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
-import type { FeatureCollection } from "geojson";
+import type { Feature, FeatureCollection } from "geojson";
+import { MapFilter, useMapFilter } from "./map-filter";
 import { useT } from "@/lib/i18n/client";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -25,7 +26,7 @@ const STATUS_TEXT: Record<string, string> = {
 
 type Data = {
   localities: FeatureCollection;
-  prospects: { id: number; name: string; status: string; lat: number; lng: number; locality: string | null; rating: string | null }[];
+  prospects: { id: number; name: string; status: string; lat: number; lng: number; locality: string | null; rating: string | null; locality_id: number | null }[];
 };
 
 function FitBounds({ data }: { data: Data | null }) {
@@ -38,6 +39,17 @@ function FitBounds({ data }: { data: Data | null }) {
     const b = L.geoJSON(data.localities).getBounds();
     if (b.isValid()) map.fitBounds(b, { padding: [20, 20] });
   }, [data, map]);
+  return null;
+}
+
+/** Encuadra lo que pide el panel de filtros (una localidad, una región o la selección). */
+function FlyTo({ target }: { target: { fc: FeatureCollection; n: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!target?.fc.features.length) return;
+    const b = L.geoJSON(target.fc).getBounds();
+    if (b.isValid()) map.flyToBounds(b, { padding: [24, 24], duration: 0.6, maxZoom: 15 });
+  }, [target, map]);
   return null;
 }
 
@@ -69,16 +81,32 @@ export default function MapView() {
     };
   }, []);
 
+  const filter = useMapFilter(data?.localities.features ?? []);
+  const [target, setTarget] = useState<{ fc: FeatureCollection; n: number } | null>(null);
+  const focus = (features: Feature[]) => setTarget((t) => ({ fc: { type: "FeatureCollection", features }, n: (t?.n ?? 0) + 1 }));
+  const shown = useMemo<FeatureCollection | null>(
+    () => (data ? { type: "FeatureCollection", features: data.localities.features.filter((f) => filter.visible(f)) } : null),
+    [data, filter],
+  );
+  const visibleIds = useMemo(() => new Set(shown?.features.map((f) => f.properties?.id as number) ?? []), [shown]);
+  const points = useMemo(
+    () => (data?.prospects ?? []).filter((p) => (p.locality_id === null ? filter.allVisible : visibleIds.has(p.locality_id))),
+    [data, visibleIds, filter.allVisible],
+  );
+
   return (
+    <div className="map-layout">
+      <MapFilter filter={filter} features={data?.localities.features ?? []} shownCount={shown?.features.length ?? 0} pointCount={points.length} onFocus={focus} />
+      <div className="map-canvas">
     <MapContainer center={[38.35604, -0.50391]} zoom={12} style={{ height: "100%", width: "100%" }}>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {data && (
+      {shown && (
         <GeoJSON
-          key={JSON.stringify(data.localities.features.map((f) => f.properties?.status))}
-          data={data.localities}
+          key={filter.key + JSON.stringify(shown.features.map((f) => f.properties?.status))}
+          data={shown}
           style={(f) => {
             const c = STATUS_COLOR[f?.properties?.status] ?? "#8a9ab3";
             return { color: "#4a1f4a", weight: 1.2, fillColor: c, fillOpacity: f?.properties?.status === "pending" ? 0.08 : 0.25 };
@@ -91,7 +119,7 @@ export default function MapView() {
           }
         />
       )}
-      {data?.prospects.map((p) => (
+      {points.map((p) => (
         <CircleMarker
           key={p.id}
           center={[p.lat, p.lng]}
@@ -108,7 +136,10 @@ export default function MapView() {
         </CircleMarker>
       ))}
       <FitBounds data={data} />
+      <FlyTo target={target} />
     </MapContainer>
+      </div>
+    </div>
   );
 }
 
