@@ -132,7 +132,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
               {t("Sin reseñas. Abrí la ficha en Google Maps, copiá las reseñas y pegalas abajo: los agentes 3 y 4 las necesitan para no inventar datos.")}
             </div>
           ) : (
-            <div style={{ display: "grid", gap: 10, maxHeight: 420, overflow: "auto" }}>
+            <div className="scroll-box" style={{ display: "grid", gap: 10 }}>
               {reviews.map((r, i) => (
                 <div key={i} className="pre" style={{ padding: 10 }}>
                   <strong>{r.rating ? "★".repeat(r.rating) : ""}</strong> <span className="sub">{r.author ?? ""}</span>
@@ -220,7 +220,7 @@ async function OutputCard(props: {
       ) : null}
       {out?.content ? (
         <>
-          <div className="pre">{out.content}</div>
+          <div className="pre scroll-box output-box" tabIndex={0}>{out.content}</div>
           <div className="row" style={{ marginTop: 8 }}>
             <CopyButton text={out.content} />
             <span className="help">{out.model} · {fmtDate(out.created_at)}</span>

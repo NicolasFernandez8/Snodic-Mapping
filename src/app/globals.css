@@ -531,3 +531,8 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
   .arch-go { display: none; }
 }
 .arch-svg:not(.has-focus):has(.arch-agent:hover, .arch-leaf:hover) .arch-branch:not(:has(.arch-agent:hover, .arch-leaf:hover)) { opacity: .3; }
+/* Caja con alto fijo y scroll interno (reseñas, mensaje del Agente 3 e informe del Agente 4) */
+.scroll-box { max-height: 420px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.scroll-box:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.output-box { height: 380px; max-height: none; }
+@media (max-width: 700px) { .output-box { height: 300px; } }

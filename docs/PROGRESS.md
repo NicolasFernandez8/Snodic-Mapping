@@ -131,3 +131,6 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Partículas animadas por las ramas y flujo del pipeline diario entre agentes (respeta "reducir movimiento").
 - Zoom con rueda, pellizco y botones; arrastrar para moverse; leyenda que enfoca cada agente; clic en un agente o proceso lleva a su página (anclas `/agentes#agente-N`, `/ajustes#variantes`).
 - Datos en `src/lib/architecture.ts`; test que valida que cada link apunte a una página existente y tenga traducción.
+
+## 2026-11-07 · Ficha: cajas con scroll
+- Mensaje (Agente 3) e Informe (Agente 4) con caja de alto fijo (380 px; 300 px en celular) y scroll interno, igual que Reseñas. Las dos tarjetas quedan parejas.
