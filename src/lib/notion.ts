@@ -146,18 +146,34 @@ export function propText(prop: (Record<string, unknown> & { type: string }) | un
   return s && s !== EMPTY ? s : null;
 }
 
+/**
+ * ID de la base a partir de lo que se pegue en NOTION_DATABASE_ID: el ID solo o el link copiado de Notion
+ * (https://www.notion.so/<espacio>/Snodic-Mapping-<id>?v=<vista>). La vista (?v=) se ignora.
+ */
+export function notionId(raw: string): string {
+  const path = raw.trim().split("?")[0];
+  const hex = path.replace(/-/g, "").match(/[0-9a-f]{32}/gi);
+  return hex ? hex[hex.length - 1].toLowerCase() : raw.trim();
+}
+
 export class NotionClient {
   private schemaCache: Record<string, PropType> | null = null;
+  private nextNum: number | null = null;
+  private databaseId: string;
   constructor(
     private token: string,
-    private databaseId: string,
+    databaseId: string,
     private fetchImpl: typeof fetch = fetch,
-  ) {}
+    /** Columna numérica correlativa ("Num"): las páginas nuevas siguen desde el número más alto de la base. */
+    private numProperty = "Num",
+  ) {
+    this.databaseId = notionId(databaseId);
+  }
 
   static fromConfig(): NotionClient | null {
     const c = config();
     if (!c.NOTION_TOKEN || !c.NOTION_DATABASE_ID) return null;
-    return new NotionClient(c.NOTION_TOKEN, c.NOTION_DATABASE_ID);
+    return new NotionClient(c.NOTION_TOKEN, c.NOTION_DATABASE_ID, fetch, c.NOTION_NUM_PROPERTY || "Num");
   }
 
   private async call<T>(path: string, method: string, body?: unknown, attempt = 0): Promise<T> {
@@ -190,8 +206,34 @@ export class NotionClient {
     return this.schemaCache;
   }
 
+  /**
+   * Próximo número correlativo para una página nueva (máximo actual de la columna + 1).
+   * Solo si la columna existe y es de tipo número; si no, null y no se escribe nada.
+   * Se lee una vez por sincronización y después se incrementa en memoria.
+   */
+  async takeNumber(): Promise<{ prop: string; value: number } | null> {
+    const schema = await this.schema();
+    const prop = resolveProperty(schema, this.numProperty);
+    if (!prop || schema[prop] !== "number") return null;
+    if (this.nextNum === null) {
+      const res = await this.call<{ results: NotionPage[] }>(`/databases/${this.databaseId}/query`, "POST", {
+        page_size: 1,
+        sorts: [{ property: prop, direction: "descending" }],
+        filter: { property: prop, number: { is_not_empty: true } },
+      });
+      const max = Number((res.results[0]?.properties?.[prop] as { number?: number } | undefined)?.number ?? 0);
+      this.nextNum = (Number.isFinite(max) ? max : 0) + 1;
+    }
+    return { prop, value: this.nextNum++ };
+  }
+
   async upsertProspect(pageId: string | null, fields: ProspectFields) {
     const { properties, missing } = buildProperties(fields, await this.schema(), propertyMap());
+    // Las páginas nuevas reciben el siguiente número de la columna "Num" (las existentes no se tocan).
+    if (!pageId) {
+      const num = await this.takeNumber();
+      if (num) properties[num.prop] = { number: num.value };
+    }
     if (pageId) {
       await this.call(`/pages/${pageId}`, "PATCH", { properties });
       return { pageId, missing };

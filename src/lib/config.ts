@@ -5,6 +5,7 @@ const schema = z.object({
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   NOTION_TOKEN: z.string().optional(),
   NOTION_DATABASE_ID: z.string().optional(),
+  NOTION_NUM_PROPERTY: z.string().optional(),
   /** JSON con el mapeo campo interno -> nombre de propiedad en Notion. */
   NOTION_PROPERTY_MAP: z.string().optional(),
   /** "anthropic" usa la API; "manual" deja el prompt listo para copiar. */

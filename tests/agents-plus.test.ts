@@ -166,3 +166,35 @@ describe("períodos de métricas", () => {
     expect(bucket("year")).toMatchObject({ unit: "year", n: 5 });
   });
 });
+
+describe("Notion: correlativo Num y link de la base", () => {
+  it("acepta el link copiado de Notion como ID", async () => {
+    const { notionId } = await import("../src/lib/notion");
+    expect(notionId("https://www.notion.so/nico/Snodic-Mapping-0123456789abcdef0123456789abcdef?v=fedcba9876543210fedcba9876543210")).toBe("0123456789abcdef0123456789abcdef");
+    expect(notionId("01234567-89ab-cdef-0123-456789abcdef")).toBe("0123456789abcdef0123456789abcdef");
+  });
+  it("las páginas nuevas siguen desde el último Num (243 → 244, 245) y las existentes no cambian", async () => {
+    const { NotionClient } = await import("../src/lib/notion");
+    const calls: { url: string; method: string; body: Record<string, unknown> }[] = [];
+    let n = 0;
+    const fake = (async (url: string, init: RequestInit) => {
+      const body = init.body ? JSON.parse(String(init.body)) : {};
+      calls.push({ url, method: String(init.method), body });
+      const json = url.endsWith("/databases/0123456789abcdef0123456789abcdef")
+        ? { properties: { Name: { type: "title" }, Num: { type: "number" }, Phone: { type: "phone_number" } } }
+        : url.endsWith("/query")
+          ? { results: [{ id: "x", properties: { Num: { type: "number", number: 243 } } }] }
+          : { id: `page-${++n}` };
+      return { ok: true, status: 200, headers: new Headers(), json: async () => json, text: async () => "" };
+    }) as unknown as typeof fetch;
+    const nc = new NotionClient("tok", "https://www.notion.so/x/Snodic-Mapping-0123456789abcdef0123456789abcdef?v=1", fake);
+    await nc.upsertProspect(null, { name: "A" });
+    await nc.upsertProspect(null, { name: "B" });
+    await nc.upsertProspect("existente", { name: "C" });
+    const creates = calls.filter((c) => c.url.endsWith("/pages") && c.method === "POST");
+    expect(creates.map((c) => (c.body.properties as Record<string, { number: number }>).Num.number)).toEqual([244, 245]);
+    const update = calls.find((c) => c.url.endsWith("/pages/existente"))!;
+    expect((update.body.properties as Record<string, unknown>).Num).toBeUndefined();
+    expect(calls.filter((c) => c.url.endsWith("/query"))).toHaveLength(1);
+  });
+});

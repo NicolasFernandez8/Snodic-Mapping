@@ -151,3 +151,7 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Funcional: 37 recorridos (login, panel, agentes + worker, prospectos, CSV, acciones masivas, ficha completa, mini-auditoría, pipeline, seguimientos, reactivar, casos/borradores, calendario, métricas por período, mapa/KML, ajustes, región KML, Notion apagado, usuarios, idioma/tema, arquitectura).
 - Arreglos: Importar CSV quedaba tapado por la tarjeta de filtros; confirmación al borrar usuario/caso/mapeo; mejor horario sin madrugada.
 - Rendimiento: servidor < 60 ms por página, carga < 160 ms, JS por página ≤ 129 KB (103 KB compartidos).
+
+## 2026-11-11 · Notion privado y correlativo Num
+- `NOTION_DATABASE_ID` acepta el link copiado de Notion (se toma el ID de la base, se ignora la vista).
+- Las páginas nuevas reciben el siguiente número de la columna `Num` (máximo actual + 1: 244, 245…); las existentes no se tocan. Columna configurable con `NOTION_NUM_PROPERTY`.
