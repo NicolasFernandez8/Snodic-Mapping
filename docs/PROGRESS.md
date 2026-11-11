@@ -169,3 +169,8 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 ## 2026-11-11 · Agente 1 compacto y Agente 9 funcional
 - Agentes: el selector de cantidad del Agente 1 ya no estira la tarjeta (tenía base de 420 px pensada para el Panel).
 - Agente 9: página `/canal` con prospectos sin móvil que tienen email o Instagram y mensaje listo; botones Email (con línea de baja) y Copiar + abrir Instagram que registran el contacto y pasan a "Contactado". La ficha usa los mismos botones.
+
+## 2026-11-11 · IA local (Ollama) y cola de reseñas
+- Modo "IA local" para agentes 3 y 4 (Ollama, gratis, en la PC): se activa en Ajustes › IA; muestra si Ollama responde y si el modelo está descargado. Modelo por defecto `qwen2.5:7b` (entra en 6 GB de video). `OLLAMA_URL`/`OLLAMA_MODEL` en `.env`; compose agrega `host.docker.internal`.
+- Al guardar reseñas (ficha o cola) con IA local activa, se encola `write_prospect`: mensaje e informe del prospecto en segundo plano. Siguen pasando por revisión humana antes de enviar.
+- Página `/resenas` (menú "Cola de reseñas"): un prospecto por vez, link a sus reseñas en Maps, pegar, Ctrl+Enter = guardar y siguiente, Saltar.

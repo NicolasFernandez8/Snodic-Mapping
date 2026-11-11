@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { q, setSetting } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { enqueue, type JobType } from "@/lib/jobs";
-import { llmFromConfig } from "@/lib/ai/llm";
+import { aiMode, getLlm } from "@/lib/ai/llm";
 import { saveManualReviews } from "@/lib/agents/agent2-collector";
 import { advanceStatus, generateOutput, saveManualOutput, type OutputKind } from "@/lib/agents/agent34-writer";
 
@@ -17,6 +17,7 @@ const JOB_TYPES: JobType[] = [
   "sync_notion",
   "notion_pull",
   "notion_fix",
+  "write_prospect",
   "daily_pipeline",
   "rescore",
   "watch_openings",
@@ -114,7 +115,7 @@ export async function generateAction(formData: FormData) {
   await requireUser();
   const id = Number(formData.get("id"));
   const kind = String(formData.get("kind")) as OutputKind;
-  await generateOutput(id, kind, llmFromConfig());
+  await generateOutput(id, kind, await getLlm());
   await advanceStatus(id);
   revalidatePath(`/prospectos/${id}`);
 }
@@ -163,10 +164,35 @@ export async function retryLocalityAction(formData: FormData) {
   revalidatePath("/");
 }
 
+/** Si la IA local está activa, encola mensaje + informe del prospecto (se generan en segundo plano). */
+async function autoWrite(id: number) {
+  if ((await aiMode()) === "ollama") await enqueue("write_prospect", { id });
+}
+
 export async function saveReviewsAction(formData: FormData) {
   await requireUser();
   const id = Number(formData.get("id"));
   const text = String(formData.get("reviews") ?? "");
-  await saveManualReviews(id, text, formData.get("replace") === "on");
+  const n = await saveManualReviews(id, text, formData.get("replace") === "on");
+  if (n > 0) await autoWrite(id);
   revalidatePath(`/prospectos/${id}`);
+}
+
+/** Cola de reseñas: guarda y pasa al siguiente prospecto sin reseñas. */
+export async function saveReviewsNextAction(formData: FormData) {
+  await requireUser();
+  const id = Number(formData.get("id"));
+  const skip = String(formData.get("skip") ?? "");
+  const n = await saveManualReviews(id, String(formData.get("reviews") ?? ""), false);
+  if (n > 0) await autoWrite(id);
+  revalidatePath("/resenas");
+  redirect(`/resenas?ok=${id}${skip ? `&s=${skip}` : ""}`);
+}
+
+export async function setAiModeAction(formData: FormData) {
+  await requireUser("admin");
+  const mode = String(formData.get("mode"));
+  await setSetting("ai_mode", mode === "ollama" ? "ollama" : "manual");
+  revalidatePath("/ajustes");
+  revalidatePath("/agentes");
 }

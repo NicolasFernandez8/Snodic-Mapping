@@ -9,7 +9,10 @@ const schema = z.object({
   /** JSON con el mapeo campo interno -> nombre de propiedad en Notion. */
   NOTION_PROPERTY_MAP: z.string().optional(),
   /** "anthropic" usa la API; "manual" deja el prompt listo para copiar. */
-  LLM_PROVIDER: z.enum(["anthropic", "manual"]).default("manual"),
+  LLM_PROVIDER: z.enum(["anthropic", "manual", "ollama"]).default("manual"),
+  // IA local gratuita (Ollama). Desde Docker, la PC se alcanza como host.docker.internal.
+  OLLAMA_URL: z.string().default("http://host.docker.internal:11434"),
+  OLLAMA_MODEL: z.string().default("qwen2.5:7b"),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
   OVERPASS_URL: z.string().default("https://overpass-api.de/api/interpreter"),

@@ -1,3 +1,4 @@
+import { aiMode } from "@/lib/ai/llm";
 import { OpenFromHash } from "./open-from-hash";
 import { getT } from "@/lib/i18n/server";
 import { q } from "@/lib/db";
@@ -171,6 +172,7 @@ const FOLDERS: Folder[] = [
 export default async function Agentes() {
   const t = await getT();
   const cfg = config();
+  const mode = await aiMode();
   const quota = await getSetting<number>("daily_locality_quota", 3);
   const lastRuns = await q<{ type: string; status: string; created_at: string }>(
     "SELECT DISTINCT ON (type) type, status, created_at FROM jobs ORDER BY type, id DESC",
@@ -190,9 +192,9 @@ export default async function Agentes() {
   const checks = [
     { ok: !!cfg.GOOGLE_MAPS_API_KEY, label: "Google Places API", hint: "GOOGLE_MAPS_API_KEY" },
     {
-      ok: cfg.LLM_PROVIDER === "anthropic" && !!cfg.ANTHROPIC_API_KEY,
-      label: cfg.LLM_PROVIDER === "anthropic" ? `IA: ${cfg.ANTHROPIC_MODEL}` : "IA en modo manual",
-      hint: "LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY",
+      ok: mode === "ollama",
+      label: mode === "ollama" ? `IA local: ${cfg.OLLAMA_MODEL}` : "IA en modo manual",
+      hint: "Ajustes › IA para mensajes e informes",
     },
   ];
 

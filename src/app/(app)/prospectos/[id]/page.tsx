@@ -2,7 +2,7 @@ import { getT } from "@/lib/i18n/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { one, q } from "@/lib/db";
-import { config } from "@/lib/config";
+import { aiMode } from "@/lib/ai/llm";
 import { messagePrompt, reportPrompt } from "@/lib/ai/prompts";
 import { latestOutput, promptInput, type OutputKind, type OutputRow } from "@/lib/agents/agent34-writer";
 import {
@@ -63,7 +63,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
     latestOutput(id, "report"),
     promptInput(id),
   ]);
-  const manual = config().LLM_PROVIDER === "manual";
+  const manual = (await aiMode()) === "manual";
   const schemes = schemesFromReport(report?.content);
   const notionUrl = p.notion_page_id ? `https://www.notion.so/${p.notion_page_id.replace(/-/g, "")}` : null;
 

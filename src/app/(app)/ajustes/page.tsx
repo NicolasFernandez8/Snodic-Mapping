@@ -1,7 +1,8 @@
 import { getT } from "@/lib/i18n/server";
 import { getSetting, q } from "@/lib/db";
 import type { Niche } from "@/lib/agents/types";
-import { importRegionAction, saveNiche, saveSettings } from "@/app/actions";
+import { importRegionAction, saveNiche, saveSettings, setAiModeAction } from "@/app/actions";
+import { aiMode, ollamaStatus } from "@/lib/ai/llm";
 import { saveOutreachSettingsAction, saveVariantAction } from "@/app/crm-actions";
 import { QuotaSlider } from "@/app/quota-slider";
 
@@ -23,6 +24,8 @@ export default async function Ajustes() {
     getSetting<number>("follow_up_max", 2),
     getSetting<string>("contact_whatsapp", ""),
   ]);
+  const [mode, ollama] = await Promise.all([aiMode(), ollamaStatus()]);
+  const ollamaOk = ollama.reachable && ollama.hasModel;
 
   return (
     <>
@@ -31,6 +34,36 @@ export default async function Ajustes() {
           <h1>{t("Ajustes")}</h1>
           <p className="sub">{t("Rubro del automapeo, ritmo diario y zonas a recorrer.")}</p>
         </div>
+      </div>
+
+      <div className="card ai-card" style={{ marginBottom: 16 }} id="ia">
+        <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
+          <h2 style={{ margin: 0 }}>{t("IA para mensajes e informes (agentes 3 y 4)")}</h2>
+          <span className={`badge ${mode === "ollama" ? (ollamaOk ? "ok" : "warn") : "muted"}`}>
+            {mode === "ollama" ? t("IA local") : t("Manual")}
+          </span>
+        </div>
+        <p className="help" style={{ marginTop: 0 }}>
+          {t("Manual: copiás el prompt en tu app de Claude. IA local: tu PC escribe sola el mensaje y el informe al cargar las reseñas (gratis, los datos no salen de la computadora). Siempre revisás antes de enviar.")}
+        </p>
+        <dl className="dl">
+          <dt>{t("IA local (Ollama)")}</dt>
+          <dd>
+            {ollama.reachable ? t("Conectada") : t("No responde")}
+            {ollama.reachable && (ollama.hasModel ? <> · {t("modelo {m} listo", { m: ollama.model })}</> : <> · <strong>{t("falta descargar el modelo {m}", { m: ollama.model })}</strong></>)}
+          </dd>
+        </dl>
+        {!ollamaOk && (
+          <p className="help">
+            {t("Para usarla: instalá Ollama (ollama.com/download) y en PowerShell corré:")} <code>ollama pull {ollama.model}</code>
+          </p>
+        )}
+        <form action={setAiModeAction} className="row" style={{ marginTop: 10 }}>
+          <input type="hidden" name="mode" value={mode === "ollama" ? "manual" : "ollama"} />
+          <button className={`btn ${mode === "ollama" ? "secondary" : ""} sm`} disabled={mode !== "ollama" && !ollamaOk}>
+            {mode === "ollama" ? t("Volver a modo manual") : t("Usar IA local")}
+          </button>
+        </form>
       </div>
 
       <div className="grid two">

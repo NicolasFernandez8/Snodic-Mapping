@@ -28,6 +28,12 @@ const ICONS: Record<string, React.ReactNode> = {
     </>
   ),
   revision: <path d="M13 2 4 14h7l-1 8 9-12h-7z" />,
+  resenas: (
+    <>
+      <path d="M4 5h16v11H9l-5 4z" />
+      <path d="m12 7.5.9 1.9 2.1.3-1.5 1.5.4 2.1-1.9-1-1.9 1 .4-2.1-1.5-1.5 2.1-.3z" />
+    </>
+  ),
   lote: (
     <>
       <path d="m12 3 9 5-9 5-9-5z" />
@@ -101,6 +107,7 @@ const LINKS = [
   { href: "/", label: "Panel", icon: "panel" },
   { href: "/mapa", label: "Mapa", icon: "mapa" },
   { href: "/prospectos", label: "Prospectos", icon: "prospectos" },
+  { href: "/resenas", label: "Cola de reseñas", icon: "resenas" },
   { href: "/revision", label: "Revisión rápida", icon: "revision" },
   { href: "/lote", label: "Prompts en lote", icon: "lote" },
   { href: "/pipeline", label: "Pipeline", icon: "pipeline" },

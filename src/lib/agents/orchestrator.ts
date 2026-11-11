@@ -7,14 +7,14 @@ import { classifyPhones, enrichOpenData, fillAreas, refreshSeason, sendDigest, w
 import { notify } from "../notify";
 import { rescoreAll } from "../score-store";
 import { dedupeAll } from "../quality";
-import { llmFromConfig } from "../ai/llm";
+import { getLlm } from "../ai/llm";
 import { parseKmlSectors } from "../geo/kml-import";
 import type { Job } from "../jobs";
 import { importRegion, importSectors, mapNextLocalities, mapNextProspects, sourceFromSettings } from "./agent1-mapper";
 import { collectData, syncProspectsToNotion } from "./agent2-collector";
 import { pullFromNotion } from "./notion-pull";
 import { fixNotionNumbers } from "./notion-fix";
-import { runWriterAgent, syncBodiesToNotion } from "./agent34-writer";
+import { advanceStatus, generateOutput, runWriterAgent, syncBodiesToNotion } from "./agent34-writer";
 import type { AgentLog } from "./types";
 
 export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog): Promise<unknown> {
@@ -46,6 +46,17 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
       if (p.part === "props") return { props: await syncProspectsToNotion(500, log), numbers: await fixNotionNumbers(log) };
       if (p.part === "bodies") return { bodies: await syncBodiesToNotion(500, log) };
       return { props: await syncProspectsToNotion(200, log), numbers: await fixNotionNumbers(log), bodies: await syncBodiesToNotion(200, log) };
+    case "write_prospect": {
+      // IA local: mensaje y después informe de un prospecto (el informe necesita el mensaje listo).
+      const id = Number(p.id);
+      const llm = await getLlm();
+      const m = await generateOutput(id, "message", llm);
+      await advanceStatus(id);
+      const r = await generateOutput(id, "report", llm);
+      const status = await advanceStatus(id);
+      log(`#${id}: mensaje ${m?.status}, informe ${r?.status} → ${status}`);
+      return { message: m?.status, report: r?.status, status };
+    }
     case "notion_fix":
       if (!(await getSetting<boolean>("notion_enabled", false))) {
         log("Notion desactivado: no se numeró nada");
@@ -59,9 +70,9 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
       }
       return pullFromNotion(log);
     case "generate_messages":
-      return runWriterAgent("message", llmFromConfig(), Number(p.limit ?? 30), log);
+      return runWriterAgent("message", await getLlm(), Number(p.limit ?? 30), log);
     case "generate_reports":
-      return runWriterAgent("report", llmFromConfig(), Number(p.limit ?? 30), log);
+      return runWriterAgent("report", await getLlm(), Number(p.limit ?? 30), log);
     case "daily_pipeline":
       return dailyPipeline(log, p.quota ? Number(p.quota) : undefined, p.prospects ? Number(p.prospects) : undefined);
     case "rescore":
@@ -118,8 +129,8 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prosp
   }
   else log("Notion desactivado en Ajustes: los datos quedan solo en la app");
   if (auto) {
-    await step("agente3_mensajes", () => runWriterAgent("message", llmFromConfig(), 200, log));
-    await step("agente4_informes", () => runWriterAgent("report", llmFromConfig(), 200, log));
+    await step("agente3_mensajes", async () => runWriterAgent("message", await getLlm(), 200, log));
+    await step("agente4_informes", async () => runWriterAgent("report", await getLlm(), 200, log));
     if (notion) await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
   }
   await step("agente7_prioridades", () => sendDigest(log));

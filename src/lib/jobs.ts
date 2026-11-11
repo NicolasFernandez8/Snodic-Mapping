@@ -9,6 +9,7 @@ export type JobType =
   | "sync_notion"
   | "notion_pull"
   | "notion_fix"
+  | "write_prospect"
   | "daily_pipeline"
   | "rescore"
   | "watch_openings"

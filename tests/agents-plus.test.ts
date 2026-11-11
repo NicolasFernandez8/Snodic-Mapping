@@ -258,3 +258,23 @@ describe("migraciones", () => {
     expect(sinEsquema).toEqual([]);
   });
 });
+
+describe("IA local (Ollama)", () => {
+  it("llama a /api/chat, limpia <think> y reporta el modelo", async () => {
+    const { OllamaLlm, ollamaStatus } = await import("../src/lib/ai/llm");
+    let body: any;
+    const chat = (async (url: string, init: RequestInit) => {
+      body = { url, ...JSON.parse(String(init.body)) };
+      return { ok: true, status: 200, json: async () => ({ message: { content: "<think>pienso</think>\n¡Hola! Vi vuestras reseñas." } }) };
+    }) as unknown as typeof fetch;
+    const r = await new OllamaLlm("http://host:11434/", "qwen2.5:7b", chat).complete("prompt", 600);
+    expect(r).toEqual({ mode: "ollama", text: "¡Hola! Vi vuestras reseñas.", model: "ollama:qwen2.5:7b" });
+    expect(body.url).toBe("http://host:11434/api/chat");
+    expect(body.stream).toBe(false);
+    expect(body.options.num_predict).toBe(600);
+    const tags = (async () => ({ ok: true, json: async () => ({ models: [{ name: "qwen2.5:7b" }] }) })) as unknown as typeof fetch;
+    expect(await ollamaStatus(tags)).toMatchObject({ reachable: true, hasModel: true });
+    const down = (async () => { throw new Error("ECONNREFUSED"); }) as unknown as typeof fetch;
+    expect(await ollamaStatus(down)).toMatchObject({ reachable: false, hasModel: false });
+  });
+});
