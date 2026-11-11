@@ -13,6 +13,8 @@ const schema = z.object({
   // IA local gratuita (Ollama). Desde Docker, la PC se alcanza como host.docker.internal.
   OLLAMA_URL: z.string().default("http://host.docker.internal:11434"),
   OLLAMA_MODEL: z.string().default("qwen2.5:7b"),
+  // Memoria de contexto (tokens). 8192 entra un prompt con muchas reseñas + el informe completo.
+  OLLAMA_NUM_CTX: z.coerce.number().int().min(2048).max(32768).default(8192),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
   OVERPASS_URL: z.string().default("https://overpass-api.de/api/interpreter"),

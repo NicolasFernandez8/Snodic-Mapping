@@ -51,6 +51,7 @@ export class OllamaLlm implements Llm {
     private baseUrl: string,
     private model: string,
     private fetchImpl: typeof fetch = fetch,
+    private numCtx = 8192,
   ) {}
   async complete(prompt: string, maxTokens: number): Promise<LlmResult> {
     const res = await this.fetchImpl(`${this.baseUrl.replace(/\/$/, "")}/api/chat`, {
@@ -60,7 +61,7 @@ export class OllamaLlm implements Llm {
         model: this.model,
         stream: false,
         messages: [{ role: "user", content: prompt }],
-        options: { temperature: 0.5, num_ctx: 8192, num_predict: maxTokens },
+        options: { temperature: 0.5, num_ctx: this.numCtx, num_predict: maxTokens },
       }),
       signal: AbortSignal.timeout(10 * 60_000),
     });
@@ -96,7 +97,7 @@ export async function getLlm(): Promise<Llm> {
   const { getSetting } = await import("../db");
   const mode = await getSetting<AiMode | null>("ai_mode", null);
   const cfg = config();
-  if (mode === "ollama" || (!mode && cfg.LLM_PROVIDER === "ollama")) return new OllamaLlm(cfg.OLLAMA_URL, cfg.OLLAMA_MODEL);
+  if (mode === "ollama" || (!mode && cfg.LLM_PROVIDER === "ollama")) return new OllamaLlm(cfg.OLLAMA_URL, cfg.OLLAMA_MODEL, fetch, cfg.OLLAMA_NUM_CTX);
   if (mode === "manual") return new ManualLlm();
   return llmFromConfig();
 }
@@ -113,6 +114,6 @@ export function llmFromConfig(): Llm {
     if (!cfg.ANTHROPIC_API_KEY) throw new Error("LLM_PROVIDER=anthropic pero falta ANTHROPIC_API_KEY");
     return new AnthropicLlm(cfg.ANTHROPIC_API_KEY, cfg.ANTHROPIC_MODEL);
   }
-  if (cfg.LLM_PROVIDER === "ollama") return new OllamaLlm(cfg.OLLAMA_URL, cfg.OLLAMA_MODEL);
+  if (cfg.LLM_PROVIDER === "ollama") return new OllamaLlm(cfg.OLLAMA_URL, cfg.OLLAMA_MODEL, fetch, cfg.OLLAMA_NUM_CTX);
   return new ManualLlm();
 }
