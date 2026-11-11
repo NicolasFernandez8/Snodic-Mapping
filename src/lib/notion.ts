@@ -45,7 +45,7 @@ export const CREATE_ONLY = new Set(["region", "category", "social", "type"]);
 /** Si el valor no coincide con ninguna opción existente de la columna, se usa esta (en vez de crear opciones nuevas). */
 const OPTION_FALLBACK: Record<string, string> = { region: "Random" };
 /** Para estas columnas solo se usan opciones que ya existen (nunca se crean). */
-const ONLY_EXISTING = new Set(["social", "region", "type"]);
+const ONLY_EXISTING = new Set(["social", "type"]);
 
 const fold = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -54,7 +54,13 @@ const fold = (s: string) =>
 export function matchOption(options: string[], value: string): string | null {
   const v = fold(value);
   if (!v) return null;
-  return options.find((o) => fold(o) === v) ?? options.find((o) => fold(o).split(" ").includes(v) || fold(o).endsWith(v)) ?? null;
+  return (
+    options.find((o) => fold(o) === v) ??
+    options.find((o) => fold(o).split(" ").includes(v) || fold(o).endsWith(v)) ??
+    // "San Blas - Santo Domingo" (OpenStreetMap) → opción existente "San Blas"
+    options.find((o) => fold(o).length >= 4 && v.startsWith(`${fold(o)} `)) ??
+    null
+  );
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();

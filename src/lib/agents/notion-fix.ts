@@ -64,5 +64,45 @@ export async function fixNotionNumbers(log: AgentLog = () => {}, notion = Notion
   }
   log(`Numeradas ${numbered} filas sin Num${fixed ? ` (${fixed} creadas por la app, corregidas)` : ""}`);
   if (duplicates.length) log(`Posibles duplicados (revisar en Notion, Num): ${duplicates.join(", ")}`);
-  return { numbered, fixed, duplicates };
+  const areas = await fixNotionAreas(log, notion);
+  return { numbered, fixed, duplicates, areas };
+}
+
+/**
+ * Barrio exacto en "Area" para las filas vinculadas con la app cuyo Area es genérico
+ * (vacío, "Random" o el nombre de la ciudad/localidad). Nunca cambia un barrio que ya eligió una persona.
+ */
+export async function fixNotionAreas(log: AgentLog = () => {}, notion = NotionClient.fromConfig()) {
+  if (!notion) return 0;
+  const schema = await notion.schema();
+  const options = await notion.options();
+  const map = propertyMap();
+  const areaProp = resolveProperty(schema, map.region ?? "Area", "region");
+  if (!areaProp || schema[areaProp] !== "select") return 0;
+  const rows = await q<{ id: number; notion_page_id: string; locality: string | null; region: string | null }>(
+    `SELECT p.id, p.notion_page_id, l.name AS locality, r.name AS region FROM prospects p
+     LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN regions r ON r.id = l.region_id
+     WHERE p.notion_page_id IS NOT NULL AND COALESCE(p.area, '') <> ''`,
+  );
+  if (!rows.length) return 0;
+  const byPage = new Map(rows.map((r) => [plain(r.notion_page_id), r]));
+  let updated = 0;
+  for (const page of await notion.queryPages()) {
+    const r = byPage.get(plain(page.id));
+    if (!r) continue;
+    const current = ((page.properties?.[areaProp] as { select?: { name?: string } | null } | undefined)?.select?.name ?? "").trim();
+    const generic = !current || /^random$/i.test(current) || current === r.region || current === r.locality;
+    if (!generic) continue;
+    const { properties } = buildProperties(await notionFields(r.id), schema, { region: map.region ?? "Area" }, options, true);
+    const want = (properties[areaProp] as { select?: { name?: string } | null } | undefined)?.select?.name;
+    if (!want || want === current) continue;
+    try {
+      await notion.updatePage(page.id, { [areaProp]: properties[areaProp] });
+      updated++;
+    } catch (e) {
+      log(`Area ${page.id}: ${(e as Error).message}`);
+    }
+  }
+  if (updated) log(`Area: ${updated} filas con el barrio exacto`);
+  return updated;
 }

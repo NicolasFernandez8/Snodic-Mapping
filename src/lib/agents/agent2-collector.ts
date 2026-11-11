@@ -103,8 +103,8 @@ export async function collectData(limit = 50, log: AgentLog = () => {}, places?:
 }
 
 export async function notionFields(id: number): Promise<ProspectFields> {
-  const p = await one<ProspectRow & { locality_name: string | null; region_name: string | null; brand: string | null }>(
-    `SELECT ${PROSPECT_COLUMNS}, l.name AS locality_name, r.name AS region_name
+  const p = await one<ProspectRow & { locality_name: string | null; region_name: string | null; brand: string | null; area: string | null }>(
+    `SELECT ${PROSPECT_COLUMNS}, l.name AS locality_name, r.name AS region_name, p.area
      FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN regions r ON r.id = l.region_id
      WHERE p.id = $1`,
     [id],
@@ -123,8 +123,9 @@ export async function notionFields(id: number): Promise<ProspectFields> {
     address: p.address,
     contact_info: contactInfo(p),
     // Area de Notion: el barrio/localidad si ya es una opción de la columna; si no, "Random".
-    // Si la "localidad" es la ciudad entera (igual que la región), no es un barrio: va "Random".
-    region: p.locality_name && p.locality_name !== p.region_name ? p.locality_name : null,
+    // Area de Notion: el barrio exacto (OpenStreetMap). Si no se conoce, la localidad mapeada
+    // salvo que sea la ciudad entera; si no hay nada, "Random".
+    region: p.area || (p.locality_name && p.locality_name !== p.region_name ? p.locality_name : null),
     category: notionCategory(p.category),
     email: p.email,
     type: p.brand ? "Franchise" : "Normal",

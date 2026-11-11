@@ -3,7 +3,7 @@
  * El "daily_pipeline" corre todo en orden: mapear → recopilar → Notion → mensaje → informe → Notion.
  */
 import { getSetting, one, setSetting } from "../db";
-import { classifyPhones, enrichOpenData, refreshSeason, sendDigest, watchOpenings } from "./agents-plus";
+import { classifyPhones, enrichOpenData, fillAreas, refreshSeason, sendDigest, watchOpenings } from "./agents-plus";
 import { notify } from "../notify";
 import { rescoreAll } from "../score-store";
 import { dedupeAll } from "../quality";
@@ -75,7 +75,7 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
     case "watch_openings":
       return watchOpenings(log);
     case "enrich_open":
-      return enrichOpenData(log, Number(p.limit ?? 60));
+      return { datos: await enrichOpenData(log, Number(p.limit ?? 60)), barrios: await fillAreas(log, Number(p.areas ?? 200)) };
     case "season":
       return refreshSeason(log);
     default:
@@ -100,6 +100,7 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prosp
   );
   await step("agente2_datos", () => collectData(500, log));
   await step("agente2_datos_abiertos", () => enrichOpenData(log, 40));
+  await step("agente2_barrios", () => fillAreas(log, 120));
   // Mensual: vigilar aperturas y refrescar el calendario de temporada.
   const daysSince = async (key: string) => {
     const at = await getSetting<string | null>(key, null);

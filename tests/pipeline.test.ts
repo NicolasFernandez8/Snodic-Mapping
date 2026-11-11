@@ -397,4 +397,29 @@ d("pipeline de agentes (integración)", () => {
     expect(patches["manual-row"]).toEqual({ Num: { number: 245 } });
     await db.q("DELETE FROM prospects WHERE id = $1", [pid]);
   });
+  it("Barrios: se completan desde OpenStreetMap y corrigen el Area genérico en Notion", async () => {
+    const { db } = mod;
+    const { fillAreas } = await import("../src/lib/agents/agents-plus");
+    const { fixNotionAreas } = await import("../src/lib/agents/notion-fix");
+    const { NotionClient } = await import("../src/lib/notion");
+    await db.q("UPDATE prospects SET area = '' WHERE area IS NULL");
+    const pid = (await db.one<{ id: number }>(
+      "INSERT INTO prospects (source, source_id, name, lat, lng, status, niche_key, notion_page_id) VALUES ('manual','AR1','Hostal Barrio',38.35,-0.48,'synced','hospitality','11111111-2222-3333-4444-555555555555') RETURNING id",
+    ))!.id;
+    const osm = (async () => ({ ok: true, status: 200, json: async () => ({ address: { suburb: "San Blas - Santo Domingo", city: "Alicante" } }) })) as unknown as typeof fetch;
+    const r = await fillAreas(() => {}, 10, osm);
+    expect(r.found).toBe(1);
+    expect((await db.one<{ area: string }>("SELECT area FROM prospects WHERE id = $1", [pid]))?.area).toBe("San Blas - Santo Domingo");
+    const patches: Record<string, unknown>[] = [];
+    const fake = (async (url: string, init: RequestInit) => {
+      let json: unknown = {};
+      if (url.endsWith("/databases/db")) json = { properties: { Name: { type: "title" }, Area: { type: "select", select: { options: [{ name: "Random" }, { name: "San Blas" }] } } } };
+      else if (url.endsWith("/query")) json = { results: [{ id: "11111111222233334444555555555555", properties: { Area: { type: "select", select: { name: "Random" } } } }], has_more: false };
+      else if (init.method === "PATCH") patches.push(JSON.parse(String(init.body)).properties);
+      return { ok: true, status: 200, headers: new Headers(), json: async () => json, text: async () => "" };
+    }) as unknown as typeof fetch;
+    expect(await fixNotionAreas(() => {}, new NotionClient("tok", "db", fake))).toBe(1);
+    expect(patches[0]).toEqual({ Area: { select: { name: "San Blas" } } });
+    await db.q("DELETE FROM prospects WHERE id = $1", [pid]);
+  });
 });

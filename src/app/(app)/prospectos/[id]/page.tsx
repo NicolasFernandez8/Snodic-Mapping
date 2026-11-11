@@ -47,6 +47,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
     locality: string | null;
     region: string | null;
     created_at: string;
+    area: string | null;
   }>(
     `SELECT p.*, l.name AS locality, r.name AS region FROM prospects p
      LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN regions r ON r.id = l.region_id WHERE p.id = $1`,
@@ -100,6 +101,7 @@ export default async function Prospecto({ params }: { params: Promise<{ id: stri
             <dt>{t("Días")}</dt><dd><V v={p.business_days} /></dd>
             <dt>{t("Horario")}</dt><dd><V v={p.business_hours} /></dd>
             <dt>{t("Dirección")}</dt><dd><V v={p.address} /></dd>
+            <dt>{t("Barrio")}</dt><dd><V v={p.area} /></dd>
             <dt>{t("Rating")}</dt><dd>{p.rating ? t("{r}★ · {n} reseñas", { r: p.rating, n: p.reviews_count ?? 0 }) : <V v={null} />}</dd>
             <dt>{t("Reseñas")}</dt><dd><V v={p.reviews_url} href /></dd>
             <dt>{t("Fuente")}</dt><dd>{p.source}</dd>

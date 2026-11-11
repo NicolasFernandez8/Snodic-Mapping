@@ -14,7 +14,7 @@ import { getSetting, one, q, setSetting } from "../db";
 import { logActivity, setStage } from "../crm";
 import { notify } from "../notify";
 import { phoneType, localSeasonDates, seasonAdvice } from "../extras";
-import { reverseAddress, spainHolidays, wikidataInfo } from "../enrich";
+import { reverseAddress, reverseArea, spainHolidays, wikidataInfo } from "../enrich";
 import { rescore } from "../score-store";
 import { activeNiche, saveDiscoveredLimited, sourceFromSettings } from "./agent1-mapper";
 import type { AgentLog, LocalityRow } from "./types";
@@ -176,6 +176,30 @@ export async function seasonInfo() {
   );
   const advice = seasonAdvice(dates.filter((d) => d.kind !== "holiday" || /Semana Santa|Viernes Santo|Jueves Santo|Navidad/i.test(d.name)));
   return { dates, advice };
+}
+
+// ---------- Agente 2 · Barrio de cada prospecto (OpenStreetMap / Nominatim) ----------
+/** Completa el barrio de los prospectos que todavía no lo tienen (1 pedido por segundo, gratis). */
+export async function fillAreas(log: AgentLog = () => {}, limit = 60, fetchImpl?: typeof fetch) {
+  const rows = await q<{ id: number; name: string; lat: number; lng: number }>(
+    `SELECT id, name, lat, lng FROM prospects WHERE area IS NULL AND lat IS NOT NULL AND lng IS NOT NULL
+     ORDER BY score DESC NULLS LAST, id LIMIT $1`,
+    [limit],
+  );
+  let found = 0;
+  for (const r of rows) {
+    try {
+      const area = await reverseArea(r.lat, r.lng, fetchImpl);
+      await q("UPDATE prospects SET area = $2, updated_at = now() WHERE id = $1", [r.id, area ?? ""]);
+      if (area) found++;
+    } catch (e) {
+      log(`${r.name}: ${(e as Error).message}`);
+      if (/429|403/.test((e as Error).message)) break; // límite de Nominatim: seguir en la próxima corrida
+    }
+  }
+  const left = (await one<{ n: number }>("SELECT count(*)::int AS n FROM prospects WHERE area IS NULL AND lat IS NOT NULL"))?.n ?? 0;
+  log(`Barrios: ${found} encontrados de ${rows.length} revisados${left ? ` · quedan ${left} (siguen en la próxima corrida)` : ""}`);
+  return { checked: rows.length, found, left };
 }
 
 // ---------- Mejora Agente 2 · Wikidata + Nominatim ----------

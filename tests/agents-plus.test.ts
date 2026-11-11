@@ -217,7 +217,10 @@ describe("Notion: opciones de la base de Snodic", () => {
     };
     const { properties } = buildProperties(fields, schema, map, options, true) as { properties: Record<string, any> };
     expect(properties[" Category"]).toEqual({ multi_select: [{ name: "Board / Accommodation" }] });
-    expect(properties.Area).toEqual({ select: { name: "Random" } });
+    // Barrio nuevo: se crea la opción (el Area es el barrio exacto); sin barrio → "Random".
+    expect(properties.Area).toEqual({ select: { name: "Centro" } });
+    const none = buildProperties({ ...fields, region: null }, schema, map, options, true) as { properties: Record<string, any> };
+    expect(none.properties.Area).toEqual({ select: { name: "Random" } });
     expect(properties["Social Networks"].multi_select.map((o: { name: string }) => o.name)).toEqual(["【🟢】 Whatsapp", "【🟣】Instagram", "【🔴】Email"]);
     const sb = buildProperties({ ...fields, region: "San Blas" }, schema, map, options, true) as { properties: Record<string, any> };
     expect(sb.properties.Area).toEqual({ select: { name: "San Blas" } });
@@ -226,5 +229,22 @@ describe("Notion: opciones de la base de Snodic", () => {
     const { buildProperties } = await import("../src/lib/notion");
     const { properties } = buildProperties({ name: "X", phone: "1", region: "Paus", category: "x", social: ["Instagram"], type: "Normal" }, schema, map, options, false);
     expect(Object.keys(properties).sort()).toEqual(["Name", "Phone"]);
+  });
+});
+
+describe("barrio (Area)", () => {
+  it("toma el barrio de OpenStreetMap y lo cruza con las opciones de Notion", async () => {
+    const { pickArea, reverseArea } = await import("../src/lib/enrich");
+    const { matchOption } = await import("../src/lib/notion");
+    expect(pickArea({ suburb: "San Blas - Santo Domingo", city: "Alicante" })).toBe("San Blas - Santo Domingo");
+    expect(pickArea({ neighbourhood: "Benalúa" })).toBe("Benalúa");
+    expect(pickArea({ city: "Alicante" })).toBeNull();
+    const a = await reverseArea(38.34, -0.49, fake({ address: { suburb: "San Agustín", city: "Alicante" } }));
+    expect(a).toBe("San Agustín");
+    const opts = ["Paus", "Random", "San Blas", "San Agustin", "Los Angeles"];
+    expect(matchOption(opts, "San Agustín")).toBe("San Agustin");
+    expect(matchOption(opts, "Los Ángeles")).toBe("Los Angeles");
+    expect(matchOption(opts, "San Blas - Santo Domingo")).toBe("San Blas");
+    expect(matchOption(opts, "Benalúa")).toBeNull();
   });
 });

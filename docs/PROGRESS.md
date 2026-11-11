@@ -160,3 +160,8 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 ## 2026-11-11 · Notion: numerar y corregir
 - Acción "Numerar y corregir" (job `notion_fix`): Num a las filas sin número (de la más vieja a la más nueva, desde el máximo) y corrige Category/Area/Type/Social Networks/State de las filas creadas por la app. Corre sola después de cada envío y en el pipeline diario.
 - El envío excluye prospectos marcados como duplicados. Categorías del Agente 1 ("Guest House / Hostal", etc.) → "Board / Accommodation".
+
+## 2026-11-11 · Barrio exacto en Area
+- Migración `010_prospect_area`: `prospects.area` (barrio). Se completa con Nominatim (OpenStreetMap, 1 pedido/seg) en "Datos abiertos" y en el pipeline diario.
+- Notion: Area = barrio exacto (usa la opción existente si coincide: San Agustín → San Agustin, "San Blas - Santo Domingo" → San Blas; si es nuevo crea la opción; sin barrio → Random). "Numerar y corregir" también reemplaza Areas genéricas (vacío, Random, ciudad) en filas vinculadas.
+- Ficha: dato "Barrio".

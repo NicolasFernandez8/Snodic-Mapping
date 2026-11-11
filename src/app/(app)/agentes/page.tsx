@@ -44,7 +44,7 @@ const FOLDERS: Folder[] = [
       {
         title: "Datos abiertos",
         type: "enrich_open",
-        desc: "Completa web, redes y cadena con Wikidata, y direcciones faltantes con OpenStreetMap (APIs oficiales y gratuitas).",
+        desc: "Completa web, redes y cadena con Wikidata, y la dirección y el barrio de cada prospecto con OpenStreetMap (APIs oficiales y gratuitas).",
       },
     ],
   },

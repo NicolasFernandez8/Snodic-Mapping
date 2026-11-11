@@ -850,4 +850,6 @@ export const EN: Record<string, string> = {
   "Numerar y corregir": "Number and fix",
   "Pone Num a las filas que no lo tienen (sigue desde el último) y corrige Category, Area, State y redes de las filas que creó la app. Se hace solo después de cada envío.": "Gives Num to rows without it (continuing from the last one) and fixes Category, Area, State and networks on rows the app created. Runs automatically after each send.",
   "Notion · Numerar y corregir": "Notion · Number and fix",
+  Barrio: "Neighborhood",
+  "Completa web, redes y cadena con Wikidata, y la dirección y el barrio de cada prospecto con OpenStreetMap (APIs oficiales y gratuitas).": "Fills website, social and chain from Wikidata, and each prospect's address and neighborhood from OpenStreetMap (official, free APIs).",
 };

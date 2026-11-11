@@ -35,6 +35,25 @@ export async function wikidataInfo(qid: string, fetchImpl: F = fetch): Promise<W
 }
 
 let lastNominatim = 0;
+
+/** Barrio a partir de la respuesta de Nominatim: barrio administrativo, después vecindario. */
+export function pickArea(a: Record<string, string> | undefined): string | null {
+  if (!a) return null;
+  return a.suburb ?? a.quarter ?? a.neighbourhood ?? a.city_district ?? null;
+}
+
+/** Barrio (San Blas, San Agustín…) de un punto, con la API oficial de OpenStreetMap (gratis, 1 pedido/seg). */
+export async function reverseArea(lat: number, lng: number, fetchImpl: F = fetch): Promise<string | null> {
+  const wait = 1100 - (Date.now() - lastNominatim);
+  if (wait > 0 && fetchImpl === fetch) await sleep(wait);
+  lastNominatim = Date.now();
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1&accept-language=es`;
+  const res = await fetchImpl(url, { headers: { "User-Agent": config().APP_USER_AGENT } });
+  if (!res.ok) throw new Error(`Nominatim respondió ${res.status}`);
+  const j = (await res.json()) as { address?: Record<string, string> };
+  return pickArea(j.address);
+}
+
 export async function reverseAddress(lat: number, lng: number, fetchImpl: F = fetch): Promise<string | null> {
   const wait = 1100 - (Date.now() - lastNominatim);
   if (wait > 0 && fetchImpl === fetch) await sleep(wait);
