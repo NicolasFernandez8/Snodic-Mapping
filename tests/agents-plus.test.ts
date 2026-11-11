@@ -198,3 +198,33 @@ describe("Notion: correlativo Num y link de la base", () => {
     expect(calls.filter((c) => c.url.endsWith("/query"))).toHaveLength(1);
   });
 });
+
+describe("Notion: opciones de la base de Snodic", () => {
+  const schema = { Name: "title", " Category": "multi_select", Area: "select", "Social Networks": "multi_select", Type: "select", Phone: "rich_text" };
+  const options = {
+    " Category": ["Gastropub / Restaurant", "Board / Accommodation"],
+    Area: ["Paus", "Random", "San Blas"],
+    "Social Networks": ["【🟢】 Whatsapp", "【🔵】Facebook", "【🟣】Instagram", "【🔴】Email", "【⚪】Call"],
+    Type: ["Normal", "Qualified", "Franchise"],
+  };
+  const map = { name: "Name", category: "Category", region: "Area", social: "Social Networks", type: "Type", phone: "Phone" };
+  it("usa las opciones existentes y Random si el barrio no está", async () => {
+    const { buildProperties } = await import("../src/lib/notion");
+    const { notionCategory, socialNetworks } = await import("../src/lib/agents/agent2-collector");
+    const fields = {
+      name: "Hotel Sol", phone: "+34 612 000 111", type: "Normal", region: "Centro", category: notionCategory("hotel"),
+      social: socialNetworks({ phone: "+34 612 000 111", email: "a@b.es", instagram: "https://instagram.com/sol", facebook: null }),
+    };
+    const { properties } = buildProperties(fields, schema, map, options, true) as { properties: Record<string, any> };
+    expect(properties[" Category"]).toEqual({ multi_select: [{ name: "Board / Accommodation" }] });
+    expect(properties.Area).toEqual({ select: { name: "Random" } });
+    expect(properties["Social Networks"].multi_select.map((o: { name: string }) => o.name)).toEqual(["【🟢】 Whatsapp", "【🟣】Instagram", "【🔴】Email"]);
+    const sb = buildProperties({ ...fields, region: "San Blas" }, schema, map, options, true) as { properties: Record<string, any> };
+    expect(sb.properties.Area).toEqual({ select: { name: "San Blas" } });
+  });
+  it("al actualizar no pisa Area, Category, Type ni Social Networks", async () => {
+    const { buildProperties } = await import("../src/lib/notion");
+    const { properties } = buildProperties({ name: "X", phone: "1", region: "Paus", category: "x", social: ["Instagram"], type: "Normal" }, schema, map, options, false);
+    expect(Object.keys(properties).sort()).toEqual(["Name", "Phone"]);
+  });
+});

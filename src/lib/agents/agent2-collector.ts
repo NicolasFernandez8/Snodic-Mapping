@@ -14,7 +14,7 @@ import { rescore } from "../score-store";
 
 export const PROSPECT_COLUMNS = `p.id, p.locality_id, p.niche_key, p.source, p.source_id, p.name, p.category, p.address, p.phone,
   p.website, p.email, p.instagram, p.facebook, p.business_days, p.business_hours, p.google_maps_url, p.reviews_url, p.rating, p.reviews_count, p.lat, p.lng,
-  p.status, p.notion_page_id, p.notion_blocks, p.raw`;
+  p.status, p.notion_page_id, p.notion_blocks, p.raw, p.brand`;
 
 /** Enlace de reseñas: el de la API o, si no hay, la ficha de Maps. */
 export function reviewsLink(p: Pick<ProspectRow, "reviews_url" | "google_maps_url">): string {
@@ -103,7 +103,7 @@ export async function collectData(limit = 50, log: AgentLog = () => {}, places?:
 }
 
 export async function notionFields(id: number): Promise<ProspectFields> {
-  const p = await one<ProspectRow & { locality_name: string | null; region_name: string | null }>(
+  const p = await one<ProspectRow & { locality_name: string | null; region_name: string | null; brand: string | null }>(
     `SELECT ${PROSPECT_COLUMNS}, l.name AS locality_name, r.name AS region_name
      FROM prospects p LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN regions r ON r.id = l.region_id
      WHERE p.id = $1`,
@@ -122,12 +122,46 @@ export async function notionFields(id: number): Promise<ProspectFields> {
     phone: formatPhone(p.phone),
     address: p.address,
     contact_info: contactInfo(p),
-    region: p.region_name,
-    category: p.category,
+    // Area de Notion: el barrio/localidad si ya es una opción de la columna; si no, "Random".
+    region: p.locality_name,
+    category: notionCategory(p.category),
     email: p.email,
-    type: "Normal",
+    type: p.brand ? "Franchise" : "Normal",
+    social: socialNetworks(p),
     google_maps_url: p.google_maps_url,
   };
+}
+
+/** Categoría de OpenStreetMap → opción en inglés de la base de Snodic (si no está, se deja tal cual). */
+const CATEGORY_EN: Record<string, string> = {
+  hotel: "Board / Accommodation", hostel: "Board / Accommodation", guest_house: "Board / Accommodation", apartment: "Board / Accommodation",
+  motel: "Board / Accommodation", chalet: "Board / Accommodation", camp_site: "Board / Accommodation",
+  restaurant: "Gastropub / Restaurant", cafe: "Coffee Shop", bar: "Brewery / Bar", pub: "Brewery / Bar", biergarten: "Brewery / Bar",
+  fast_food: "Fast Food", ice_cream: "Ice Cream Shop", bakery: "Bakery", pastry: "Bakery", confectionery: "Candy Store",
+  hairdresser: "Hair salon / Barbershop", beauty: "Beauty Salon", massage: "Massage Center", tattoo: "Tattoo Studio",
+  dentist: "Dental Clinic", pharmacy: "Pharmacy", chemist: "Drugstore", gym: "Gym", fitness_centre: "Gym",
+  florist: "Florist", supermarket: "Supermarket", convenience: "Mini Market", greengrocer: "Fruit and Vegetable Shop", butcher: "Butcher Shop",
+  pet: "Pet Shop", car_repair: "Auto Repair Shop", car_wash: "Car Wash", car_parts: "Auto parts", motorcycle: "Motorcycle Shop",
+  clothes: "Clothing Store", second_hand: "Second Hand Store", shoes: "Shoe Store", jewelry: "Jewelry", gift: "Gift Shop", toys: "Toy Store",
+  furniture: "Furniture Store", hardware: "Tool Store", paint: "Paint Shop", books: "Bookstore / Stationery", stationery: "Bookstore / Stationery",
+  estate_agent: "Real Estate Agency", travel_agency: "Travel Agency", insurance: "Insurance Agency", driving_school: "Driving School",
+  music_school: "Music School", taxi: "Taxi Service", perfumery: "Perfumery", optician: "Jewelry / Watchmaking",
+};
+export function notionCategory(cat: string | null): string | null {
+  if (!cat) return null;
+  return CATEGORY_EN[cat.toLowerCase()] ?? cat;
+}
+
+/** Redes del prospecto con los nombres de la columna "Social Networks" (solo se usan opciones existentes). */
+export function socialNetworks(p: { phone: string | null; email: string | null; instagram: string | null; facebook: string | null }): string[] {
+  const out: string[] = [];
+  const mobile = /^(\+?34)?\s*[67]/.test((p.phone ?? "").replace(/[\s().-]/g, ""));
+  if (p.phone && mobile) out.push("Whatsapp");
+  if (p.instagram) out.push("Instagram");
+  if (p.facebook) out.push("Facebook");
+  if (p.email) out.push("Email");
+  if (p.phone && !mobile) out.push("Call");
+  return out;
 }
 
 /** Crea o actualiza en Notion los prospectos con datos completados. */

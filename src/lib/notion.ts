@@ -33,7 +33,29 @@ export const DEFAULT_PROPERTY_MAP: Record<string, string> = {
   email: "Email",
   type: "Type",
   google_maps_url: "URL Google Maps",
+  social: "Social Networks",
 };
+
+/**
+ * Campos que solo se completan al CREAR la página: después los maneja una persona en Notion
+ * (no se pisan en cada sincronización).
+ */
+export const CREATE_ONLY = new Set(["region", "category", "social", "type"]);
+
+/** Si el valor no coincide con ninguna opción existente de la columna, se usa esta (en vez de crear opciones nuevas). */
+const OPTION_FALLBACK: Record<string, string> = { region: "Random" };
+/** Para estas columnas solo se usan opciones que ya existen (nunca se crean). */
+const ONLY_EXISTING = new Set(["social", "region", "type"]);
+
+const fold = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Opción existente que corresponde al valor (sin importar mayúsculas, acentos, emojis ni corchetes). */
+export function matchOption(options: string[], value: string): string | null {
+  const v = fold(value);
+  if (!v) return null;
+  return options.find((o) => fold(o) === v) ?? options.find((o) => fold(o).split(" ").includes(v) || fold(o).endsWith(v)) ?? null;
+}
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -48,7 +70,7 @@ export function resolveProperty(schema: Record<string, PropType>, wanted: string
   return null;
 }
 
-export type ProspectFields = Record<string, string | number | boolean | null | undefined>;
+export type ProspectFields = Record<string, string | number | boolean | string[] | null | undefined>;
 
 type PropType =
   | "title"
@@ -108,16 +130,42 @@ export function buildProperties(
   fields: ProspectFields,
   schema: Record<string, PropType>,
   map: Record<string, string>,
+  options: Record<string, string[]> = {},
+  creating = true,
 ): { properties: Record<string, unknown>; missing: string[] } {
   const properties: Record<string, unknown> = {};
   const missing: string[] = [];
   for (const [field, wanted] of Object.entries(map)) {
+    if (!creating && CREATE_ONLY.has(field)) continue;
     const propName = resolveProperty(schema, wanted, field);
     if (!propName) {
       missing.push(wanted);
       continue;
     }
-    const v = toNotionValue(schema[propName], fields[field]);
+    const type = schema[propName];
+    let value = fields[field];
+    // Selecciones: usar las opciones que ya tiene la columna.
+    if ((type === "select" || type === "multi_select" || type === "status") && options[propName]?.length) {
+      const opts = options[propName];
+      const wantedValues = Array.isArray(value) ? value : value === null || value === undefined || value === "" ? [] : [String(value)];
+      const picked = wantedValues
+        .map((x) => matchOption(opts, String(x)) ?? (ONLY_EXISTING.has(field) ? null : String(x)))
+        .filter((x): x is string => !!x);
+      if (!picked.length && OPTION_FALLBACK[field]) {
+        const fb = matchOption(opts, OPTION_FALLBACK[field]);
+        if (fb) picked.push(fb);
+      }
+      if (type === "multi_select") {
+        if (!picked.length && ONLY_EXISTING.has(field)) continue;
+        properties[propName] = { multi_select: [...new Set(picked)].map((name) => ({ name: name.slice(0, 100).replace(/,/g, " ") })) };
+        continue;
+      }
+      value = picked[0] ?? null;
+      if (value === null && ONLY_EXISTING.has(field)) continue;
+    } else if (Array.isArray(value)) {
+      value = value.join(", ");
+    }
+    const v = toNotionValue(type, value as string | number | boolean | null | undefined);
     if (v !== undefined) properties[propName] = v;
   }
   return { properties, missing };
@@ -159,6 +207,7 @@ export function notionId(raw: string): string {
 export class NotionClient {
   private schemaCache: Record<string, PropType> | null = null;
   private nextNum: number | null = null;
+  private optionsCache: Record<string, string[]> = {};
   private databaseId: string;
   constructor(
     private token: string,
@@ -197,13 +246,22 @@ export class NotionClient {
 
   async schema(): Promise<Record<string, PropType>> {
     if (!this.schemaCache) {
-      const db = await this.call<{ properties: Record<string, { type: string }> }>(
+      const db = await this.call<{ properties: Record<string, { type: string } & Record<string, { options?: { name: string }[] }>> }>(
         `/databases/${this.databaseId}`,
         "GET",
       );
       this.schemaCache = Object.fromEntries(Object.entries(db.properties).map(([k, v]) => [k, v.type]));
+      this.optionsCache = Object.fromEntries(
+        Object.entries(db.properties).map(([k, v]) => [k, (v[v.type]?.options ?? []).map((o) => o.name)]),
+      );
     }
     return this.schemaCache;
+  }
+
+  /** Opciones de las columnas de selección (select, multi_select, status). */
+  async options(): Promise<Record<string, string[]>> {
+    await this.schema();
+    return this.optionsCache;
   }
 
   /**
@@ -228,11 +286,16 @@ export class NotionClient {
   }
 
   async upsertProspect(pageId: string | null, fields: ProspectFields) {
-    const { properties, missing } = buildProperties(fields, await this.schema(), propertyMap());
-    // Las páginas nuevas reciben el siguiente número de la columna "Num" (las existentes no se tocan).
+    const schema = await this.schema();
+    const { properties, missing } = buildProperties(fields, schema, propertyMap(), this.optionsCache, !pageId);
     if (!pageId) {
+      // Las páginas nuevas reciben el siguiente número de "Num" (las existentes no se tocan)…
       const num = await this.takeNumber();
       if (num) properties[num.prop] = { number: num.value };
+      // …y arrancan en el primer estado de contacto ("Pending Contact"), si existe.
+      const state = resolveProperty(schema, "State");
+      const pending = state && schema[state] === "status" ? matchOption(this.optionsCache[state] ?? [], "Pending Contact") : null;
+      if (state && pending) properties[state] = { status: { name: pending } };
     }
     if (pageId) {
       await this.call(`/pages/${pageId}`, "PATCH", { properties });
