@@ -123,7 +123,8 @@ export async function notionFields(id: number): Promise<ProspectFields> {
     address: p.address,
     contact_info: contactInfo(p),
     // Area de Notion: el barrio/localidad si ya es una opción de la columna; si no, "Random".
-    region: p.locality_name,
+    // Si la "localidad" es la ciudad entera (igual que la región), no es un barrio: va "Random".
+    region: p.locality_name && p.locality_name !== p.region_name ? p.locality_name : null,
     category: notionCategory(p.category),
     email: p.email,
     type: p.brand ? "Franchise" : "Normal",
