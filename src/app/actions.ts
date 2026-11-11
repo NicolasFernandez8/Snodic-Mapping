@@ -18,6 +18,7 @@ const JOB_TYPES: JobType[] = [
   "notion_pull",
   "notion_fix",
   "write_prospect",
+  "split_localities",
   "daily_pipeline",
   "rescore",
   "watch_openings",

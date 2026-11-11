@@ -123,9 +123,9 @@ export async function notionFields(id: number): Promise<ProspectFields> {
     address: p.address,
     contact_info: contactInfo(p),
     // Area de Notion: el barrio/localidad si ya es una opción de la columna; si no, "Random".
-    // Area de Notion: el barrio exacto (OpenStreetMap). Si no se conoce, la localidad mapeada
-    // salvo que sea la ciudad entera; si no hay nada, "Random".
-    region: p.area || (p.locality_name && p.locality_name !== p.region_name ? p.locality_name : null),
+    // Area de Notion: la zona exacta que separó el Agente 1 (municipio o barrio oficial).
+    // Si la zona es la ciudad entera, el barrio por dirección (OpenStreetMap); si no hay nada, "Random".
+    region: (p.locality_name && p.locality_name !== p.region_name ? p.locality_name : null) || p.area || null,
     category: notionCategory(p.category),
     email: p.email,
     type: p.brand ? "Franchise" : "Normal",

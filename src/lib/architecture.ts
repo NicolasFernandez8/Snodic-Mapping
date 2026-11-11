@@ -13,6 +13,7 @@ export const ARCH: ArchAgent[] = [
     processes: [
       { label: "Importar región", href: "/ajustes#region", desc: "Divide la región en localidades con OpenStreetMap o un KML." },
       { label: "Mapear localidades", href: "/agentes#agente-1", desc: "Busca negocios del rubro, de la más cercana al centro hacia afuera." },
+      { label: "Dividir en barrios", href: "/agentes#agente-1", desc: "Divide la ciudad en sus barrios oficiales para que cada prospecto tenga su zona exacta." },
       { label: "Mapa y filtros", href: "/mapa", desc: "Zonas por estado y prospectos en el mapa." },
       { label: "KML para My Maps", href: "/mapa", desc: "Exporta zonas y prospectos para Google My Maps." },
       { label: "Calendario de mapeos", href: "/calendario", desc: "Programa mapeos por día y hora." },

@@ -890,4 +890,8 @@ export const EN: Record<string, string> = {
   "Ctrl + Enter para guardar": "Ctrl + Enter to save",
   "Agentes 3 y 4 · IA local": "Agents 3 and 4 · Local AI",
   "Reseñas mínimas para escribir": "Minimum reviews to write",
+  "Dividir en barrios": "Split into neighborhoods",
+  "Divide las zonas grandes (como la ciudad de Alicante) en sus barrios oficiales de OpenStreetMap y ubica cada prospecto en su barrio. El Area de Notion pasa a ser la zona exacta.": "Splits large areas (like Alicante city) into their official OpenStreetMap neighborhoods and places each prospect in its neighborhood. Notion's Area becomes the exact zone.",
+  "Agente 1 · Dividir en barrios": "Agent 1 · Split into neighborhoods",
+  "Divide la ciudad en sus barrios oficiales para que cada prospecto tenga su zona exacta.": "Splits the city into its official neighborhoods so each prospect gets its exact zone.",
 };

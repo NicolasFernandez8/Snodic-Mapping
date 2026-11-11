@@ -31,6 +31,11 @@ const FOLDERS: Folder[] = [
         desc: "Divide una provincia o ciudad en localidades (OpenStreetMap) o importa sectores propios desde un KML de My Maps.",
         link: "/ajustes#region",
       },
+      {
+        title: "Dividir en barrios",
+        type: "split_localities",
+        desc: "Divide las zonas grandes (como la ciudad de Alicante) en sus barrios oficiales de OpenStreetMap y ubica cada prospecto en su barrio. El Area de Notion pasa a ser la zona exacta.",
+      },
     ],
   },
   {

@@ -10,7 +10,7 @@ import { dedupeAll } from "../quality";
 import { getLlm } from "../ai/llm";
 import { parseKmlSectors } from "../geo/kml-import";
 import type { Job } from "../jobs";
-import { importRegion, importSectors, mapNextLocalities, mapNextProspects, sourceFromSettings } from "./agent1-mapper";
+import { importRegion, importSectors, mapNextLocalities, mapNextProspects, sourceFromSettings, splitLargeLocalities } from "./agent1-mapper";
 import { collectData, syncOneToNotion, syncProspectsToNotion } from "./agent2-collector";
 import { NotionClient } from "../notion";
 import { pullFromNotion } from "./notion-pull";
@@ -47,6 +47,8 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
       if (p.part === "props") return { props: await syncProspectsToNotion(500, log), numbers: await fixNotionNumbers(log) };
       if (p.part === "bodies") return { bodies: await syncBodiesToNotion(500, log) };
       return { props: await syncProspectsToNotion(200, log), numbers: await fixNotionNumbers(log), bodies: await syncBodiesToNotion(200, log) };
+    case "split_localities":
+      return splitLargeLocalities(log, Number(p.minProspects ?? 30));
     case "write_prospect": {
       // IA local: mensaje y después informe de un prospecto (el informe necesita el mensaje listo).
       const id = Number(p.id);
@@ -118,6 +120,8 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prosp
   };
   const quota = quotaOverride ?? (await getSetting<number>("daily_locality_quota", 3));
   const auto = await getSetting<boolean>("auto_generate_outputs", true);
+  // Antes de mapear: las ciudades grandes se dividen en sus barrios oficiales (zona exacta para cada prospecto).
+  await step("agente1_barrios", () => splitLargeLocalities(log));
   await step("agente1_mapeo", async () =>
     prospects ? mapNextProspects(prospects, await sourceFromSettings(), log) : mapNextLocalities(quota, await sourceFromSettings(), log),
   );

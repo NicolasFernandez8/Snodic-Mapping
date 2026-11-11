@@ -12,7 +12,7 @@ import { simplifyArea } from "../geo/simplify";
 import { findExisting, isBlocked } from "../quality";
 import { getSetting, one, q } from "../db";
 import { bbox, centroid, haversineKm, pointInArea, type Area, type Position } from "../geo/geometry";
-import { overpass, queries, relationIdOf, relationToBoundary } from "../geo/osm";
+import { overpass, queries, relationIdOf, relationToBoundary, type OverpassElement } from "../geo/osm";
 import type { KmlSector } from "../geo/kml-import";
 import { matchesNiche, PlacesClient, type PlaceSummary } from "../sources/places";
 import type { AgentLog, LocalityRow, Niche } from "./types";
@@ -97,7 +97,90 @@ export async function importRegion(
   }
   const saved = await saveLocalities(region.id, origin, items);
   log(`${saved} localidades guardadas para ${regionName}`);
+  // La ciudad cabecera (mismo nombre que la región) se divide en barrios oficiales si OpenStreetMap los tiene.
+  try {
+    await splitLargeLocalities(log);
+  } catch (e) {
+    log(`Barrios: ${(e as Error).message}`);
+  }
   return { regionId: region.id, localities: saved };
+}
+
+/**
+ * Divide una localidad grande (p. ej. la ciudad de Alicante) en sus barrios oficiales de OpenStreetMap
+ * (límites administrativos 9 y 10). Los prospectos ya mapeados pasan al barrio que contiene su ubicación,
+ * y la localidad original queda "Omitida" (dividida). Así el Area de cada prospecto es la zona exacta.
+ */
+export async function splitLocality(
+  localityId: number,
+  log: AgentLog = () => {},
+  fetchBoundaries: (relationId: number) => Promise<OverpassElement[]> = (id) => overpass(queries.neighbourhoods(id)),
+) {
+  const loc = await one<{ id: number; name: string; region_id: number; osm_id: string | null; status: string; niche_key: string | null; origin_lat: number; origin_lng: number }>(
+    `SELECT l.id, l.name, l.region_id, l.osm_id, l.status, l.niche_key, r.origin_lat, r.origin_lng
+     FROM localities l JOIN regions r ON r.id = l.region_id WHERE l.id = $1`,
+    [localityId],
+  );
+  if (!loc?.osm_id?.startsWith("relation/")) return { split: 0, reason: "sin límite de OpenStreetMap" };
+  const els = await fetchBoundaries(relationIdOf(loc.osm_id));
+  const all = els.map(relationToBoundary).filter((b): b is NonNullable<ReturnType<typeof relationToBoundary>> => !!b && b.osmId !== loc.osm_id);
+  // Preferir el nivel más fino que divida de verdad (≥ 3 barrios).
+  const lvl10 = all.filter((b) => b.adminLevel === 10);
+  const lvl9 = all.filter((b) => b.adminLevel === 9);
+  const parts = lvl10.length >= 3 ? lvl10 : lvl9.length >= 3 ? lvl9 : lvl10.length ? lvl10 : lvl9;
+  if (parts.length < 2) {
+    log(`${loc.name}: OpenStreetMap no tiene barrios oficiales; se mantiene como una sola zona`);
+    return { split: 0, reason: "sin barrios en OpenStreetMap" };
+  }
+  await saveLocalities(
+    loc.region_id,
+    [loc.origin_lng, loc.origin_lat],
+    parts.map((b) => ({ name: b.name, osmId: b.osmId, adminLevel: b.adminLevel, area: b.area, parentId: loc.id })),
+  );
+  const children = await q<{ id: number; name: string; boundary: Area }>(
+    "SELECT id, name, boundary FROM localities WHERE parent_id = $1",
+    [loc.id],
+  );
+  // Reasignar prospectos al barrio que contiene su punto.
+  const pros = await q<{ id: number; lat: number; lng: number }>(
+    "SELECT id, lat, lng FROM prospects WHERE locality_id = $1 AND lat IS NOT NULL AND lng IS NOT NULL",
+    [loc.id],
+  );
+  const counts = new Map<number, number>();
+  let moved = 0;
+  for (const p of pros) {
+    const c = children.find((ch) => pointInArea([p.lng, p.lat], ch.boundary));
+    if (!c) continue;
+    await q("UPDATE prospects SET locality_id = $2, updated_at = now() WHERE id = $1", [p.id, c.id]);
+    counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
+    moved++;
+  }
+  // Los barrios heredan el estado: si la ciudad ya estaba mapeada, sus barrios también.
+  const done = loc.status === "mapped";
+  for (const ch of children)
+    await q(
+      `UPDATE localities SET niche_key = COALESCE(niche_key, $2), status = CASE WHEN $3 THEN 'mapped' ELSE status END,
+         mapped_at = CASE WHEN $3 THEN now() ELSE mapped_at END, prospects_found = $4 WHERE id = $1`,
+      [ch.id, loc.niche_key, done, counts.get(ch.id) ?? 0],
+    );
+  await q("UPDATE localities SET status = 'skipped', last_error = $2 WHERE id = $1", [loc.id, `Dividida en ${children.length} barrios`]);
+  log(`${loc.name}: dividida en ${children.length} barrios; ${moved} de ${pros.length} prospectos reubicados`);
+  return { split: children.length, moved, total: pros.length };
+}
+
+/** Divide las localidades grandes: la ciudad con el mismo nombre que la región o con muchos prospectos. */
+export async function splitLargeLocalities(log: AgentLog = () => {}, minProspects = 30) {
+  const rows = await q<{ id: number }>(
+    `SELECT l.id FROM localities l JOIN regions r ON r.id = l.region_id
+     WHERE l.status <> 'skipped' AND l.osm_id LIKE 'relation/%'
+       AND NOT EXISTS (SELECT 1 FROM localities c WHERE c.parent_id = l.id)
+       AND (lower(l.name) = lower(r.name) OR (SELECT count(*) FROM prospects p WHERE p.locality_id = l.id) >= $1)`,
+    [minProspects],
+  );
+  const results = [];
+  for (const r of rows) results.push(await splitLocality(r.id, log));
+  if (!rows.length) log("No hay localidades grandes para dividir");
+  return results;
 }
 
 /** Importa sectores propios (KML de My Maps) como localidades de una región nueva o existente. */

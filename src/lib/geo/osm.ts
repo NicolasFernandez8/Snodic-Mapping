@@ -119,6 +119,13 @@ rel(${relationId});map_to_area->.a;
 rel(area.a)["boundary"="administrative"]["admin_level"="${adminLevel}"];
 out geom;`,
 
+  /** Barrios/distritos oficiales dentro de una localidad (límites administrativos 9 y 10). */
+  neighbourhoods: (relationId: number) =>
+    `[out:json][timeout:180];
+rel(${relationId});map_to_area->.a;
+rel(area.a)["boundary"="administrative"]["admin_level"~"^(9|10)$"];
+out geom;`,
+
   /** POIs del rubro dentro de una localidad. */
   pois: (relationId: number, tags: { k: string; v: string }[]) =>
     `[out:json][timeout:180];

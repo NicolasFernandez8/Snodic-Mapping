@@ -79,10 +79,11 @@ export async function fixNotionAreas(log: AgentLog = () => {}, notion = NotionCl
   const map = propertyMap();
   const areaProp = resolveProperty(schema, map.region ?? "Area", "region");
   if (!areaProp || schema[areaProp] !== "select") return 0;
-  const rows = await q<{ id: number; notion_page_id: string; locality: string | null; region: string | null }>(
-    `SELECT p.id, p.notion_page_id, l.name AS locality, r.name AS region FROM prospects p
+  const rows = await q<{ id: number; notion_page_id: string; locality: string | null; region: string | null; area: string | null; parent: string | null }>(
+    `SELECT p.id, p.notion_page_id, l.name AS locality, r.name AS region, p.area, pl.name AS parent FROM prospects p
      LEFT JOIN localities l ON l.id = p.locality_id LEFT JOIN regions r ON r.id = l.region_id
-     WHERE p.notion_page_id IS NOT NULL AND COALESCE(p.area, '') <> ''`,
+     LEFT JOIN localities pl ON pl.id = l.parent_id
+     WHERE p.notion_page_id IS NOT NULL AND (COALESCE(p.area, '') <> '' OR l.parent_id IS NOT NULL OR l.name <> r.name)`,
   );
   if (!rows.length) return 0;
   const byPage = new Map(rows.map((r) => [plain(r.notion_page_id), r]));
@@ -91,7 +92,10 @@ export async function fixNotionAreas(log: AgentLog = () => {}, notion = NotionCl
     const r = byPage.get(plain(page.id));
     if (!r) continue;
     const current = ((page.properties?.[areaProp] as { select?: { name?: string } | null } | undefined)?.select?.name ?? "").trim();
-    const generic = !current || /^random$/i.test(current) || current === r.region || current === r.locality;
+    // Genérico o puesto automáticamente antes (ciudad, barrio por dirección): se reemplaza por la zona exacta.
+    const generic =
+      !current || /^random$/i.test(current) || current === r.region || current === r.parent ||
+      (!!r.area && current === r.area) || (!!r.area && current.startsWith(r.area.split(" - ")[0]));
     if (!generic) continue;
     const { properties } = buildProperties(await notionFields(r.id), schema, { region: map.region ?? "Area" }, options, true);
     const want = (properties[areaProp] as { select?: { name?: string } | null } | undefined)?.select?.name;

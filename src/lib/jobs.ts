@@ -10,6 +10,7 @@ export type JobType =
   | "notion_pull"
   | "notion_fix"
   | "write_prospect"
+  | "split_localities"
   | "daily_pipeline"
   | "rescore"
   | "watch_openings"
@@ -33,7 +34,7 @@ export type Job = {
  */
 export const LANES: Record<string, JobType[]> = {
   ia: ["write_prospect", "generate_messages", "generate_reports"],
-  mapa: ["import_region", "map_localities", "watch_openings"],
+  mapa: ["import_region", "map_localities", "watch_openings", "split_localities"],
   datos: ["collect_data", "enrich_open", "classify_phones", "season", "dedupe", "rescore", "daily_digest"],
   notion: ["sync_notion", "notion_pull", "notion_fix"],
   pipeline: ["daily_pipeline"],

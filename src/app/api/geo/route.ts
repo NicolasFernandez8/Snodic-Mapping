@@ -24,7 +24,9 @@ export async function GET(req: Request) {
     q<{ id: number; name: string; status: string; prospects_found: number; boundary: unknown; last_error: string | null; region_id: number; region: string }>(
       `SELECT l.id, l.name, l.status, l.prospects_found, COALESCE(l.boundary_simple, l.boundary) AS boundary, l.last_error,
               l.region_id, r.name AS region
-       FROM localities l JOIN regions r ON r.id = l.region_id ${filter} ORDER BY r.name, l.distance_km NULLS LAST, l.name`,
+       FROM localities l JOIN regions r ON r.id = l.region_id
+       ${filter ? filter + " AND" : "WHERE"} NOT EXISTS (SELECT 1 FROM localities c WHERE c.parent_id = l.id)
+       ORDER BY r.name, l.distance_km NULLS LAST, l.name`,
       params,
     ),
     q<{ id: number; name: string; status: string; lat: number; lng: number; locality: string | null; rating: string | null; locality_id: number | null }>(

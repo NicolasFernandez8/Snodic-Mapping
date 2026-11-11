@@ -453,4 +453,36 @@ d("pipeline de agentes (integración)", () => {
     expect(order).toEqual([2, 1]);
     expect(await db.one("SELECT 1 FROM outputs WHERE prospect_id = $1", [none])).toBeNull();
   });
+  it("Agente 1: divide la ciudad en barrios oficiales y el Area pasa a ser la zona exacta", async () => {
+    const { db } = mod;
+    const { splitLocality } = await import("../src/lib/agents/agent1-mapper");
+    const { notionFields } = await import("../src/lib/agents/agent2-collector");
+    const region = (await db.one<{ id: number }>(
+      "INSERT INTO regions (name, origin_lat, origin_lng, status, position) VALUES ('Ciudad Test', 38.3, -0.5, 'queued', 99) RETURNING id",
+    ))!.id;
+    const sq = (x: number, y: number, w: number, h: number) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]];
+    const city = (await db.one<{ id: number }>(
+      `INSERT INTO localities (region_id, name, osm_id, admin_level, boundary, status) VALUES ($1, 'Ciudad Test', 'relation/900', 8, $2::jsonb, 'mapped') RETURNING id`,
+      [region, JSON.stringify({ type: "Polygon", coordinates: [sq(0, 0, 2, 1)] })],
+    ))!.id;
+    const pa = (await db.one<{ id: number }>("INSERT INTO prospects (source, source_id, name, lat, lng, locality_id, niche_key) VALUES ('manual','SB1','Hostal Oeste',0.5,0.5,$1,'hospitality') RETURNING id", [city]))!.id;
+    const pb = (await db.one<{ id: number }>("INSERT INTO prospects (source, source_id, name, lat, lng, locality_id, niche_key) VALUES ('manual','SB2','Hostal Este',0.5,1.5,$1,'hospitality') RETURNING id", [city]))!.id;
+    const rel = (id: number, name: string, ring: number[][]) => ({
+      type: "relation", id, tags: { name, admin_level: "10", boundary: "administrative" },
+      members: [{ type: "way", ref: id, role: "outer", geometry: ring.map(([lon, lat]) => ({ lat, lon })) }],
+    });
+    const fake = async () => [rel(901, "San Blas", sq(0, 0, 1, 1)), rel(902, "Benalúa", sq(1, 0, 1, 1)), rel(903, "Centro", sq(5, 5, 1, 1))] as never;
+    const r = await splitLocality(city, () => {}, fake);
+    expect(r).toMatchObject({ split: 3, moved: 2, total: 2 });
+    const names = await db.q<{ name: string; locality: string }>(
+      "SELECT p.name, l.name AS locality FROM prospects p JOIN localities l ON l.id = p.locality_id WHERE p.id = ANY($1) ORDER BY p.name",
+      [[pa, pb]],
+    );
+    expect(names).toEqual([{ name: "Hostal Este", locality: "Benalúa" }, { name: "Hostal Oeste", locality: "San Blas" }]);
+    expect((await db.one<{ status: string }>("SELECT status FROM localities WHERE id = $1", [city]))?.status).toBe("skipped");
+    expect((await db.one<{ status: string }>("SELECT status FROM localities WHERE osm_id = 'relation/901'"))?.status).toBe("mapped");
+    expect((await notionFields(pa)).region).toBe("San Blas");
+    await db.q("DELETE FROM prospects WHERE id = ANY($1)", [[pa, pb]]);
+    await db.q("DELETE FROM regions WHERE id = $1", [region]);
+  });
 });

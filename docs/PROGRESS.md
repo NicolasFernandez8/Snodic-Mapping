@@ -184,3 +184,8 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Pipeline diario por fases: mapeo → (datos | datos abiertos+barrios | WhatsApp | aperturas | temporada) → duplicados+puntajes → (Notion | IA) → cuerpo Notion → prioridades.
 - IA: primero mejor puntaje, mínimo de reseñas configurable (Ajustes), excluye duplicados y no contactar. Al terminar un prospecto con IA local se sincroniza en Notion en el momento.
 - `enqueue` no duplica trabajos iguales en cola.
+
+## 2026-11-11 · Area = zona exacta del Agente 1
+- Agente 1 · "Dividir en barrios" (`split_localities`): subdivide la ciudad cabecera (o zonas con ≥30 prospectos) en sus barrios oficiales de OpenStreetMap (admin_level 9/10) y reubica cada prospecto por punto en polígono; la zona original queda Omitida. Corre al importar una región y en el pipeline antes de mapear.
+- Notion Area = zona del Agente 1 (municipio o barrio). Si la zona es la ciudad entera y OSM no tiene barrios, el barrio por dirección. "Numerar y corregir" reemplaza los Area puestos automáticamente.
+- Mapa: no dibuja la ciudad dividida, solo sus barrios. (Los bordes de Idealista no tienen API oficial: se usan los oficiales de OSM; también se puede importar un KML propio.)

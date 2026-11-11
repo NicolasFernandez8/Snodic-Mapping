@@ -53,6 +53,7 @@ export const JOB_LABEL: Record<string, string> = {
   notion_pull: "Notion · Traer",
   notion_fix: "Notion · Numerar y corregir",
   write_prospect: "Agentes 3 y 4 · IA local",
+  split_localities: "Agente 1 · Dividir en barrios",
   generate_messages: "Agente 3 · Mensajes",
   generate_reports: "Agente 4 · Informes",
   daily_pipeline: "Pipeline diario completo",
