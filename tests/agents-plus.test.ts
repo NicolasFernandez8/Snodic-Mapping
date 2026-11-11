@@ -248,3 +248,13 @@ describe("barrio (Area)", () => {
     expect(matchOption(opts, "Benalúa")).toBeNull();
   });
 });
+
+describe("migraciones", () => {
+  it("todas fijan el esquema mapping (en la PC el usuario no lo tiene por defecto)", async () => {
+    const fs = await import("node:fs");
+    // 001_init.down.sql borra el esquema completo por nombre: no necesita search_path.
+    const files = fs.readdirSync("db/migrations").filter((f) => f.endsWith(".sql") && f !== "001_init.down.sql");
+    const sinEsquema = files.filter((f) => !/SET\s+search_path\s+TO\s+mapping/i.test(fs.readFileSync(`db/migrations/${f}`, "utf8")));
+    expect(sinEsquema).toEqual([]);
+  });
+});
