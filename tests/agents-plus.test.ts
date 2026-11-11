@@ -278,3 +278,34 @@ describe("IA local (Ollama)", () => {
     expect(await ollamaStatus(down)).toMatchObject({ reachable: false, hasModel: false });
   });
 });
+
+describe("IA local: huecos + plantilla exacta", () => {
+  const input = { name: "Hotel Sol", reviewsUrl: "-", businessLabel: "alojamientos", reviews: [{ rating: 2, text: "Nadie contesta el teléfono" }] };
+  it("el mensaje armado cumple todas las reglas de Snodic", async () => {
+    const { assembleMessage } = await import("../src/lib/ai/local-structured");
+    const { validateMessage } = await import("../src/lib/ai/validate");
+    const msg = assembleMessage({ positivos: "Destacan la limpieza y la amabilidad.", problema: "[varios comentan] que cuesta reservar por teléfono", solucion: "responder las reservas al instante por WhatsApp", beneficio: "no perder reservas fuera de horario." }, "alojamientos");
+    expect(validateMessage(msg, "Hotel Sol")).toEqual([]);
+    expect(msg).toMatch(/^Hola!\n\nEstuve viendo sus reseñas y destacan la limpieza y la amabilidad\. También vi que varios comentan/);
+    expect(msg).not.toMatch(/\[|\]/);
+  });
+  it("el informe armado tiene 2 ideas con los 7 pasos", async () => {
+    const { assembleReport } = await import("../src/lib/ai/local-structured");
+    const { validateReport } = await import("../src/lib/ai/validate");
+    const idea = { problema: "a", solucion: "b", impacto: "c", clave: "d", implementacion: "e", como_venderlo: "f", como_medir: "g" };
+    expect(validateReport(assembleReport({ ideas: [idea, idea] }))).toEqual([]);
+  });
+  it("reintenta si el modelo deja huecos vacíos y se queda con la mejor versión", async () => {
+    const { generateLocal } = await import("../src/lib/ai/local-structured");
+    const answers = [
+      { positivos: "", problema: "", solucion: "", beneficio: "" },
+      { positivos: "destacan la limpieza", problema: "cuesta reservar por teléfono", solucion: "responder por WhatsApp al instante", beneficio: "no perder reservas" },
+    ];
+    let calls = 0;
+    const llm = { completeJson: async () => ({ data: answers[Math.min(calls++, 1)], model: "ollama:test" }) };
+    const r = await generateLocal("message", input, llm);
+    expect(calls).toBe(2);
+    expect(r.issues).toEqual([]);
+    expect(r.text.startsWith("Hola!")).toBe(true);
+  });
+});

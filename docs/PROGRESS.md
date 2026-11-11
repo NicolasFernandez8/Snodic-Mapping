@@ -174,3 +174,6 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Modo "IA local" para agentes 3 y 4 (Ollama, gratis, en la PC): se activa en Ajustes › IA; muestra si Ollama responde y si el modelo está descargado. Modelo por defecto `qwen2.5:7b` (entra en 6 GB de video). `OLLAMA_URL`/`OLLAMA_MODEL` en `.env`; compose agrega `host.docker.internal`.
 - Al guardar reseñas (ficha o cola) con IA local activa, se encola `write_prospect`: mensaje e informe del prospecto en segundo plano. Siguen pasando por revisión humana antes de enviar.
 - Página `/resenas` (menú "Cola de reseñas"): un prospecto por vez, link a sus reseñas en Maps, pegar, Ctrl+Enter = guardar y siguiente, Saltar.
+
+## 2026-11-11 · IA local: huecos + plantilla exacta
+- Con Ollama, el modelo recibe el mismo prompt de Snodic y devuelve solo los huecos en JSON con formato obligatorio (positivos, problema, solución, beneficio / 7 pasos x 2 ideas). La app arma el texto con la plantilla exacta: siempre "Hola!", etapa gratuita, pregunta de cierre y estructura del informe. Hasta 3 intentos y se queda con el mejor. Los prompts originales no cambian (`src/lib/ai/local-structured.ts`).

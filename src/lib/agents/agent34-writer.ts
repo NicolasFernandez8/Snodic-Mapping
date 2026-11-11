@@ -10,7 +10,8 @@
 import { one, q } from "../db";
 import { messagePrompt, reportPrompt, type PromptInput } from "../ai/prompts";
 import { validateMessage, validateReport } from "../ai/validate";
-import { ManualLlm, type Llm } from "../ai/llm";
+import { ManualLlm, OllamaLlm, type Llm } from "../ai/llm";
+import { generateLocal } from "../ai/local-structured";
 import { NotionClient, paragraphs } from "../notion";
 import { PROSPECT_COLUMNS, reviewsLink } from "./agent2-collector";
 import type { AgentLog, ProspectRow } from "./types";
@@ -109,6 +110,11 @@ export async function generateOutput(prospectId: number, kind: OutputKind, llm: 
     ], input.variant);
   }
   try {
+    // IA local: huecos + plantilla exacta de Snodic (los modelos chicos no respetan bien el formato libre).
+    if (llm instanceof OllamaLlm) {
+      const r = await generateLocal(kind, input, llm);
+      return storeOutput(prospectId, kind, r.issues.length ? "needs_review" : "ready", r.prompt, r.text, r.model, r.issues, input.variant);
+    }
     const res = await llm.complete(prompt, kind === "message" ? 600 : 2000);
     if (res.mode === "manual") return storeOutput(prospectId, kind, "pending_manual", prompt, null, null, [], input.variant);
     const content = cleanOutput(res.text);

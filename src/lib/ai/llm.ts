@@ -72,6 +72,30 @@ export class OllamaLlm implements Llm {
     if (!text) throw new Error("Ollama devolvió una respuesta vacía");
     return { mode: "ollama", text, model: `ollama:${this.model}` };
   }
+
+  /** Respuesta con formato obligatorio (JSON Schema): Ollama garantiza que respete los campos. */
+  async completeJson(prompt: string, schema: object, maxTokens: number, temperature = 0.4): Promise<{ data: unknown; model: string }> {
+    const res = await this.fetchImpl(`${this.baseUrl.replace(/\/$/, "")}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: this.model,
+        stream: false,
+        format: schema,
+        messages: [{ role: "user", content: prompt }],
+        options: { temperature, num_ctx: this.numCtx, num_predict: maxTokens },
+      }),
+      signal: AbortSignal.timeout(10 * 60_000),
+    });
+    if (!res.ok) throw new Error(`Ollama respondió ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const j = (await res.json()) as { message?: { content?: string } };
+    const raw = (j.message?.content ?? "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    try {
+      return { data: JSON.parse(raw), model: `ollama:${this.model}` };
+    } catch {
+      throw new Error("Ollama no devolvió un JSON válido");
+    }
+  }
 }
 
 export type AiMode = "manual" | "ollama" | "anthropic";
