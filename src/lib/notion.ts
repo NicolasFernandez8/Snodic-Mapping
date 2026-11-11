@@ -336,6 +336,38 @@ export class NotionClient {
     return out;
   }
 
+  /** Páginas sin número en la columna correlativa, de la más vieja a la más nueva. */
+  async pagesWithoutNumber(prop: string, max = 1000): Promise<NotionPage[]> {
+    const out: NotionPage[] = [];
+    let cursor: string | undefined;
+    do {
+      const res = await this.call<{ results: NotionPage[]; has_more: boolean; next_cursor: string | null }>(
+        `/databases/${this.databaseId}/query`,
+        "POST",
+        {
+          page_size: 100,
+          filter: { property: prop, number: { is_empty: true } },
+          sorts: [{ timestamp: "created_time", direction: "ascending" }],
+          ...(cursor ? { start_cursor: cursor } : {}),
+        },
+      );
+      out.push(...res.results);
+      cursor = res.has_more && res.next_cursor ? res.next_cursor : undefined;
+    } while (cursor && out.length < max);
+    return out;
+  }
+
+  async updatePage(pageId: string, properties: Record<string, unknown>) {
+    await this.call(`/pages/${pageId}`, "PATCH", { properties });
+  }
+
+  /** Nombre real de la columna correlativa si existe y es numérica. */
+  async numberProperty(): Promise<string | null> {
+    const schema = await this.schema();
+    const prop = resolveProperty(schema, this.numProperty);
+    return prop && schema[prop] === "number" ? prop : null;
+  }
+
   async deleteBlocks(ids: string[]) {
     for (const id of ids) await this.call(`/blocks/${id}`, "DELETE");
   }

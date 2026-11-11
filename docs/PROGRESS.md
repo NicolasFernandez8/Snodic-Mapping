@@ -156,3 +156,7 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - `NOTION_DATABASE_ID` acepta el link copiado de Notion (se toma el ID de la base, se ignora la vista).
 - Las páginas nuevas reciben el siguiente número de la columna `Num` (máximo actual + 1: 244, 245…); las existentes no se tocan. Columna configurable con `NOTION_NUM_PROPERTY`.
 - Ajuste a la base "Snodic - Mapping" (espacio personal): Category con opciones en inglés (mapa desde OSM), Area = barrio si existe la opción o "Random", Social Networks con las opciones existentes, Type Franchise si es cadena, State "Pending Contact" al crear. Area, Category, Type y Social Networks solo se completan al crear (no se pisan después).
+
+## 2026-11-11 · Notion: numerar y corregir
+- Acción "Numerar y corregir" (job `notion_fix`): Num a las filas sin número (de la más vieja a la más nueva, desde el máximo) y corrige Category/Area/Type/Social Networks/State de las filas creadas por la app. Corre sola después de cada envío y en el pipeline diario.
+- El envío excluye prospectos marcados como duplicados. Categorías del Agente 1 ("Guest House / Hostal", etc.) → "Board / Accommodation".

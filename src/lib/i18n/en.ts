@@ -847,4 +847,7 @@ export const EN: Record<string, string> = {
   "¿Borrar este caso de éxito? No se puede deshacer.": "Delete this case study? This cannot be undone.",
   "¿Borrar este mapeo programado?": "Delete this scheduled mapping?",
   "¿Borrar este usuario? Ya no va a poder entrar.": "Delete this user? They will no longer be able to log in.",
+  "Numerar y corregir": "Number and fix",
+  "Pone Num a las filas que no lo tienen (sigue desde el último) y corrige Category, Area, State y redes de las filas que creó la app. Se hace solo después de cada envío.": "Gives Num to rows without it (continuing from the last one) and fixes Category, Area, State and networks on rows the app created. Runs automatically after each send.",
+  "Notion · Numerar y corregir": "Notion · Number and fix",
 };

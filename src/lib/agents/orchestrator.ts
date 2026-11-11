@@ -13,6 +13,7 @@ import type { Job } from "../jobs";
 import { importRegion, importSectors, mapNextLocalities, mapNextProspects, sourceFromSettings } from "./agent1-mapper";
 import { collectData, syncProspectsToNotion } from "./agent2-collector";
 import { pullFromNotion } from "./notion-pull";
+import { fixNotionNumbers } from "./notion-fix";
 import { runWriterAgent, syncBodiesToNotion } from "./agent34-writer";
 import type { AgentLog } from "./types";
 
@@ -42,9 +43,15 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
         log("Sincronización con Notion desactivada en Ajustes: no se envió nada");
         return { skipped: true };
       }
-      if (p.part === "props") return { props: await syncProspectsToNotion(500, log) };
+      if (p.part === "props") return { props: await syncProspectsToNotion(500, log), numbers: await fixNotionNumbers(log) };
       if (p.part === "bodies") return { bodies: await syncBodiesToNotion(500, log) };
-      return { props: await syncProspectsToNotion(200, log), bodies: await syncBodiesToNotion(200, log) };
+      return { props: await syncProspectsToNotion(200, log), numbers: await fixNotionNumbers(log), bodies: await syncBodiesToNotion(200, log) };
+    case "notion_fix":
+      if (!(await getSetting<boolean>("notion_enabled", false))) {
+        log("Notion desactivado: no se numeró nada");
+        return { skipped: true };
+      }
+      return fixNotionNumbers(log);
     case "notion_pull":
       if (!(await getSetting<boolean>("notion_enabled", false))) {
         log("Notion desactivado en Ajustes: no se trajo nada");
@@ -104,7 +111,10 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prosp
   }
   if ((await daysSince("season_refreshed_at")) >= 30) await step("agente12_temporada", () => refreshSeason(log));
   const notion = await getSetting<boolean>("notion_enabled", false);
-  if (notion) await step("agente2_notion", () => syncProspectsToNotion(500, log));
+  if (notion) {
+    await step("agente2_notion", () => syncProspectsToNotion(500, log));
+    await step("notion_numerar", () => fixNotionNumbers(log));
+  }
   else log("Notion desactivado en Ajustes: los datos quedan solo en la app");
   if (auto) {
     await step("agente3_mensajes", () => runWriterAgent("message", llmFromConfig(), 200, log));

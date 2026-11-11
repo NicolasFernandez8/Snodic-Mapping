@@ -17,6 +17,7 @@ export async function notionJobAction(f: FormData) {
   if (!(await getSetting<boolean>("notion_enabled", false))) redirect("/notion?off=1");
   const kind = String(f.get("kind"));
   if (kind === "pull") await enqueue("notion_pull");
+  else if (kind === "fix") await enqueue("notion_fix");
   else await enqueue("sync_notion", { part: kind === "props" || kind === "bodies" ? kind : "all" });
   revalidatePath("/notion");
   redirect("/notion");

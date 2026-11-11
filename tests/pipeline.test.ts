@@ -358,4 +358,43 @@ d("pipeline de agentes (integración)", () => {
     expect(await runJob({ type: "notion_pull", payload: {} }, () => {})).toEqual({ skipped: true });
     expect(await runJob({ type: "sync_notion", payload: { part: "props" } }, () => {})).toEqual({ skipped: true });
   });
+  it("Notion: numerar y corregir filas sin Num (sigue desde el último)", async () => {
+    const { db } = mod;
+    const { fixNotionNumbers } = await import("../src/lib/agents/notion-fix");
+    const { NotionClient } = await import("../src/lib/notion");
+    const pid = (await db.one<{ id: number }>(
+      "INSERT INTO prospects (source, source_id, name, category, phone, status, niche_key, notion_page_id) VALUES ('manual','NF1','Hotel Viejo','Guest House / Hostal','+34 611 000 222','synced','hospitality','aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee') RETURNING id",
+    ))!.id;
+    const patches: Record<string, Record<string, any>> = {};
+    const fake = (async (url: string, init: RequestInit) => {
+      const body = init.body ? JSON.parse(String(init.body)) : {};
+      let json: unknown = {};
+      if (url.endsWith("/databases/0123456789abcdef0123456789abcdef"))
+        json = {
+          properties: {
+            Name: { type: "title" }, Num: { type: "number" }, " Category": { type: "multi_select", multi_select: { options: [{ name: "Board / Accommodation" }] } },
+            Area: { type: "select", select: { options: [{ name: "Random" }, { name: "San Blas" }] } },
+            State: { type: "status", status: { options: [{ name: "Pending Contact" }, { name: "Contacted #1" }] } },
+            "Social Networks": { type: "multi_select", multi_select: { options: [{ name: "【🟢】 Whatsapp" }] } },
+            Type: { type: "select", select: { options: [{ name: "Normal" }, { name: "Franchise" }] } },
+          },
+        };
+      else if (url.endsWith("/query"))
+        json = body.filter?.number?.is_empty
+          ? { results: [{ id: "aaaaaaaabbbbccccddddeeeeeeeeeeee", properties: { State: { type: "status", status: null } } }, { id: "manual-row", properties: {} }], has_more: false }
+          : { results: [{ id: "x", properties: { Num: { type: "number", number: 243 } } }] };
+      else if (init.method === "PATCH") patches[url.split("/pages/")[1]] = body.properties;
+      return { ok: true, status: 200, headers: new Headers(), json: async () => json, text: async () => "" };
+    }) as unknown as typeof fetch;
+    const r = await fixNotionNumbers(() => {}, new NotionClient("tok", "0123456789abcdef0123456789abcdef", fake));
+    expect(r).toMatchObject({ numbered: 2, fixed: 1 });
+    const linked = patches["aaaaaaaabbbbccccddddeeeeeeeeeeee"];
+    expect(linked.Num).toEqual({ number: 244 });
+    expect(linked[" Category"]).toEqual({ multi_select: [{ name: "Board / Accommodation" }] });
+    expect(linked.Area).toEqual({ select: { name: "Random" } });
+    expect(linked.State).toEqual({ status: { name: "Pending Contact" } });
+    expect(linked["Social Networks"]).toEqual({ multi_select: [{ name: "【🟢】 Whatsapp" }] });
+    expect(patches["manual-row"]).toEqual({ Num: { number: 245 } });
+    await db.q("DELETE FROM prospects WHERE id = $1", [pid]);
+  });
 });

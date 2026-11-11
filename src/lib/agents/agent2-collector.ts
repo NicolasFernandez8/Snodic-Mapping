@@ -136,6 +136,9 @@ export async function notionFields(id: number): Promise<ProspectFields> {
 const CATEGORY_EN: Record<string, string> = {
   hotel: "Board / Accommodation", hostel: "Board / Accommodation", guest_house: "Board / Accommodation", apartment: "Board / Accommodation",
   motel: "Board / Accommodation", chalet: "Board / Accommodation", camp_site: "Board / Accommodation",
+  // Nombres que guarda el Agente 1 (categoryLabel)
+  "guest house / hostal": "Board / Accommodation", "tourist apartment": "Board / Accommodation",
+  "chalet / holiday home": "Board / Accommodation", "guest house": "Board / Accommodation",
   restaurant: "Gastropub / Restaurant", cafe: "Coffee Shop", bar: "Brewery / Bar", pub: "Brewery / Bar", biergarten: "Brewery / Bar",
   fast_food: "Fast Food", ice_cream: "Ice Cream Shop", bakery: "Bakery", pastry: "Bakery", confectionery: "Candy Store",
   hairdresser: "Hair salon / Barbershop", beauty: "Beauty Salon", massage: "Massage Center", tattoo: "Tattoo Studio",
@@ -172,7 +175,7 @@ export async function syncProspectsToNotion(limit = 50, log: AgentLog = () => {}
   }
   const rows = await q<{ id: number; name: string; notion_page_id: string | null }>(
     `SELECT id, name, notion_page_id FROM prospects
-     WHERE status IN ('enriched','message_ready','report_ready','synced')
+     WHERE status IN ('enriched','message_ready','report_ready','synced') AND duplicate_of IS NULL
        AND (notion_synced_at IS NULL OR notion_synced_at < updated_at)
      ORDER BY id LIMIT $1`,
     [limit],

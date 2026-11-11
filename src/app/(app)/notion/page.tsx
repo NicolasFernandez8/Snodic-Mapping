@@ -27,7 +27,7 @@ export default async function NotionPage({ searchParams }: { searchParams: Promi
        FROM prospects WHERE duplicate_of IS NULL`,
     ),
     q<{ id: number; type: string; status: string; created_at: string; last_error: string | null; result: { log?: string[] } | null }>(
-      "SELECT id, type, status, created_at, last_error, result FROM jobs WHERE type IN ('sync_notion','notion_pull') ORDER BY id DESC LIMIT 20",
+      "SELECT id, type, status, created_at, last_error, result FROM jobs WHERE type IN ('sync_notion','notion_pull','notion_fix') ORDER BY id DESC LIMIT 20",
     ),
   ]);
   const busy = jobs.some((j) => j.status === "queued" || j.status === "running");
@@ -96,6 +96,7 @@ export default async function NotionPage({ searchParams }: { searchParams: Promi
           <Action kind="all" primary label={t("Enviar todo")} desc={t("Crea o actualiza la ficha de cada prospecto y escribe mensaje + informe en el cuerpo.")} />
           <Action kind="props" label={t("Solo datos")} desc={t("Actualiza las columnas (teléfono, web, puntaje, localidad…) sin tocar el cuerpo.")} />
           <Action kind="bodies" label={t("Solo mensaje e informe")} desc={t("Escribe el mensaje y el informe en el cuerpo de las páginas que ya existen.")} />
+          <Action kind="fix" label={t("Numerar y corregir")} desc={t("Pone Num a las filas que no lo tienen (sigue desde el último) y corrige Category, Area, State y redes de las filas que creó la app. Se hace solo después de cada envío.")} />
         </div>
         <div className="card">
           <h2 style={{ marginTop: 0 }}>{t("Traer de Notion")}</h2>
