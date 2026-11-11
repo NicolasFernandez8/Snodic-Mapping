@@ -85,14 +85,19 @@ export async function assign(prospectId: number, assignee: number | null, byUser
 }
 
 /** Registra un envío por WhatsApp (primer contacto o seguimiento). */
-export async function markMessageSent(prospectId: number, userId: number, kind: "first" | "follow_up") {
+export async function markMessageSent(
+  prospectId: number,
+  userId: number,
+  kind: "first" | "follow_up",
+  channel: "WhatsApp" | "email" | "Instagram" = "WhatsApp",
+) {
   const p = await one<{ stage: Stage; follow_ups_sent: number }>(
     "SELECT stage, follow_ups_sent FROM prospects WHERE id = $1",
     [prospectId],
   );
   if (!p) throw new Error("Prospecto inexistente");
   if (kind === "first") {
-    await logActivity(prospectId, userId, "message_sent", { body: "Primer mensaje enviado por WhatsApp" });
+    await logActivity(prospectId, userId, "message_sent", { body: `Primer mensaje enviado por ${channel}` });
     if (p.stage === "to_contact") await setStage(prospectId, "contacted", userId);
     return;
   }

@@ -669,3 +669,8 @@ svg.nav-ico { width: 18px; height: 18px; flex: none; opacity: 0.85; }
 .page-head { position: relative; z-index: 20; }
 .import-csv { position: relative; }
 .import-csv > form { box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .45); }
+/* Agentes: dentro de una tarea el selector de cantidad ocupa solo su alto (no los 420 px de base del Panel) */
+.task .map-amount { flex: none; gap: 6px; margin-top: 2px; }
+.task .map-amount .help { margin: 0; }
+.task > .btn, .task > a.btn { margin-top: auto; align-self: stretch; }
+.folder-tasks { align-items: start; }

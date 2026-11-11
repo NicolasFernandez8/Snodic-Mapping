@@ -852,4 +852,14 @@ export const EN: Record<string, string> = {
   "Notion · Numerar y corregir": "Notion · Number and fix",
   Barrio: "Neighborhood",
   "Completa web, redes y cadena con Wikidata, y la dirección y el barrio de cada prospecto con OpenStreetMap (APIs oficiales y gratuitas).": "Fills website, social and chain from Wikidata, and each prospect's address and neighborhood from OpenStreetMap (official, free APIs).",
+  // Agente 9
+  "Lista los prospectos sin móvil (sin WhatsApp) que tienen email o Instagram y te deja enviarles el mensaje con línea de baja. Queda registrado como contactado.": "Lists prospects without a mobile (no WhatsApp) that have email or Instagram and lets you send them the message with an opt-out line. It's logged as contacted.",
+  "Agente 9 · prospectos sin móvil (sin WhatsApp) que tienen email o Instagram. Revisás el mensaje y lo enviás vos; la app registra el contacto.": "Agent 9 · prospects without a mobile (no WhatsApp) that have email or Instagram. You review and send the message; the app logs the contact.",
+  "{n} listos": "{n} ready",
+  "No hay prospectos sin móvil con email o Instagram por contactar.": "No prospects without a mobile with email or Instagram to contact.",
+  "Sin teléfono móvil": "No mobile phone",
+  "Falta el mensaje ({n})": "Message missing ({n})",
+  "Generá el mensaje del Agente 3 (Prompts en lote o en la ficha) y aparecen arriba.": "Generate Agent 3's message (Batch prompts or the profile) and they'll show up above.",
+  "¡Copiado! Pegalo en el chat": "Copied! Paste it in the chat",
+  "Copiar y abrir Instagram ↗": "Copy and open Instagram ↗",
 };

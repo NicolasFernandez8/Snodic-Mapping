@@ -65,7 +65,7 @@ export const ARCH: ArchAgent[] = [
   },
   {
     key: "a9", n: "9", label: "Canal alternativo", hue: 55, href: "/agentes#agente-9",
-    processes: [{ label: "Email e Instagram", href: "/prospectos", desc: "Si no hay móvil, otro canal con línea de baja." }],
+    processes: [{ label: "Email e Instagram", href: "/canal", desc: "Si no hay móvil, otro canal con línea de baja." }],
   },
   {
     key: "a10", n: "10", label: "Asistente de respuestas", hue: 290, href: "/agentes#agente-10",

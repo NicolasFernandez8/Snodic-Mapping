@@ -165,3 +165,7 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 - Migración `010_prospect_area`: `prospects.area` (barrio). Se completa con Nominatim (OpenStreetMap, 1 pedido/seg) en "Datos abiertos" y en el pipeline diario.
 - Notion: Area = barrio exacto (usa la opción existente si coincide: San Agustín → San Agustin, "San Blas - Santo Domingo" → San Blas; si es nuevo crea la opción; sin barrio → Random). "Numerar y corregir" también reemplaza Areas genéricas (vacío, Random, ciudad) en filas vinculadas.
 - Ficha: dato "Barrio".
+
+## 2026-11-11 · Agente 1 compacto y Agente 9 funcional
+- Agentes: el selector de cantidad del Agente 1 ya no estira la tarjeta (tenía base de 420 px pensada para el Panel).
+- Agente 9: página `/canal` con prospectos sin móvil que tienen email o Instagram y mensaje listo; botones Email (con línea de baja) y Copiar + abrir Instagram que registran el contacto y pasan a "Contactado". La ficha usa los mismos botones.

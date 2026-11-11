@@ -5,6 +5,7 @@ import { activities, STAGES, STAGE_LABEL, whatsappLink, type Stage } from "@/lib
 import { caseLine, listCases, matchCases } from "@/lib/cases";
 import { bestContactTime, emailLink, instagramProfile, UNSUBSCRIBE_LINE } from "@/lib/extras";
 import { ReplyAssistant } from "./reply-assistant";
+import { AltChannelButtons } from "@/app/alt-channel-buttons";
 import { hasAgentsPlus } from "@/lib/migration-status";
 import type { ScoreItem } from "@/lib/scoring";
 import {
@@ -143,13 +144,7 @@ export async function CrmPanel({ id }: { id: number }) {
         {showAlt && (
           <div className="row" style={{ marginBottom: 12 }}>
             <span className="help" style={{ margin: 0 }}>{t("Canal alternativo:")}</span>
-            {mail && <a className="btn secondary sm" href={mail}>{t("✉ Enviar por email")}</a>}
-            {ig && altText && (
-              <>
-                <CopyButton text={altText} label={t("Copiar para Instagram")} />
-                <a className="btn secondary sm" href={ig} target="_blank" rel="noreferrer">{t("Abrir Instagram ↗")}</a>
-              </>
-            )}
+            <AltChannelButtons prospectId={id} mailto={mail} instagram={ig} text={altText ?? ""} />
           </div>
         )}
         {!p.do_not_contact && stageIdx <= 2 && (

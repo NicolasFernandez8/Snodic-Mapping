@@ -126,8 +126,8 @@ const FOLDERS: Folder[] = [
       {
         title: "Email e Instagram",
         type: "alt_channel",
-        desc: "En la ficha, si no hay móvil, ofrece enviar el mensaje por email (con línea de baja) o por mensaje directo de Instagram.",
-        link: "/prospectos",
+        desc: "Lista los prospectos sin móvil (sin WhatsApp) que tienen email o Instagram y te deja enviarles el mensaje con línea de baja. Queda registrado como contactado.",
+        link: "/canal",
       },
     ],
   },

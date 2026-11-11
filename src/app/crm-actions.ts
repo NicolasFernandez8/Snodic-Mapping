@@ -24,6 +24,14 @@ export async function setStageAction(f: FormData) {
   refresh(id(f));
 }
 
+/** Agente 9: registra un primer contacto por email o Instagram (la persona envía; acá solo se registra). */
+export async function markAltSentAction(prospectId: number, channel: "email" | "Instagram") {
+  const me = await requireUser();
+  await markMessageSent(prospectId, me.id, "first", channel);
+  refresh(prospectId);
+  revalidatePath("/canal");
+}
+
 /** Llamado desde el botón de WhatsApp (el navegador abre wa.me; acá solo se registra). */
 export async function markSentAction(prospectId: number, kind: "first" | "follow_up") {
   const me = await requireUser();
