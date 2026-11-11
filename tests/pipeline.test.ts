@@ -143,14 +143,14 @@ d("pipeline de agentes (integración)", () => {
           : "Hola!\n\nEstuve viendo sus reseñas y destacan la limpieza. También vi que cuesta reservar por teléfono.\n\nMe llamo Nico y justamente me especializo en reservas por WhatsApp, para no perder reservas.\n\nEn una primera etapa sería totalmente gratuito para vosotros. La idea es analizar vuestro caso, ver si podemos aportar algo de valor.\n\nEstoy trabajando ahora con algunos alojamientos en esto para documentar resultados en este tipo de locales y me dijeron que me comunique con ustedes pero no me dijeron con quien. Con quien podría hablar del tema?",
       }),
     };
-    // Un segundo prospecto sin reseñas debe quedar para revisión humana.
+    // Calidad antes que cantidad: un prospecto sin reseñas ni siquiera se manda a la IA.
     await db.q(
       "INSERT INTO prospects (source, source_id, name, status, niche_key) VALUES ('manual','M1','Pensión Sin Reseñas','enriched','hospitality')",
     );
+    await db.setSetting("min_reviews_ai", 1);
     const m = await a34.runWriterAgent("message", llm, 10);
-    expect(m.processed).toBe(2);
-    expect(m.ready).toBe(1); // el prospecto sin reseñas queda para revisión
-    expect(m.needs_review).toBe(1);
+    expect(m.processed).toBe(1);
+    expect(m.ready).toBe(1);
     const rep = await a34.runWriterAgent("report", llm, 10);
     expect(rep.ready).toBe(1);
 
@@ -421,5 +421,36 @@ d("pipeline de agentes (integración)", () => {
     expect(await fixNotionAreas(() => {}, new NotionClient("tok", "db", fake))).toBe(1);
     expect(patches[0]).toEqual({ Area: { select: { name: "San Blas" } } });
     await db.q("DELETE FROM prospects WHERE id = $1", [pid]);
+  });
+  it("optimización: no duplica trabajos en cola y la IA empieza por los de mejor puntaje con reseñas", async () => {
+    const { db, jobs } = mod;
+    const a = await jobs.enqueue("rescore", { x: 1 });
+    const b = await jobs.enqueue("rescore", { x: 1 });
+    expect(b?.id).toBe(a?.id);
+    const picked = await jobs.pickJob(["rescore"]);
+    expect(picked?.id).toBe(a?.id);
+    expect(await jobs.pickJob(["map_localities"])).toBeNull();
+    await db.q("DELETE FROM jobs WHERE id = $1", [a!.id]);
+
+    const { runWriterAgent } = await import("../src/lib/agents/agent34-writer");
+    const order: number[] = [];
+    const llm = { complete: async (prompt: string) => { order.push(prompt.includes("Opti Alto") ? 2 : 1); return { mode: "anthropic" as const, text: "x", model: "t" }; } };
+    const mk = async (name: string, score: number, reviews: number) => {
+      const id = (await db.one<{ id: number }>(
+        "INSERT INTO prospects (source, source_id, name, status, niche_key, score) VALUES ('manual',$1,$1,'enriched','hospitality',$2) RETURNING id",
+        [name, score],
+      ))!.id;
+      for (let i = 0; i < reviews; i++) await db.q("INSERT INTO reviews (prospect_id, author, rating, text) VALUES ($1,'t',2,$2)", [id, `queja ${i}`]);
+      return id;
+    };
+    const lo = await mk("Opti Bajo", 30, 3);
+    const hi = await mk("Opti Alto", 90, 3);
+    const none = await mk("Opti Sin", 99, 1);
+    await db.setSetting("min_reviews_ai", 2);
+    await db.q("UPDATE prospects SET status = 'synced' WHERE status = 'enriched' AND id NOT IN ($1,$2,$3)", [lo, hi, none]);
+    const r = await runWriterAgent("message", llm as never, 10);
+    expect(r.processed).toBe(2);
+    expect(order).toEqual([2, 1]);
+    expect(await db.one("SELECT 1 FROM outputs WHERE prospect_id = $1", [none])).toBeNull();
   });
 });

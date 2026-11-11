@@ -27,21 +27,39 @@ export type Job = {
   max_attempts: number;
 };
 
+/**
+ * Carriles del worker: cada carril procesa un trabajo por vez y los carriles corren en paralelo.
+ * Así un mapeo largo no frena a Notion ni a la IA, y la IA (placa de video) nunca corre dos veces a la vez.
+ */
+export const LANES: Record<string, JobType[]> = {
+  ia: ["write_prospect", "generate_messages", "generate_reports"],
+  mapa: ["import_region", "map_localities", "watch_openings"],
+  datos: ["collect_data", "enrich_open", "classify_phones", "season", "dedupe", "rescore", "daily_digest"],
+  notion: ["sync_notion", "notion_pull", "notion_fix"],
+  pipeline: ["daily_pipeline"],
+};
+
+/** Encola un trabajo; si ya hay uno igual esperando en la cola, devuelve ese (no se duplica). */
 export async function enqueue(type: JobType, payload: Record<string, unknown> = {}) {
-  return one<{ id: number }>(
-    "INSERT INTO jobs (type, payload) VALUES ($1, $2::jsonb) RETURNING id",
-    [type, JSON.stringify(payload)],
+  const body = JSON.stringify(payload);
+  const same = await one<{ id: number }>(
+    "SELECT id FROM jobs WHERE type = $1 AND payload = $2::jsonb AND status = 'queued' ORDER BY id LIMIT 1",
+    [type, body],
   );
+  if (same) return same;
+  return one<{ id: number }>("INSERT INTO jobs (type, payload) VALUES ($1, $2::jsonb) RETURNING id", [type, body]);
 }
 
 /** Toma el próximo trabajo disponible de forma segura entre varios workers. */
-export async function pickJob(): Promise<Job | null> {
+export async function pickJob(types?: JobType[]): Promise<Job | null> {
   return one<Job>(
     `UPDATE jobs SET status = 'running', attempts = attempts + 1, updated_at = now()
      WHERE id = (
        SELECT id FROM jobs WHERE status = 'queued' AND run_after <= now()
+         AND ($1::text[] IS NULL OR type = ANY($1::text[]))
        ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1)
      RETURNING id, type, payload, attempts, max_attempts`,
+    [types ?? null],
   );
 }
 

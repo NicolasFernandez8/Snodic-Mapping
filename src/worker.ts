@@ -4,7 +4,7 @@
  */
 import cron from "node-cron";
 import { config } from "./lib/config";
-import { enqueue, failJob, finishJob, pickJob, requeueStale } from "./lib/jobs";
+import { enqueue, failJob, finishJob, LANES, pickJob, requeueStale } from "./lib/jobs";
 import { runJob } from "./lib/agents/orchestrator";
 import { q } from "./lib/db";
 import { heartbeat } from "./lib/status";
@@ -38,27 +38,32 @@ async function loop() {
   const checkSchedules = () => runDueSchedules(new Date(), log).catch((e) => log(`Programados: ${e.message}`));
   await checkSchedules();
   setInterval(checkSchedules, 60000);
+  // Un bucle por carril: los carriles corren en paralelo y cada uno procesa de a un trabajo.
+  await Promise.all(Object.entries(LANES).map(([lane, types]) => laneLoop(lane, types)));
+}
+
+async function laneLoop(lane: string, types: (typeof LANES)[string]) {
   while (!stopping) {
-    const job = await pickJob().catch((e) => {
-      log(`Error tomando trabajo: ${e.message}`);
+    const job = await pickJob(types).catch((e) => {
+      log(`[${lane}] Error tomando trabajo: ${e.message}`);
       return null;
     });
     if (!job) {
-      await new Promise((r) => setTimeout(r, 5000));
+      await new Promise((r) => setTimeout(r, 3000));
       continue;
     }
-    log(`▶ ${job.type} #${job.id}`);
+    log(`▶ [${lane}] ${job.type} #${job.id}`);
     const lines: string[] = [];
     try {
       const result = await runJob(job, (m) => {
         lines.push(m);
-        log(`  ${m}`);
+        log(`  [${lane}] ${m}`);
       });
       await finishJob(job.id, { result, log: lines.slice(-200) });
-      log(`✔ ${job.type} #${job.id}`);
+      log(`✔ [${lane}] ${job.type} #${job.id}`);
     } catch (e) {
       await failJob(job, e as Error);
-      log(`✖ ${job.type} #${job.id}: ${(e as Error).message}`);
+      log(`✖ [${lane}] ${job.type} #${job.id}: ${(e as Error).message}`);
     }
   }
 }

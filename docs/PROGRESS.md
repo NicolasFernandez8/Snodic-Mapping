@@ -177,3 +177,10 @@ Migración `006_filters` (estrellas, cadena, problemas detectados, búsquedas gu
 
 ## 2026-11-11 · IA local: huecos + plantilla exacta
 - Con Ollama, el modelo recibe el mismo prompt de Snodic y devuelve solo los huecos en JSON con formato obligatorio (positivos, problema, solución, beneficio / 7 pasos x 2 ideas). La app arma el texto con la plantilla exacta: siempre "Hola!", etapa gratuita, pregunta de cierre y estructura del informe. Hasta 3 intentos y se queda con el mejor. Los prompts originales no cambian (`src/lib/ai/local-structured.ts`).
+
+## 2026-11-11 · Optimización de agentes
+- Worker por carriles en paralelo (ia, mapa, datos, notion, pipeline); cada carril de a un trabajo. Candados compartidos: placa de video (IA local de a uno) y OpenStreetMap (1 pedido/seg) en `src/lib/limits.ts`.
+- Un solo pedido a Nominatim por punto (dirección + barrio) con memoria.
+- Pipeline diario por fases: mapeo → (datos | datos abiertos+barrios | WhatsApp | aperturas | temporada) → duplicados+puntajes → (Notion | IA) → cuerpo Notion → prioridades.
+- IA: primero mejor puntaje, mínimo de reseñas configurable (Ajustes), excluye duplicados y no contactar. Al terminar un prospecto con IA local se sincroniza en Notion en el momento.
+- `enqueue` no duplica trabajos iguales en cola.

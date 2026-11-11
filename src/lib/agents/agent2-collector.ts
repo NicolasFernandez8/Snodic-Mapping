@@ -169,6 +169,18 @@ export function socialNetworks(p: { phone: string | null; email: string | null; 
   return out;
 }
 
+/** Crea o actualiza en Notion UN prospecto (datos + numeración si es nuevo). */
+export async function syncOneToNotion(id: number, notion: NotionClient) {
+  const r = await one<{ notion_page_id: string | null; duplicate_of: number | null }>(
+    "SELECT notion_page_id, duplicate_of FROM prospects WHERE id = $1",
+    [id],
+  );
+  if (!r || r.duplicate_of) return null;
+  const { pageId } = await notion.upsertProspect(r.notion_page_id, await notionFields(id));
+  await q("UPDATE prospects SET notion_page_id = $2, notion_synced_at = now() + interval '1 second' WHERE id = $1", [id, pageId]);
+  return pageId;
+}
+
 /** Crea o actualiza en Notion los prospectos con datos completados. */
 export async function syncProspectsToNotion(limit = 50, log: AgentLog = () => {}, notion = NotionClient.fromConfig()) {
   if (!notion) {

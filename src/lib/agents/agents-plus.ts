@@ -14,7 +14,7 @@ import { getSetting, one, q, setSetting } from "../db";
 import { logActivity, setStage } from "../crm";
 import { notify } from "../notify";
 import { phoneType, localSeasonDates, seasonAdvice } from "../extras";
-import { reverseAddress, reverseArea, spainHolidays, wikidataInfo } from "../enrich";
+import { reverseLookup, spainHolidays, wikidataInfo } from "../enrich";
 import { rescore } from "../score-store";
 import { activeNiche, saveDiscoveredLimited, sourceFromSettings } from "./agent1-mapper";
 import type { AgentLog, LocalityRow } from "./types";
@@ -189,8 +189,12 @@ export async function fillAreas(log: AgentLog = () => {}, limit = 60, fetchImpl?
   let found = 0;
   for (const r of rows) {
     try {
-      const area = await reverseArea(r.lat, r.lng, fetchImpl);
-      await q("UPDATE prospects SET area = $2, updated_at = now() WHERE id = $1", [r.id, area ?? ""]);
+      // Un solo pedido: barrio y, si falta, la dirección.
+      const { area, address } = await reverseLookup(r.lat, r.lng, fetchImpl);
+      await q(
+        "UPDATE prospects SET area = $2, address = COALESCE(address, $3), updated_at = now() WHERE id = $1",
+        [r.id, area ?? "", address],
+      );
       if (area) found++;
     } catch (e) {
       log(`${r.name}: ${(e as Error).message}`);
@@ -225,7 +229,9 @@ export async function enrichOpenData(log: AgentLog = () => {}, limit = 40, fetch
         }
       }
       if (!r.address && r.lat !== null && r.lng !== null) {
-        const a = await reverseAddress(r.lat, r.lng, fetchImpl);
+        // Mismo pedido trae el barrio: se guarda de paso (evita otra consulta en "Barrios").
+        const { address: a, area } = await reverseLookup(r.lat, r.lng, fetchImpl).catch(() => ({ address: null, area: null }));
+        await q("UPDATE prospects SET area = COALESCE(area, $2) WHERE id = $1", [r.id, area ?? ""]);
         if (a) {
           await q("UPDATE prospects SET address = $2, updated_at = now() WHERE id = $1 AND address IS NULL", [r.id, a]);
           addr++;

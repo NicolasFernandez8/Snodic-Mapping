@@ -889,4 +889,5 @@ export const EN: Record<string, string> = {
   "Saltar": "Skip",
   "Ctrl + Enter para guardar": "Ctrl + Enter to save",
   "Agentes 3 y 4 · IA local": "Agents 3 and 4 · Local AI",
+  "Reseñas mínimas para escribir": "Minimum reviews to write",
 };

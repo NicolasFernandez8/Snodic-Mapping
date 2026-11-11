@@ -309,3 +309,36 @@ describe("IA local: huecos + plantilla exacta", () => {
     expect(r.text.startsWith("Hola!")).toBe(true);
   });
 });
+
+describe("optimización: carriles y candados", () => {
+  it("cada tipo de trabajo está en exactamente un carril", async () => {
+    const fs = await import("node:fs");
+    const { LANES } = await import("../src/lib/jobs");
+    const src = fs.readFileSync("src/lib/jobs.ts", "utf8");
+    const union = src.slice(src.indexOf("export type JobType"), src.indexOf(";", src.indexOf("export type JobType")));
+    const types = [...union.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+    const all = Object.values(LANES).flat();
+    expect(new Set(all).size).toBe(all.length);
+    expect([...types].sort()).toEqual([...all].sort());
+  });
+  it("el candado de la placa de video corre de a uno y el límite de OSM espacia los pedidos", async () => {
+    const { Mutex, RateLimiter } = await import("../src/lib/limits");
+    const m = new Mutex();
+    let active = 0, max = 0;
+    await Promise.all([1, 2, 3].map(() => m.run(async () => { active++; max = Math.max(max, active); await new Promise((r) => setTimeout(r, 15)); active--; })));
+    expect(max).toBe(1);
+    const rl = new RateLimiter(40);
+    const times: number[] = [];
+    await Promise.all([1, 2, 3].map(() => rl.run(async () => { times.push(Date.now()); })));
+    expect(times[1] - times[0]).toBeGreaterThanOrEqual(35);
+    expect(times[2] - times[1]).toBeGreaterThanOrEqual(35);
+  });
+  it("un solo pedido a OpenStreetMap trae dirección y barrio, y no se repite el mismo punto", async () => {
+    const { reverseLookup } = await import("../src/lib/enrich");
+    let calls = 0;
+    const f = (async () => { calls++; return { ok: true, json: async () => ({ address: { road: "Calle Mayor", house_number: "5", postcode: "03002", city: "Alicante", suburb: "Centro" } }) }; }) as unknown as typeof fetch;
+    expect(await reverseLookup(38.3452, -0.4810, f)).toEqual({ address: "Calle Mayor 5, 03002 Alicante", area: "Centro" });
+    await reverseLookup(38.3452, -0.4810, f);
+    expect(calls).toBe(1);
+  });
+});

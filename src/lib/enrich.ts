@@ -6,6 +6,7 @@
  * `fetchImpl` se puede reemplazar en tests.
  */
 import { config } from "./config";
+import { nominatim } from "./limits";
 
 type F = typeof fetch;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -34,40 +35,56 @@ export async function wikidataInfo(qid: string, fetchImpl: F = fetch): Promise<W
   };
 }
 
-let lastNominatim = 0;
-
 /** Barrio a partir de la respuesta de Nominatim: barrio administrativo, después vecindario. */
 export function pickArea(a: Record<string, string> | undefined): string | null {
   if (!a) return null;
   return a.suburb ?? a.quarter ?? a.neighbourhood ?? a.city_district ?? null;
 }
 
-/** Barrio (San Blas, San Agustín…) de un punto, con la API oficial de OpenStreetMap (gratis, 1 pedido/seg). */
-export async function reverseArea(lat: number, lng: number, fetchImpl: F = fetch): Promise<string | null> {
-  const wait = 1100 - (Date.now() - lastNominatim);
-  if (wait > 0 && fetchImpl === fetch) await sleep(wait);
-  lastNominatim = Date.now();
-  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1&accept-language=es`;
-  const res = await fetchImpl(url, { headers: { "User-Agent": config().APP_USER_AGENT } });
-  if (!res.ok) throw new Error(`Nominatim respondió ${res.status}`);
-  const j = (await res.json()) as { address?: Record<string, string> };
-  return pickArea(j.address);
-}
-
-export async function reverseAddress(lat: number, lng: number, fetchImpl: F = fetch): Promise<string | null> {
-  const wait = 1100 - (Date.now() - lastNominatim);
-  if (wait > 0 && fetchImpl === fetch) await sleep(wait);
-  lastNominatim = Date.now();
-  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=es`;
-  const res = await fetchImpl(url, { headers: { "User-Agent": config().APP_USER_AGENT } });
-  if (!res.ok) return null;
-  const j = (await res.json()) as { address?: Record<string, string> };
-  const a = j.address;
+/** Dirección legible ("Calle Mayor 5, 03002 Alicante") a partir de la respuesta de Nominatim. */
+export function pickAddress(a: Record<string, string> | undefined): string | null {
   if (!a) return null;
   const street = [a.road ?? a.pedestrian ?? a.footway, a.house_number].filter(Boolean).join(" ");
   const city = a.city ?? a.town ?? a.village ?? a.municipality;
   const parts = [street, [a.postcode, city].filter(Boolean).join(" ")].filter((x) => x && x.trim());
   return parts.length ? parts.join(", ") : null;
+}
+
+export type ReverseResult = { address: string | null; area: string | null };
+const reverseCache = new Map<string, ReverseResult>();
+
+/**
+ * UN solo pedido a OpenStreetMap (Nominatim) por punto devuelve dirección y barrio.
+ * Respeta 1 pedido/seg aunque lo llamen varios trabajos a la vez, y recuerda los puntos ya consultados.
+ */
+export async function reverseLookup(lat: number, lng: number, fetchImpl: F = fetch): Promise<ReverseResult> {
+  const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  const hit = reverseCache.get(key);
+  if (hit) return hit;
+  const call = async () => {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=es`;
+    const res = await fetchImpl(url, { headers: { "User-Agent": config().APP_USER_AGENT } });
+    if (!res.ok) throw new Error(`Nominatim respondió ${res.status}`);
+    const j = (await res.json()) as { address?: Record<string, string> };
+    return { address: pickAddress(j.address), area: pickArea(j.address) };
+  };
+  const out = fetchImpl === fetch ? await nominatim.run(call) : await call();
+  if (reverseCache.size > 5000) reverseCache.clear();
+  reverseCache.set(key, out);
+  return out;
+}
+
+/** Barrio (San Blas, San Agustín…) de un punto. */
+export async function reverseArea(lat: number, lng: number, fetchImpl: F = fetch): Promise<string | null> {
+  return (await reverseLookup(lat, lng, fetchImpl)).area;
+}
+
+export async function reverseAddress(lat: number, lng: number, fetchImpl: F = fetch): Promise<string | null> {
+  try {
+    return (await reverseLookup(lat, lng, fetchImpl)).address;
+  } catch {
+    return null;
+  }
 }
 
 export async function spainHolidays(year: number, fetchImpl: F = fetch): Promise<{ day: string; name: string }[]> {

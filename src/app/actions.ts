@@ -193,6 +193,8 @@ export async function setAiModeAction(formData: FormData) {
   await requireUser("admin");
   const mode = String(formData.get("mode"));
   await setSetting("ai_mode", mode === "ollama" ? "ollama" : "manual");
+  const min = Number(formData.get("min_reviews_ai"));
+  if (Number.isFinite(min) && min >= 1) await setSetting("min_reviews_ai", Math.min(20, Math.round(min)));
   revalidatePath("/ajustes");
   revalidatePath("/agentes");
 }

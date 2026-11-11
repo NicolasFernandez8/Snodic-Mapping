@@ -24,7 +24,7 @@ export default async function Ajustes() {
     getSetting<number>("follow_up_max", 2),
     getSetting<string>("contact_whatsapp", ""),
   ]);
-  const [mode, ollama] = await Promise.all([aiMode(), ollamaStatus()]);
+  const [mode, ollama, minReviews] = await Promise.all([aiMode(), ollamaStatus(), getSetting<number>("min_reviews_ai", 2)]);
   const ollamaOk = ollama.reachable && ollama.hasModel;
 
   return (
@@ -60,6 +60,8 @@ export default async function Ajustes() {
         )}
         <form action={setAiModeAction} className="row" style={{ marginTop: 10 }}>
           <input type="hidden" name="mode" value={mode === "ollama" ? "manual" : "ollama"} />
+          <label htmlFor="min_reviews_ai" style={{ margin: 0 }}>{t("Reseñas mínimas para escribir")}</label>
+          <input id="min_reviews_ai" name="min_reviews_ai" type="number" min={1} max={20} defaultValue={minReviews} style={{ width: 70 }} />
           <button className={`btn ${mode === "ollama" ? "secondary" : ""} sm`} disabled={mode !== "ollama" && !ollamaOk}>
             {mode === "ollama" ? t("Volver a modo manual") : t("Usar IA local")}
           </button>

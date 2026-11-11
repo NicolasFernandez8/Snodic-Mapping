@@ -11,10 +11,11 @@ import { getLlm } from "../ai/llm";
 import { parseKmlSectors } from "../geo/kml-import";
 import type { Job } from "../jobs";
 import { importRegion, importSectors, mapNextLocalities, mapNextProspects, sourceFromSettings } from "./agent1-mapper";
-import { collectData, syncProspectsToNotion } from "./agent2-collector";
+import { collectData, syncOneToNotion, syncProspectsToNotion } from "./agent2-collector";
+import { NotionClient } from "../notion";
 import { pullFromNotion } from "./notion-pull";
 import { fixNotionNumbers } from "./notion-fix";
-import { advanceStatus, generateOutput, runWriterAgent, syncBodiesToNotion } from "./agent34-writer";
+import { advanceStatus, generateOutput, runWriterAgent, syncBodiesToNotion, writeBodyToNotion } from "./agent34-writer";
 import type { AgentLog } from "./types";
 
 export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog): Promise<unknown> {
@@ -55,7 +56,18 @@ export async function runJob(job: Pick<Job, "type" | "payload">, log: AgentLog):
       const r = await generateOutput(id, "report", llm);
       const status = await advanceStatus(id);
       log(`#${id}: mensaje ${m?.status}, informe ${r?.status} → ${status}`);
-      return { message: m?.status, report: r?.status, status };
+      // En el momento: ficha y cuerpo en Notion (si está activado), sin esperar al pipeline diario.
+      let notionPage: string | null = null;
+      const nc = (await getSetting<boolean>("notion_enabled", false)) ? NotionClient.fromConfig() : null;
+      if (nc) {
+        try {
+          notionPage = await syncOneToNotion(id, nc);
+          if (notionPage) await writeBodyToNotion(id, nc);
+        } catch (e) {
+          log(`Notion: ${(e as Error).message}`);
+        }
+      }
+      return { message: m?.status, report: r?.status, status, notion: !!notionPage };
     }
     case "notion_fix":
       if (!(await getSetting<boolean>("notion_enabled", false))) {
@@ -109,30 +121,44 @@ export async function dailyPipeline(log: AgentLog, quotaOverride?: number, prosp
   await step("agente1_mapeo", async () =>
     prospects ? mapNextProspects(prospects, await sourceFromSettings(), log) : mapNextLocalities(quota, await sourceFromSettings(), log),
   );
-  await step("agente2_datos", () => collectData(500, log));
-  await step("agente2_datos_abiertos", () => enrichOpenData(log, 40));
-  await step("agente2_barrios", () => fillAreas(log, 120));
-  // Mensual: vigilar aperturas y refrescar el calendario de temporada.
+  // Fase 2 (en paralelo): recopilar datos, datos abiertos + barrios (OpenStreetMap, 1 pedido/seg),
+  // WhatsApp móvil/fijo y, si toca, aperturas (semanal) y temporada (mensual).
   const daysSince = async (key: string) => {
     const at = await getSetting<string | null>(key, null);
     return at ? (Date.now() - new Date(at).getTime()) / 86400000 : Infinity;
   };
-  if ((await daysSince("watch_openings_at")) >= 7) {
-    await step("agente8_aperturas", () => watchOpenings(log));
-    await setSetting("watch_openings_at", new Date().toISOString());
-  }
-  if ((await daysSince("season_refreshed_at")) >= 30) await step("agente12_temporada", () => refreshSeason(log));
+  const [weekly, monthly] = [(await daysSince("watch_openings_at")) >= 7, (await daysSince("season_refreshed_at")) >= 30];
+  await Promise.all([
+    step("agente2_datos", () => collectData(500, log)),
+    step("agente2_datos_abiertos", async () => ({ datos: await enrichOpenData(log, 40), barrios: await fillAreas(log, 120) })),
+    step("agente6_whatsapp", () => classifyPhones(log)),
+    weekly
+      ? step("agente8_aperturas", async () => {
+          const r = await watchOpenings(log);
+          await setSetting("watch_openings_at", new Date().toISOString());
+          return r;
+        })
+      : Promise.resolve(),
+    monthly ? step("agente12_temporada", () => refreshSeason(log)) : Promise.resolve(),
+  ]);
+  // Fase 3: calidad antes de escribir o enviar: marcar duplicados y recalcular puntajes.
+  await step("agente5_duplicados", async () => ({ duplicados: await dedupeAll(), puntajes: await rescoreAll() }));
+  // Fase 4 (en paralelo): Notion (datos) mientras la IA escribe mensajes e informes (de mejor a peor puntaje).
   const notion = await getSetting<boolean>("notion_enabled", false);
-  if (notion) {
-    await step("agente2_notion", () => syncProspectsToNotion(500, log));
-    await step("notion_numerar", () => fixNotionNumbers(log));
-  }
-  else log("Notion desactivado en Ajustes: los datos quedan solo en la app");
-  if (auto) {
-    await step("agente3_mensajes", async () => runWriterAgent("message", await getLlm(), 200, log));
-    await step("agente4_informes", async () => runWriterAgent("report", await getLlm(), 200, log));
-    if (notion) await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
-  }
+  if (!notion) log("Notion desactivado en Ajustes: los datos quedan solo en la app");
+  await Promise.all([
+    notion
+      ? step("agente2_notion", async () => ({ datos: await syncProspectsToNotion(500, log), numeros: await fixNotionNumbers(log) }))
+      : Promise.resolve(),
+    auto
+      ? step("agentes3y4_ia", async () => {
+          const llm = await getLlm();
+          return { mensajes: await runWriterAgent("message", llm, 200, log), informes: await runWriterAgent("report", llm, 200, log) };
+        })
+      : Promise.resolve(),
+  ]);
+  // Fase 5: con los textos listos, el cuerpo de las páginas de Notion.
+  if (notion && auto) await step("notion_cuerpo", () => syncBodiesToNotion(500, log));
   await step("agente7_prioridades", () => sendDigest(log));
   await step("resumen_n8n", async () => {
     const s = await one<Record<string, number>>(`SELECT

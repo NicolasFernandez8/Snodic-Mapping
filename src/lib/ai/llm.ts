@@ -7,6 +7,7 @@
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
+import { gpu } from "../limits";
 
 export type LlmResult =
   | { mode: "anthropic" | "ollama"; text: string; model: string }
@@ -54,6 +55,10 @@ export class OllamaLlm implements Llm {
     private numCtx = 8192,
   ) {}
   async complete(prompt: string, maxTokens: number): Promise<LlmResult> {
+    return gpu.run(() => this.completeNow(prompt, maxTokens));
+  }
+
+  private async completeNow(prompt: string, maxTokens: number): Promise<LlmResult> {
     const res = await this.fetchImpl(`${this.baseUrl.replace(/\/$/, "")}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -75,6 +80,10 @@ export class OllamaLlm implements Llm {
 
   /** Respuesta con formato obligatorio (JSON Schema): Ollama garantiza que respete los campos. */
   async completeJson(prompt: string, schema: object, maxTokens: number, temperature = 0.4): Promise<{ data: unknown; model: string }> {
+    return gpu.run(() => this.completeJsonNow(prompt, schema, maxTokens, temperature));
+  }
+
+  private async completeJsonNow(prompt: string, schema: object, maxTokens: number, temperature: number): Promise<{ data: unknown; model: string }> {
     const res = await this.fetchImpl(`${this.baseUrl.replace(/\/$/, "")}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

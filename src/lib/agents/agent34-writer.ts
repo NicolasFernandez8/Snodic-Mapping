@@ -7,7 +7,7 @@
  *   (2 párrafos vacíos)
  *   [informe del agente 4]
  */
-import { one, q } from "../db";
+import { one, q, getSetting } from "../db";
 import { messagePrompt, reportPrompt, type PromptInput } from "../ai/prompts";
 import { validateMessage, validateReport } from "../ai/validate";
 import { ManualLlm, OllamaLlm, type Llm } from "../ai/llm";
@@ -157,13 +157,19 @@ export async function runWriterAgent(
   log: AgentLog = () => {},
 ): Promise<{ processed: number } & Partial<Record<OutputRow["status"], number>>> {
   const fromStatus = kind === "message" ? "enriched" : "message_ready";
+  const manual = llm instanceof ManualLlm;
+  // Calidad antes que cantidad: con IA real solo se escribe para quien tiene reseñas suficientes,
+  // no está duplicado ni en "no contactar", y se empieza por los de mejor puntaje.
+  const minReviews = manual ? 0 : await getSetting<number>("min_reviews_ai", 2);
   const rows = await q<{ id: number; name: string }>(
     `SELECT p.id, p.name FROM prospects p
-     WHERE p.status = $1 AND NOT EXISTS (
-       SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = $2 AND o.status = ANY($4::text[]))
-     ORDER BY p.id LIMIT $3`,
+     WHERE p.status = $1 AND p.duplicate_of IS NULL AND NOT p.do_not_contact
+       AND (SELECT count(*) FROM reviews r WHERE r.prospect_id = p.id) >= $5
+       AND NOT EXISTS (
+         SELECT 1 FROM outputs o WHERE o.prospect_id = p.id AND o.kind = $2 AND o.status = ANY($4::text[]))
+     ORDER BY p.score DESC NULLS LAST, p.id LIMIT $3`,
     // En modo manual no se repiten los prompts pendientes; con IA real sí se procesan.
-    [fromStatus, kind, limit, llm instanceof ManualLlm ? ["ready", "needs_review", "pending_manual"] : ["ready", "needs_review"]],
+    [fromStatus, kind, limit, manual ? ["ready", "needs_review", "pending_manual"] : ["ready", "needs_review"], minReviews],
   );
   const counts: Partial<Record<OutputRow["status"], number>> = {};
   for (const r of rows) {
